@@ -1,15 +1,24 @@
+
+"use client";
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Star, MapPin } from 'lucide-react';
-import { allDishes } from '@/lib/data';
+import { allDishes, allCooks } from '@/lib/data';
 import { formatPrice } from '@/lib/utils';
-
-const availableDishes = allDishes.slice(0, 6);
+import { useMemo } from 'react';
 
 export default function Home() {
+
+  const availableDishes = useMemo(() => {
+    const availableCookIds = allCooks.filter(c => c.isAvailable).map(c => c.id);
+    return allDishes.filter(dish => availableCookIds.includes(dish.cookId)).slice(0, 6);
+  }, []);
+
+
   return (
     <main className="flex-1 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">

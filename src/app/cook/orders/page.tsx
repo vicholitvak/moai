@@ -29,11 +29,7 @@ import { DriverTrackingMap } from "@/components/driver-tracking-map";
 
 
 // In a real app, this would be filtered by the logged-in cook's ID
-const cookId = "Chef Isabella";
-const cookOrders = allOrders.filter(order => {
-    const dish = allDishes.find(d => d.id === order.dishId);
-    return dish?.cook === cookId;
-});
+const CURRENT_COOK_ID = 'cook-isabella';
 
 const statusProgression: Record<OrderStatus, OrderStatus | null> = {
   "Order Placed": "Preparing Food",
@@ -45,9 +41,14 @@ const statusProgression: Record<OrderStatus, OrderStatus | null> = {
 
 
 export default function CookOrdersPage() {
-  const [orders, setOrders] = useState<Order[]>(cookOrders);
+  const [orders, setOrders] = useState<Order[]>(allOrders);
   const [prepTimes, setPrepTimes] = useState<Record<string, EstimatePrepStartTimeOutput | null>>({});
   const [loadingTimes, setLoadingTimes] = useState<Record<string, boolean>>({});
+
+  const cookOrders = orders.filter(order => {
+    const dish = allDishes.find(d => d.id === order.dishId);
+    return dish?.cookId === CURRENT_COOK_ID;
+  });
 
   const handleUpdateStatus = (orderId: string) => {
     const updatedOrders = orders.map((order) => {
@@ -102,7 +103,7 @@ export default function CookOrdersPage() {
     }
   }
 
-  const activeOrders = orders.filter(o => o.status !== 'Delivered' && o.status !== 'Out for Delivery');
+  const activeOrders = cookOrders.filter(o => o.status !== 'Delivered' && o.status !== 'Out for Delivery');
 
   return (
     <main className="flex-1 p-4 md:p-8">

@@ -29,9 +29,11 @@ import Image from "next/image";
 import { allDishes, type Dish as DishType } from "@/lib/data";
 import { formatPrice } from "@/lib/utils";
 
+// In a real app, this would be the logged-in cook's ID
+const CURRENT_COOK_ID = 'cook-isabella';
 
 export default function CookDishesPage() {
-  const [dishes, setDishes] = useState<DishType[]>(allDishes.filter(d => d.cook === 'Chef Isabella'));
+  const [dishes, setDishes] = useState<DishType[]>(allDishes.filter(d => d.cookId === CURRENT_COOK_ID));
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingDish, setEditingDish] = useState<DishType | null>(null);
 
@@ -59,6 +61,7 @@ export default function CookDishesPage() {
       price: parseInt(formData.get('price') as string, 10),
       image: editingDish?.image || 'https://placehold.co/600x400.png',
       hint: editingDish?.hint || 'food placeholder',
+      prepTimeMinutes: 20, // Placeholder
     };
 
     if (editingDish) {
@@ -73,6 +76,7 @@ export default function CookDishesPage() {
       const newDish: DishType = {
         id: (allDishes.length + 1).toString(),
         cook: "Chef Isabella", // Assuming the current cook
+        cookId: CURRENT_COOK_ID,
         rating: 0,
         reviews: 0,
         tags: [],
@@ -84,7 +88,7 @@ export default function CookDishesPage() {
     }
 
     // Refresh local state to reflect changes from the central array
-    setDishes([...allDishes.filter(d => d.cook === 'Chef Isabella')]);
+    setDishes([...allDishes.filter(d => d.cookId === CURRENT_COOK_ID)]);
     handleDialogClose();
   };
 

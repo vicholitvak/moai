@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -8,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Star, MapPin } from 'lucide-react';
-import { allDishes } from '@/lib/data';
+import { allDishes, allCooks } from '@/lib/data';
 import type { Dish } from '@/lib/data';
 import { formatPrice } from '@/lib/utils';
 
@@ -22,7 +23,8 @@ export default function ViewAllDishesPage() {
   }, []);
 
   const sortedAndFilteredDishes = useMemo(() => {
-    let dishes: Dish[] = [...allDishes];
+    const availableCookIds = allCooks.filter(c => c.isAvailable).map(c => c.id);
+    let dishes: Dish[] = allDishes.filter(dish => availableCookIds.includes(dish.cookId));
 
     // Filter
     if (filterCategory !== 'all') {

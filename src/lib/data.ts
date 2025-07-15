@@ -10,7 +10,8 @@ export interface Drink {
 export interface Dish {
     id: string;
     name: string;
-    cook: string;
+    cook: string; // The name of the cook
+    cookId: string; // The ID of the cook
     rating: number;
     reviews: number;
     price: number; // Price in CLP
@@ -39,6 +40,16 @@ export interface Order {
     driverName?: string;
 }
 
+export interface Cook {
+    id: string;
+    name: string;
+    isAvailable: boolean;
+    location: string;
+    specialties: string[];
+    bio: string;
+    availability: string;
+}
+
 
 // Start with no orders. They will be created dynamically.
 export let allOrders: Order[] = [];
@@ -50,12 +61,51 @@ export function findOrder(orderId?: string | null): Order | undefined {
     return allOrders.find(o => o.id === orderId);
 }
 
+export const allCooks: Cook[] = [
+    {
+        id: 'cook-isabella',
+        name: 'Chef Isabella',
+        isAvailable: true,
+        location: '123 Cook St, Santiago',
+        specialties: ['Authentic Italian', 'Handmade Pasta', 'Pizza'],
+        bio: "With over 15 years of experience in traditional Italian kitchens, I bring the taste of Italy to your home. My passion is fresh, locally-sourced ingredients and classic recipes passed down through generations.",
+        availability: "Weekdays 6 PM - 10 PM, Weekends 12 PM - 11 PM",
+    },
+    {
+        id: 'cook-elena',
+        name: 'Doña Elena',
+        isAvailable: true,
+        location: '456 Chilean Way, Santiago',
+        specialties: [],
+        bio: '',
+        availability: ''
+    },
+    {
+        id: 'cook-lucho',
+        name: 'Maestro Lucho',
+        isAvailable: true,
+        location: '789 Campo Ave, Santiago',
+        specialties: [],
+        bio: '',
+        availability: ''
+    },
+     {
+        id: 'cook-joe',
+        name: 'Grillmaster Joe',
+        isAvailable: false,
+        location: '321 Burger Blvd, Santiago',
+        specialties: [],
+        bio: '',
+        availability: ''
+    },
+];
 
 export const allDishes: Dish[] = [
     {
       id: '1',
       name: 'Empanadas de Pino',
       cook: 'Doña Elena',
+      cookId: 'cook-elena',
       rating: 4.9,
       reviews: 152,
       price: 2500,
@@ -76,6 +126,7 @@ export const allDishes: Dish[] = [
       id: '2',
       name: 'Pastel de Choclo',
       cook: 'Maestro Lucho',
+      cookId: 'cook-lucho',
       rating: 4.8,
       reviews: 112,
       price: 7500,
@@ -91,6 +142,7 @@ export const allDishes: Dish[] = [
       id: '7',
       name: 'Spaghetti Carbonara',
       cook: 'Chef Isabella',
+      cookId: 'cook-isabella',
       rating: 4.9,
       reviews: 132,
       price: 12500,
@@ -110,6 +162,7 @@ export const allDishes: Dish[] = [
       id: '8',
       name: 'Gourmet Burger & Fries',
       cook: 'Grillmaster Joe',
+      cookId: 'cook-joe',
       rating: 4.8,
       reviews: 98,
       price: 11000,
@@ -125,6 +178,7 @@ export const allDishes: Dish[] = [
       id: '3',
       name: 'Cazuela de Vacuno',
       cook: 'Doña Elena',
+      cookId: 'cook-elena',
       rating: 4.9,
       reviews: 180,
       price: 6900,
@@ -141,69 +195,10 @@ export const allDishes: Dish[] = [
       ]
     },
     {
-      id: '9',
-      name: 'Fresh Salmon Poke Bowl',
-      cook: 'Sushi Sensei Kenji',
-      rating: 4.9,
-      reviews: 150,
-      price: 13500,
-      image: 'https://images.unsplash.com/photo-1552561546-b3684de85a88?q=80&w=600',
-      hint: 'poke bowl healthy',
-      tags: ['Healthy', 'Hawaiian'],
-      distance: 3.2,
-      description: 'A vibrant bowl of sushi rice, fresh salmon, avocado, edamame, and a delicious sesame-soy dressing.',
-      chefDescription: 'Freshness is everything. I source my salmon daily from the market to ensure the highest quality. Each bowl is a balance of flavors and textures, designed to be both healthy and incredibly satisfying.',
-      prepTimeMinutes: 12,
-    },
-    {
-      id: '4',
-      name: 'Lentejas Veganas',
-      cook: 'Cocina de la Pacha',
-      rating: 4.7,
-      reviews: 95,
-      price: 5500,
-      image: 'https://images.unsplash.com/photo-1599921671973-424d4d485f83?q=80&w=600',
-      hint: 'lentejas vegan soup',
-      tags: ['Vegano', 'Chilena'],
-      distance: 4.2,
-      description: "Un plato de lentejas lleno de sabor, preparado con arroz, zapallo, y un sofrito de verduras. 100% vegano.",
-      chefDescription: "Mi cocina celebra los sabores de la tierra. Estas lentejas son mi versión de un clásico de invierno, pero sin productos animales. El secreto es el sofrito y un toque de merkén para darles un gustito ahumado. Son nutritivas, deliciosas y hechas con mucho amor y respeto por nuestros ingredientes.",
-      prepTimeMinutes: 35,
-    },
-    {
-      id: '10',
-      name: 'Vegan Pad Thai',
-      cook: 'Plant-based Queen Anya',
-      rating: 4.7,
-      reviews: 85,
-      price: 11500,
-      image: 'https://images.unsplash.com/photo-1623861212863-74d13e3821ce?q=80&w=600',
-      hint: 'pad thai vegan',
-      tags: ['Vegan', 'Thai'],
-      distance: 4.5,
-      description: 'Classic Pad Thai with rice noodles, tofu, bean sprouts, and peanuts in a tangy tamarind sauce, all plant-based.',
-      chefDescription: 'I want to prove that vegan food can be just as exciting and flavorful as any other cuisine. My Pad Thai is a burst of authentic Thai flavors—sweet, sour, and savory. You won’t miss the meat, I promise!',
-      prepTimeMinutes: 15,
-    },
-    {
-      id: '5',
-      name: 'Porotos Granados',
-      cook: 'Maestro Lucho',
-      rating: 4.8,
-      reviews: 130,
-      price: 6500,
-      image: 'https://images.unsplash.com/photo-1688001220268-c112264a6358?q=80&w=600',
-      hint: 'porotos granados chilean food',
-      tags: ['Chilena', 'Vegetariano'],
-      distance: 3.5,
-      description: "El guiso veraniego por excelencia. Porotos frescos, maíz, zapallo y albahaca, todo cocinado lentamente.",
-      chefDescription: "Este plato es el sabor del verano chileno. Uso los porotos granados más frescos que encuentro en la feria y choclo tierno para darle el dulzor justo. La albahaca fresca al final le da el toque perfecto. Es un plato simple, honesto y lleno de tradición.",
-      prepTimeMinutes: 50,
-    },
-    {
       id: '11',
       name: 'Margherita Pizza',
       cook: 'Chef Isabella',
+      cookId: 'cook-isabella',
       rating: 4.8,
       reviews: 210,
       price: 10500,
@@ -218,7 +213,8 @@ export const allDishes: Dish[] = [
     {
       id: '6',
       name: 'Completo Italiano',
-      cook: 'El Rey del Completo',
+      cook: 'Maestro Lucho',
+      cookId: 'cook-lucho',
       rating: 4.7,
       reviews: 250,
       price: 3500,
@@ -234,10 +230,11 @@ export const allDishes: Dish[] = [
       id: '12',
       name: 'BBQ Pulled Pork Sandwich',
       cook: 'Grillmaster Joe',
+      cookId: 'cook-joe',
       rating: 4.7,
       reviews: 76,
       price: 12000,
-      image: 'https://images.unsplash.com/photo-1599974511283-7a834d6199b1?q=80&w=600',
+      image: 'https://images.unsplash.com/photo-1599974511283-7a834d4d6199b1?q=80&w=600',
       hint: 'bbq sandwich pork',
       tags: ['American', 'BBQ'],
       distance: 1.8,
