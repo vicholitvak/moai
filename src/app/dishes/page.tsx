@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Star, MapPin } from 'lucide-react';
 import { allDishes } from '@/lib/data';
 import type { Dish } from '@/lib/data';
+import { formatPrice } from '@/lib/utils';
 
 export default function ViewAllDishesPage() {
   const [sortOption, setSortOption] = useState('distance');
@@ -37,10 +38,10 @@ export default function ViewAllDishesPage() {
         dishes.sort((a, b) => b.rating - a.rating);
         break;
       case 'price_asc':
-        dishes.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+        dishes.sort((a, b) => a.price - b.price);
         break;
       case 'price_desc':
-        dishes.sort((a, b) => parseFloat(b.price) - parseFloat(a.price));
+        dishes.sort((a, b) => b.price - a.price);
         break;
     }
 
@@ -123,7 +124,7 @@ export default function ViewAllDishesPage() {
                 </CardContent>
                 <CardFooter className="p-4 pt-0 mt-auto">
                   <div className="flex justify-between items-center w-full">
-                    <p className="text-xl font-semibold text-primary">${dish.price}</p>
+                    <p className="text-xl font-semibold text-primary">{formatPrice(dish.price)}</p>
                     <Button>Order Now</Button>
                   </div>
                 </CardFooter>

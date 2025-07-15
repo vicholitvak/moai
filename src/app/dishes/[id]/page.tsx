@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Star, ChefHat, MapPin, GlassWater } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { formatPrice } from '@/lib/utils';
 
 export function generateStaticParams() {
   return allDishes.map((dish) => ({
@@ -60,7 +61,7 @@ export default function DishDetailPage({ params }: { params: { id: string } }) {
               </div>
             </div>
 
-            <p className="text-3xl font-bold text-primary">${dish.price}</p>
+            <p className="text-3xl font-bold text-primary">{formatPrice(dish.price)}</p>
             
             <p className="text-muted-foreground">{dish.description}</p>
 
@@ -91,7 +92,7 @@ export default function DishDetailPage({ params }: { params: { id: string } }) {
                         <Card key={drink.name} className="shadow-md">
                             <CardContent className="p-4 flex justify-between items-center">
                                 <p className="font-semibold">{drink.name}</p>
-                                <p className="text-primary font-bold">${drink.price}</p>
+                                <p className="text-primary font-bold">{formatPrice(drink.price)}</p>
                             </CardContent>
                         </Card>
                     ))}

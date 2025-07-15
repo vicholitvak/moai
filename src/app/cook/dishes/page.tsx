@@ -27,6 +27,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PlusCircle } from "lucide-react";
 import Image from "next/image";
 import { allDishes, type Dish as DishType } from "@/lib/data";
+import { formatPrice } from "@/lib/utils";
 
 
 export default function CookDishesPage() {
@@ -55,7 +56,7 @@ export default function CookDishesPage() {
     const newDishData = {
       name: formData.get('dish-name') as string,
       description: formData.get('description') as string,
-      price: formData.get('price') as string,
+      price: parseInt(formData.get('price') as string, 10),
       image: editingDish?.image || 'https://placehold.co/600x400.png',
       hint: editingDish?.hint || 'food placeholder',
     };
@@ -117,8 +118,8 @@ export default function CookDishesPage() {
                   <Textarea id="description" name="description" defaultValue={editingDish?.description} className="col-span-3" />
                 </div>
                  <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="price" className="text-right">Price ($)</Label>
-                  <Input id="price" name="price" type="number" step="0.01" defaultValue={editingDish?.price} className="col-span-3" />
+                  <Label htmlFor="price" className="text-right">Price (CLP)</Label>
+                  <Input id="price" name="price" type="number" step="1" defaultValue={editingDish?.price} className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="picture" className="text-right">
@@ -156,7 +157,7 @@ export default function CookDishesPage() {
               </CardContent>
               <CardFooter className="p-4 pt-0 mt-auto">
                 <div className="flex justify-between items-center w-full">
-                  <p className="text-lg font-semibold text-primary">${dish.price}</p>
+                  <p className="text-lg font-semibold text-primary">{formatPrice(dish.price)}</p>
                   <Button variant="outline" onClick={() => handleEditClick(dish)}>Edit</Button>
                 </div>
               </CardFooter>

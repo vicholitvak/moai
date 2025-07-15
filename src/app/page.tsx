@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Star, MapPin } from 'lucide-react';
 import { allDishes } from '@/lib/data';
+import { formatPrice } from '@/lib/utils';
 
 const availableDishes = allDishes.slice(0, 6);
 
@@ -58,7 +59,7 @@ export default function Home() {
                 </CardContent>
                 <CardFooter className="p-4 pt-0 mt-auto">
                   <div className="flex justify-between items-center w-full">
-                    <p className="text-xl font-semibold text-primary">${dish.price}</p>
+                    <p className="text-xl font-semibold text-primary">{formatPrice(dish.price)}</p>
                     <Button>Order Now</Button>
                   </div>
                 </CardFooter>
