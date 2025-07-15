@@ -1,7 +1,7 @@
 
 "use client";
 
-import { notFound } from 'next/navigation';
+import { notFound, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { allDishes } from '@/lib/data';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,10 +12,13 @@ import { Separator } from '@/components/ui/separator';
 import { formatPrice } from '@/lib/utils';
 import { Minus, Plus } from 'lucide-react';
 import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function CheckoutPage({ params }: { params: { id: string } }) {
   const dish = allDishes.find((d) => d.id === params.id);
   const [quantity, setQuantity] = useState(1);
+  const { toast } = useToast();
+  const router = useRouter();
 
   if (!dish) {
     notFound();
@@ -23,6 +26,14 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
 
   const handleQuantityChange = (amount: number) => {
     setQuantity(prev => Math.max(1, prev + amount));
+  }
+
+  const handlePlaceOrder = () => {
+    toast({
+      title: "Order Placed!",
+      description: `Your order for ${quantity}x ${dish.name} is on its way.`,
+    });
+    router.push('/');
   }
 
   const subtotal = dish.price * quantity;
@@ -120,7 +131,7 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
                         <Label htmlFor="card">Credit Card</Label>
                         <Input id="card" placeholder="•••• •••• •••• 4242" />
                     </div>
-                    <Button size="lg" className="w-full">Place Order</Button>
+                    <Button size="lg" className="w-full" onClick={handlePlaceOrder}>Place Order</Button>
                 </CardContent>
              </Card>
           </div>
