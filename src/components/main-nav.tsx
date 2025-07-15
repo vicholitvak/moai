@@ -77,13 +77,16 @@ export function MainNav() {
     <SidebarMenu className="flex-1 p-2">
       {mainMenuItems.map((item) => (
         <SidebarMenuItem key={item.href}>
-          <Link href={item.href} legacyBehavior passHref>
+          <Link href={item.href}>
             <SidebarMenuButton
+              asChild
               isActive={pathname === item.href}
               tooltip={item.label}
             >
-              <item.icon />
-              <span>{item.label}</span>
+              <span>
+                <item.icon />
+                <span>{item.label}</span>
+              </span>
             </SidebarMenuButton>
           </Link>
         </SidebarMenuItem>
@@ -98,13 +101,16 @@ export function MainNav() {
         </SidebarGroupLabel>
         {cookMenuItems.map((item) => (
             <SidebarMenuItem key={item.href}>
-            <Link href={item.href} legacyBehavior passHref>
+            <Link href={item.href}>
                 <SidebarMenuButton
+                asChild
                 isActive={pathname === item.href}
                 tooltip={item.label}
                 >
-                <item.icon />
-                <span>{item.label}</span>
+                <span>
+                  <item.icon />
+                  <span>{item.label}</span>
+                </span>
                 </SidebarMenuButton>
             </Link>
             </SidebarMenuItem>
@@ -120,13 +126,16 @@ export function MainNav() {
         </SidebarGroupLabel>
         {driverMenuItems.map((item) => (
             <SidebarMenuItem key={item.href}>
-            <Link href={item.href} legacyBehavior passHref>
+            <Link href={item.href}>
                 <SidebarMenuButton
+                asChild
                 isActive={pathname === item.href}
                 tooltip={item.label}
                 >
-                <item.icon />
-                <span>{item.label}</span>
+                <span>
+                  <item.icon />
+                  <span>{item.label}</span>
+                </span>
                 </SidebarMenuButton>
             </Link>
             </SidebarMenuItem>
@@ -142,13 +151,16 @@ export function MainNav() {
         </SidebarGroupLabel>
         {userMenuItems.map((item) => (
             <SidebarMenuItem key={item.href}>
-            <Link href={item.href} legacyBehavior passHref>
+            <Link href={item.href}>
                 <SidebarMenuButton
+                asChild
                 isActive={pathname === item.href}
                 tooltip={item.label}
                 >
-                <item.icon />
-                <span>{item.label}</span>
+                <span>
+                  <item.icon />
+                  <span>{item.label}</span>
+                </span>
                 </SidebarMenuButton>
             </Link>
             </SidebarMenuItem>
