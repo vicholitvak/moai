@@ -1,6 +1,11 @@
 // This file contains the static data for the app.
 // In a real application, this data would likely be fetched from a database.
 
+export interface Drink {
+    name: string;
+    price: string;
+}
+
 export interface Dish {
     id: string;
     name: string;
@@ -14,6 +19,7 @@ export interface Dish {
     distance: number;
     description: string;
     chefDescription: string;
+    suggestedDrinks?: Drink[];
 }
 
 export const allDishes: Dish[] = [
@@ -30,6 +36,11 @@ export const allDishes: Dish[] = [
       distance: 2.5,
       description: "A classic Roman pasta dish with creamy egg sauce, pancetta, and pecorino cheese.",
       chefDescription: "Experience a true taste of Rome with my authentic Carbonara. I use only traditional guanciale, fresh eggs from a local farm, and Pecorino Romano, tossed with spaghetti cooked to perfect al dente. It's a simple dish, but one where quality makes all the difference. This is the recipe my nonna taught me, and it's a plate full of love.",
+      suggestedDrinks: [
+          { name: 'Chianti Classico', price: '7.50' },
+          { name: 'Pinot Grigio', price: '6.00' },
+          { name: 'San Pellegrino', price: '3.00' },
+      ]
     },
     {
       id: '2',
@@ -44,6 +55,11 @@ export const allDishes: Dish[] = [
       distance: 1.8,
       description: "A juicy, handcrafted burger with all the classic fixings and a side of crispy, golden fries.",
       chefDescription: "This isn't just a burger; it's the culmination of my quest for the perfect patty. I grind my own blend of brisket and chuck for a rich, beefy flavor, sear it on a cast-iron skillet for that unbeatable crust, and nestle it in a toasted brioche bun with sharp cheddar, crisp lettuce, and my secret sauce. Get ready for the best burger of your life.",
+      suggestedDrinks: [
+          { name: 'Craft IPA', price: '8.00' },
+          { name: 'Classic Coca-Cola', price: '2.50' },
+          { name: 'Chocolate Milkshake', price: '6.50' },
+      ]
     },
     {
       id: '3',
@@ -72,6 +88,11 @@ export const allDishes: Dish[] = [
       distance: 4.5,
       description: "A delicious plant-based take on the classic Thai noodle dish, full of flavor and fresh vegetables.",
       chefDescription: "Who says you need meat for an flavor explosion? My Pad Thai is a testament to the power of plants. I stir-fry rice noodles with crispy tofu, fresh bean sprouts, and a colorful array of vegetables in a sweet, sour, and savory tamarind sauce. Topped with crushed peanuts and a wedge of lime, it's a vibrant dish that will delight your senses.",
+       suggestedDrinks: [
+          { name: 'Thai Iced Tea', price: '4.00' },
+          { name: 'Lemongrass Cooler', price: '3.50' },
+          { name: 'Singha Beer', price: '5.00' },
+      ]
     },
     {
       id: '5',
