@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { allOrders, allDishes, type Order, type OrderStatus, type Dish } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,24 +37,24 @@ export default function FindDeliveriesPage() {
   const [loadingDistances, setLoadingDistances] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
 
+  const getDishForOrder = (order: Order): Dish | undefined => {
+    return allDishes.find(dish => dish.id === order.dishId);
+  }
+
   useEffect(() => {
     // Fetch distances for available orders when the component mounts
     const availableOrders = orders.filter(o => o.status === "Ready for Pickup" && !o.driverId);
     availableOrders.forEach(order => {
-      if (!distances[order.id] && !loadingDistances[order.id]) {
+      if (distances[order.id] === undefined && !loadingDistances[order.id]) {
         handleEstimateDistance(order);
       }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orders]);
 
-  const availableDeliveries = orders.filter(o => o.status === "Ready for Pickup" && !o.driverId);
+
   const myDeliveries = orders.filter(o => o.driverId === 'driver-123' && o.status !== 'Delivered');
   const hasActiveDelivery = myDeliveries.length > 0;
-
-  const getDishForOrder = (order: Order): Dish | undefined => {
-    return allDishes.find(dish => dish.id === order.dishId);
-  }
   
   const getCookForDish = (dish: Dish): {name: string, location: string} => {
     // In a real app, this would look up the cook's profile
@@ -132,6 +132,30 @@ export default function FindDeliveriesPage() {
       });
     }
   }
+
+  const sortedAvailableDeliveries = useMemo(() => {
+    const available = orders.filter(o => o.status === "Ready for Pickup" && !o.driverId);
+    
+    return available.sort((a, b) => {
+      const dishA = getDishForOrder(a);
+      const dishB = getDishForOrder(b);
+      const distanceA = distances[a.id];
+      const distanceB = distances[b.id];
+
+      // If data is missing, keep original order or push to end
+      if (!dishA || !dishB) return 0;
+      if (distanceA === undefined || distanceB === undefined || distanceA === null || distanceB === null) return 0;
+
+      const earningsA = dishA.price * a.quantity * DRIVER_CUT;
+      const earningsB = dishB.price * b.quantity * DRIVER_CUT;
+      
+      // Handle division by zero for very short distances
+      const scoreA = distanceA > 0 ? earningsA / distanceA : Infinity;
+      const scoreB = distanceB > 0 ? earningsB / distanceB : Infinity;
+
+      return scoreB - scoreA; // Sort descending by score
+    });
+  }, [orders, distances]);
   
   const renderOrderCard = (order: Order) => {
     const dish = getDishForOrder(order);
@@ -256,8 +280,8 @@ export default function FindDeliveriesPage() {
               Available Deliveries
             </h2>
             <div className="space-y-6">
-              {availableDeliveries.length > 0 ? (
-                availableDeliveries.map(order => renderOrderCard(order))
+              {sortedAvailableDeliveries.length > 0 ? (
+                sortedAvailableDeliveries.map(order => renderOrderCard(order))
               ) : (
                 <Card className="text-center p-8">
                   <CardContent>
@@ -290,4 +314,3 @@ export default function FindDeliveriesPage() {
     </main>
   );
 }
-
