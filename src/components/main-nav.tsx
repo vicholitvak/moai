@@ -21,6 +21,7 @@ import {
   Bike,
   PieChart,
   Package,
+  ListOrdered,
 } from "lucide-react";
 
 const mainMenuItems = [
@@ -37,6 +38,11 @@ const mainMenuItems = [
 ];
 
 const cookMenuItems = [
+   {
+    href: "/cook/orders",
+    icon: ListOrdered,
+    label: "Orders",
+  },
   {
     href: "/cook/dishes",
     icon: UtensilsCrossed,
@@ -69,7 +75,7 @@ const userMenuItems = [
     label: "My Profile",
   },
   {
-    href: "/order-status/1", // Default to a sample order
+    href: "/order-status/xyz-123", // Default to a sample order
     icon: Package,
     label: "My Orders",
   },
@@ -83,16 +89,16 @@ export function MainNav() {
     <SidebarMenu className="flex-1 p-2">
       {mainMenuItems.map((item) => (
         <SidebarMenuItem key={item.href}>
-          <SidebarMenuButton
-            asChild
-            isActive={pathname === item.href}
-            tooltip={item.label}
-          >
-            <Link href={item.href}>
-              <item.icon />
-              <span>{item.label}</span>
-            </Link>
-          </SidebarMenuButton>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname === item.href}
+              tooltip={item.label}
+            >
+              <Link href={item.href}>
+                <item.icon />
+                <span>{item.label}</span>
+              </Link>
+            </SidebarMenuButton>
         </SidebarMenuItem>
       ))}
       

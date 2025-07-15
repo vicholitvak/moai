@@ -22,6 +22,17 @@ export interface Dish {
     suggestedDrinks?: Drink[];
 }
 
+export type OrderStatus = "Order Placed" | "Preparing Food" | "Ready for Pickup" | "Out for Delivery" | "Delivered";
+
+export interface Order {
+    id: string;
+    dishId: string;
+    quantity: number;
+    status: OrderStatus;
+    customerName: string; // Placeholder for now
+}
+
+
 export const allDishes: Dish[] = [
     {
       id: '1',
@@ -205,3 +216,29 @@ export const allDishes: Dish[] = [
       chefDescription: 'Patience is the secret ingredient. I smoke my pork for 12 hours over hickory wood until it’s fall-apart tender. My BBQ sauce is a family recipe that perfectly balances sweet and tangy. It’s a messy, delicious masterpiece.',
     },
 ];
+
+// Sample orders data - in a real app, this would be in a database.
+export const allOrders: Order[] = [
+    { id: 'xyz-123', dishId: '7', quantity: 1, status: 'Order Placed', customerName: 'Alex Johnson' },
+    { id: 'abc-456', dishId: '1', quantity: 2, status: 'Preparing Food', customerName: 'Maria Garcia' },
+    { id: 'def-789', dishId: '8', quantity: 1, status: 'Ready for Pickup', customerName: 'Chen Wei' },
+];
+
+export function findOrder(orderId?: string | null): Order | undefined {
+    // A real implementation would query a database.
+    // For now, we find it in our static list, and add a sample if not found for demo purposes.
+    if (!orderId) return undefined;
+    let order = allOrders.find(o => o.id === orderId);
+    if (!order) {
+        // Create a temporary order for demonstration if the ID is not in our static list
+        const dishId = orderId.includes('dishId=') ? orderId.split('dishId=')[1].split('&')[0] : '1';
+        order = {
+            id: orderId,
+            dishId: dishId,
+            quantity: 1,
+            status: 'Order Placed',
+            customerName: 'New Customer'
+        };
+    }
+    return order;
+}

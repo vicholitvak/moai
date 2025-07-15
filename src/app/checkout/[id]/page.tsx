@@ -3,7 +3,7 @@
 
 import { notFound, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { allDishes } from '@/lib/data';
+import { allDishes, allOrders } from '@/lib/data';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,13 +32,22 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
     // In a real app, this would create an order in the database
     const orderId = Math.random().toString(36).substr(2, 9);
     
+    // Add the new order to our mock database
+    allOrders.push({
+      id: orderId,
+      dishId: dish.id,
+      quantity,
+      status: 'Order Placed',
+      customerName: 'Alex Johnson' // Placeholder
+    });
+    
     toast({
       title: "Order Placed!",
       description: `Your order for ${quantity}x ${dish.name} is on its way.`,
     });
     
     // Redirect to the order status page
-    router.push(`/order-status/${orderId}?dishId=${dish.id}`);
+    router.push(`/order-status/${orderId}`);
   }
 
   const subtotal = dish.price * quantity;
