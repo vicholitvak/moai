@@ -194,8 +194,17 @@ export default function CookOrdersPage() {
                         <DriverTrackingMap initialETA={order.driverETA} />
                       </>
                    )}
+                   {order.status === 'Ready for Pickup' && !isDriverAssigned && (
+                     <Alert>
+                        <Truck className="h-4 w-4" />
+                        <AlertTitle>Waiting for Driver</AlertTitle>
+                        <AlertDescription>
+                          The order is ready. We are assigning a driver for pickup.
+                        </AlertDescription>
+                      </Alert>
+                   )}
 
-                   {prepTime && !isDriverAssigned && (
+                   {prepTime && !isDriverAssigned && order.status === 'Order Placed' && (
                      <Alert>
                         <ChefHat className="h-4 w-4" />
                         <AlertTitle>AI Recommendation</AlertTitle>
