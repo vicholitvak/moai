@@ -156,7 +156,7 @@ export function MainNav() {
             <span>My Account</span>
         </SidebarGroupLabel>
         {userMenuItems.map((item) => (
-            <SidebarMenuItem key={item.href}>
+            <SidebarMenuItem key={item.label}>
             <SidebarMenuButton
               asChild
               isActive={pathname.startsWith(item.href) && item.href !== '/user/profile'}
