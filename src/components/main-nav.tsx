@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -17,6 +18,7 @@ import {
   Map,
   Home,
   LayoutGrid,
+  Clock,
 } from "lucide-react";
 
 const mainMenuItems = [
@@ -42,6 +44,11 @@ const cookMenuItems = [
     href: "/cook/find-clients",
     icon: Map,
     label: "Find Clients",
+  },
+   {
+    href: "/cook/delivery-estimator",
+    icon: Clock,
+    label: "Delivery Estimator",
   },
   {
     href: "/cook/profile",
