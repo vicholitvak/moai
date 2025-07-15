@@ -19,6 +19,7 @@ import {
   Home,
   LayoutGrid,
   Bike,
+  PieChart,
 } from "lucide-react";
 
 const mainMenuItems = [
@@ -39,6 +40,11 @@ const cookMenuItems = [
     href: "/cook/dishes",
     icon: UtensilsCrossed,
     label: "My Dishes",
+  },
+  {
+    href: "/cook/earnings",
+    icon: PieChart,
+    label: "Earnings",
   },
   {
     href: "/cook/profile",
