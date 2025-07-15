@@ -151,3 +151,4 @@ export const allDishes: Dish[] = [
       chefDescription: "This is comfort food, elevated. I take a tender chicken breast, coat it in seasoned breadcrumbs, and fry it to golden perfection. Then, it's smothered in my rich, homemade marinara sauce, topped with a generous layer of molten mozzarella and nutty Parmesan, and baked until bubbly. It's a hearty, satisfying classic done right.",
     },
   ];
+
