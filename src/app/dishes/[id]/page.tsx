@@ -4,7 +4,7 @@ import { allDishes } from '@/lib/data';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Star, ChefHat } from 'lucide-react';
+import { Star, ChefHat, MapPin } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
 export function generateStaticParams() {
@@ -43,7 +43,7 @@ export default function DishDetailPage({ params }: { params: { id: string } }) {
                 ))}
               </div>
               <h1 className="text-4xl font-headline">{dish.name}</h1>
-              <div className="flex items-center gap-4 mt-2 text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <ChefHat className="w-5 h-5" />
                   <span>{dish.cook}</span>
@@ -52,6 +52,10 @@ export default function DishDetailPage({ params }: { params: { id: string } }) {
                   <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
                   <span className="font-bold text-foreground">{dish.rating}</span>
                   <span>({dish.reviews} reviews)</span>
+                </div>
+                <div className="flex items-center gap-1">
+                    <MapPin className="w-5 h-5" />
+                    <span>{dish.distance} km away</span>
                 </div>
               </div>
             </div>

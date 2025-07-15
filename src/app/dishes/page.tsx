@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Star } from 'lucide-react';
+import { Star, MapPin } from 'lucide-react';
 import { allDishes } from '@/lib/data';
 
 export default function ViewAllDishesPage() {
@@ -36,7 +36,13 @@ export default function ViewAllDishesPage() {
                 </CardHeader>
                 <CardContent className="p-4 flex-1">
                   <CardTitle className="font-headline text-xl mb-1">{dish.name}</CardTitle>
-                  <CardDescription>by {dish.cook}</CardDescription>
+                  <div className="flex justify-between items-center text-sm text-muted-foreground mb-2">
+                    <CardDescription>by {dish.cook}</CardDescription>
+                     <div className="flex items-center gap-1">
+                        <MapPin className="w-4 h-4" />
+                        <span>{dish.distance} km</span>
+                    </div>
+                  </div>
                   <div className="mt-2 flex gap-2 flex-wrap">
                       {dish.tags.map(tag => (
                           <Badge key={tag} variant="secondary">{tag}</Badge>
