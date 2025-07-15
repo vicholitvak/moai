@@ -18,6 +18,7 @@ import {
   Map,
   Home,
   LayoutGrid,
+  Bike,
 } from "lucide-react";
 
 const mainMenuItems = [
@@ -40,14 +41,17 @@ const cookMenuItems = [
     label: "My Dishes",
   },
   {
-    href: "/cook/find-clients",
-    icon: Map,
-    label: "Find Clients",
-  },
-  {
     href: "/cook/profile",
     icon: ChefHat,
     label: "Cook Profile",
+  },
+];
+
+const driverMenuItems = [
+  {
+    href: "/driver/deliveries",
+    icon: Map,
+    label: "Find Deliveries",
   },
 ];
 
@@ -87,6 +91,28 @@ export function MainNav() {
             <span>Cook's Corner</span>
         </SidebarGroupLabel>
         {cookMenuItems.map((item) => (
+            <SidebarMenuItem key={item.href}>
+            <Link href={item.href} legacyBehavior passHref>
+                <SidebarMenuButton
+                isActive={pathname === item.href}
+                tooltip={item.label}
+                >
+                <item.icon />
+                <span>{item.label}</span>
+                </SidebarMenuButton>
+            </Link>
+            </SidebarMenuItem>
+        ))}
+      </SidebarGroup>
+      
+      <SidebarSeparator className="my-2" />
+
+      <SidebarGroup>
+         <SidebarGroupLabel className="flex items-center gap-2">
+            <Bike />
+            <span>Driver's Hub</span>
+        </SidebarGroupLabel>
+        {driverMenuItems.map((item) => (
             <SidebarMenuItem key={item.href}>
             <Link href={item.href} legacyBehavior passHref>
                 <SidebarMenuButton
