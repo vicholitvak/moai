@@ -22,7 +22,7 @@ export default function FindDeliveriesPage() {
           <CardContent>
             <div className="w-full h-[600px] rounded-md overflow-hidden border-2 border-dashed flex items-center justify-center bg-muted">
                 <Image 
-                    src="https://placehold.co/1200x800.png" 
+                    src="https://images.unsplash.com/photo-1566576721346-d4a3b4eaeb55?q=80&w=1200" 
                     alt="Map placeholder of delivery routes"
                     width={1200}
                     height={800}

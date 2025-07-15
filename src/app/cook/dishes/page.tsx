@@ -42,7 +42,7 @@ const initialDishes: Dish[] = [
     description: "A classic Roman pasta dish with creamy egg sauce, pancetta, and pecorino cheese.",
     price: "18.50",
     prepTime: 25,
-    image: "https://placehold.co/600x400.png",
+    image: "https://images.unsplash.com/photo-1588013273468-31508b946d4d?q=80&w=600",
     hint: "pasta italian"
   },
   {
@@ -50,7 +50,7 @@ const initialDishes: Dish[] = [
     description: "Simple and delicious pizza with San Marzano tomatoes, fresh mozzarella, basil, and a drizzle of olive oil.",
     price: "15.00",
     prepTime: 20,
-    image: "https://placehold.co/600x400.png",
+    image: "https://images.unsplash.com/photo-1594007654729-407eedc4be65?q=80&w=600",
     hint: "pizza italian"
   },
   {
@@ -58,7 +58,7 @@ const initialDishes: Dish[] = [
     description: "A beloved Italian dessert with coffee-soaked ladyfingers, mascarpone cream, and a dusting of cocoa.",
     price: "9.50",
     prepTime: 15,
-    image: "https://placehold.co/600x400.png",
+    image: "https://images.unsplash.com/photo-1571115332230-d9d68b7859a8?q=80&w=600",
     hint: "dessert sweet"
   },
   {
@@ -66,7 +66,7 @@ const initialDishes: Dish[] = [
     description: "Breaded chicken breast, fried and topped with marinara sauce and mozzarella, served with pasta.",
     price: "22.00",
     prepTime: 35,
-    image: "https://placehold.co/600x400.png",
+    image: "https://images.unsplash.com/photo-1632778149955-e83f3ce9b6e5?q=80&w=600",
     hint: "chicken italian"
   },
 ];
