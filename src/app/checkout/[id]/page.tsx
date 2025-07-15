@@ -43,13 +43,8 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
       verificationCode,
     });
     
-    toast({
-      title: "Order Placed!",
-      description: `Your order for ${quantity}x ${dish.name} is on its way.`,
-    });
-    
-    // Redirect to the order status page
-    router.push(`/order-status/${orderId}`);
+    // Redirect to the order confirmation page
+    router.push(`/order-confirmation/${orderId}`);
   }
 
   const subtotal = dish.price * quantity;
