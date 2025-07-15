@@ -1,3 +1,4 @@
+
 // This file contains the static data for the app.
 // In a real application, this data would likely be fetched from a database.
 
@@ -239,8 +240,9 @@ export const allOrders: Order[] = [
     { id: 'xyz-123', dishId: '7', quantity: 1, status: 'Order Placed', customerName: 'Alex Johnson', verificationCode: '1234' },
     { id: 'abc-456', dishId: '1', quantity: 2, status: 'Preparing Food', customerName: 'Maria Garcia', verificationCode: '5678', prepStartedAt: Date.now() - 5 * 60 * 1000 }, // 5 minutes ago
     { id: 'def-789', dishId: '8', quantity: 1, status: 'Ready for Pickup', customerName: 'Chen Wei', verificationCode: '9012' },
-    { id: 'ghi-012', dishId: '11', quantity: 1, status: 'Ready for Pickup', customerName: 'Priya Patel', verificationCode: '1122' },
+    { id: 'ghi-012', dishId: '3', quantity: 2, status: 'Ready for Pickup', customerName: 'Priya Patel', verificationCode: '1122' },
     { id: 'jkl-345', dishId: '6', quantity: 3, status: 'Ready for Pickup', customerName: 'Ben Carter', verificationCode: '3344' },
+    { id: 'mno-678', dishId: '12', quantity: 1, status: 'Ready for Pickup', customerName: 'Sofia Rossi', verificationCode: '5566' },
 ];
 
 export function findOrder(orderId?: string | null): Order | undefined {
@@ -262,3 +264,4 @@ export function findOrder(orderId?: string | null): Order | undefined {
     }
     return order;
 }
+
