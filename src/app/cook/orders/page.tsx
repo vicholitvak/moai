@@ -15,7 +15,6 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
-import { cn } from "@/lib/utils";
 import {
   ChevronRight,
   PackageCheck,
@@ -24,6 +23,8 @@ import {
   Loader,
 } from "lucide-react";
 import { estimatePrepStartTime, EstimatePrepStartTimeOutput } from "@/ai/flows/estimate-delivery-time-flow";
+import { PreparationTimer } from "@/components/preparation-timer";
+
 
 // In a real app, this would be filtered by the logged-in cook's ID
 const cookId = "Chef Isabella";
@@ -78,14 +79,11 @@ export default function CookOrdersPage() {
     const cookAddress = "123 Cook St, Santiago";
     const customerAddress = "456 Customer Ave, Santiago";
     
-    // In a real app, prep time would be on the dish object
-    const prepTimeMinutes = 20; 
-
     try {
       const result = await estimatePrepStartTime({
         cookAddress,
         customerAddress,
-        prepTimeMinutes
+        prepTimeMinutes: dish.prepTimeMinutes,
       });
       setPrepTimes(prev => ({...prev, [order.id]: result}));
     } catch (e) {
@@ -130,7 +128,7 @@ export default function CookOrdersPage() {
                       <CardTitle>Order #{order.id.substring(0, 6)}</CardTitle>
                       <CardDescription>For {order.customerName}</CardDescription>
                     </div>
-                    <Badge variant={order.status === 'Order Placed' ? 'destructive' : 'default'} className="capitalize">
+                    <Badge variant={order.status === 'Order Placed' ? 'destructive' : order.status === 'Preparing Food' ? 'default' : 'secondary'} className="capitalize">
                       {order.status}
                     </Badge>
                   </div>
@@ -150,6 +148,9 @@ export default function CookOrdersPage() {
                             <p className="text-muted-foreground">Quantity: {order.quantity}</p>
                         </div>
                    </div>
+                   {order.status === 'Preparing Food' && (
+                      <PreparationTimer prepTimeMinutes={dish.prepTimeMinutes} />
+                   )}
                    {prepTime && (
                      <Alert>
                         <ChefHat className="h-4 w-4" />

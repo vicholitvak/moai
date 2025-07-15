@@ -19,6 +19,7 @@ export interface Dish {
     distance: number;
     description: string;
     chefDescription: string;
+    prepTimeMinutes: number; // Time in minutes to prepare the dish
     suggestedDrinks?: Drink[];
 }
 
@@ -48,6 +49,7 @@ export const allDishes: Dish[] = [
       distance: 2.1,
       description: "La empanada de pino tradicional, horneada a la perfección con un relleno jugoso de carne, cebolla, huevo y aceituna.",
       chefDescription: "Cada empanada que hago lleva la receta de mi abuela. Uso solo los mejores ingredientes locales para el pino, y la masa es amasada a mano cada mañana. Es el sabor de la celebración y la familia chilena, directamente desde mi horno a su mesa. ¡Espero que les guste!",
+      prepTimeMinutes: 20,
       suggestedDrinks: [
           { name: 'Vino Tinto Carmenere', price: 4500 },
           { name: 'Mote con Huesillo', price: 2000 },
@@ -67,6 +69,7 @@ export const allDishes: Dish[] = [
       distance: 3.5,
       description: "Un clásico pastel de choclo con una suave cubierta de maíz y un sabroso relleno de pino de carne, pollo y huevo.",
       chefDescription: "Mi secreto está en el choclo humero, que muelo fresco para obtener esa dulzura y cremosidad únicas. El pino lo cocino a fuego lento por horas para que todos los sabores se unan. Es un plato que me recuerda mi infancia en el campo, y me encanta compartirlo.",
+      prepTimeMinutes: 30,
     },
     {
       id: '7',
@@ -81,6 +84,7 @@ export const allDishes: Dish[] = [
       distance: 2.5,
       description: 'Authentic Spaghetti Carbonara with crispy guanciale, pecorino romano, and a creamy egg yolk sauce.',
       chefDescription: "This isn't your average carbonara. I use a recipe I learned in Rome, with imported guanciale and Pecorino Romano cheese. No cream, just the rich, authentic flavor of Italy in every bite. It's my signature dish for a reason!",
+      prepTimeMinutes: 15,
       suggestedDrinks: [
         {name: 'Chianti Classico', price: 8000},
         {name: 'San Pellegrino', price: 2500},
@@ -99,6 +103,7 @@ export const allDishes: Dish[] = [
       distance: 1.8,
       description: 'Juicy beef patty with aged cheddar, special sauce, and all the fixings, served with crispy hand-cut fries.',
       chefDescription: 'I believe a burger can be a work of art. I grind my own beef blend daily, bake my own brioche buns, and my special sauce recipe is a closely guarded secret. It’s the burger you dream about.',
+      prepTimeMinutes: 18,
     },
     {
       id: '3',
@@ -113,6 +118,7 @@ export const allDishes: Dish[] = [
       distance: 2.1,
       description: "Una contundente y sabrosa sopa de vacuno con papas, zapallo, choclo y un toque de cilantro fresco.",
       chefDescription: "No hay nada como una buena cazuela para reponer el alma. La mía es como la que hacía mi mamá: con un caldo lleno de sabor, verduras frescas de la vega y carne que se desarma en la boca. Es el plato perfecto para un día de frío o cuando necesitas un abrazo en forma de comida.",
+      prepTimeMinutes: 45,
       suggestedDrinks: [
           { name: 'Ensalada Chilena', price: 1500 },
           { name: 'Jugo de Frambuesa Natural', price: 2000 },
@@ -131,6 +137,7 @@ export const allDishes: Dish[] = [
       distance: 3.2,
       description: 'A vibrant bowl of sushi rice, fresh salmon, avocado, edamame, and a delicious sesame-soy dressing.',
       chefDescription: 'Freshness is everything. I source my salmon daily from the market to ensure the highest quality. Each bowl is a balance of flavors and textures, designed to be both healthy and incredibly satisfying.',
+      prepTimeMinutes: 12,
     },
     {
       id: '4',
@@ -145,6 +152,7 @@ export const allDishes: Dish[] = [
       distance: 4.2,
       description: "Un plato de lentejas lleno de sabor, preparado con arroz, zapallo, y un sofrito de verduras. 100% vegano.",
       chefDescription: "Mi cocina celebra los sabores de la tierra. Estas lentejas son mi versión de un clásico de invierno, pero sin productos animales. El secreto es el sofrito y un toque de merkén para darles un gustito ahumado. Son nutritivas, deliciosas y hechas con mucho amor y respeto por nuestros ingredientes.",
+      prepTimeMinutes: 35,
     },
     {
       id: '10',
@@ -159,6 +167,7 @@ export const allDishes: Dish[] = [
       distance: 4.5,
       description: 'Classic Pad Thai with rice noodles, tofu, bean sprouts, and peanuts in a tangy tamarind sauce, all plant-based.',
       chefDescription: 'I want to prove that vegan food can be just as exciting and flavorful as any other cuisine. My Pad Thai is a burst of authentic Thai flavors—sweet, sour, and savory. You won’t miss the meat, I promise!',
+      prepTimeMinutes: 15,
     },
     {
       id: '5',
@@ -173,6 +182,7 @@ export const allDishes: Dish[] = [
       distance: 3.5,
       description: "El guiso veraniego por excelencia. Porotos frescos, maíz, zapallo y albahaca, todo cocinado lentamente.",
       chefDescription: "Este plato es el sabor del verano chileno. Uso los porotos granados más frescos que encuentro en la feria y choclo tierno para darle el dulzor justo. La albahaca fresca al final le da el toque perfecto. Es un plato simple, honesto y lleno de tradición.",
+      prepTimeMinutes: 50,
     },
     {
       id: '11',
@@ -187,6 +197,7 @@ export const allDishes: Dish[] = [
       distance: 2.5,
       description: 'Classic Neapolitan Margherita with San Marzano tomatoes, fresh mozzarella, basil, and a drizzle of olive oil.',
       chefDescription: 'Simplicity is the ultimate sophistication. I make my dough with a 72-hour cold ferment for a light, airy crust. The best San Marzano tomatoes and fresh mozzarella are all it needs. It’s pizza as it should be.',
+      prepTimeMinutes: 22,
     },
     {
       id: '6',
@@ -201,6 +212,7 @@ export const allDishes: Dish[] = [
       distance: 1.5,
       description: "El rey de la comida rápida chilena. Pan de hot dog, vienesa, tomate, palta y una generosa cantidad de mayonesa casera.",
       chefDescription: "Para hacer el mejor completo, todo tiene que ser de calidad. Mi pan es de una panadería del barrio, las vienesas son premium y la palta la muelo en el momento. Pero mi orgullo es la mayonesa casera, ¡cremosa y con el toque justo de limón! No has probado un completo de verdad hasta que pruebas el mío.",
+      prepTimeMinutes: 5,
     },
     {
       id: '12',
@@ -215,6 +227,7 @@ export const allDishes: Dish[] = [
       distance: 1.8,
       description: 'Slow-smoked pulled pork in a tangy BBQ sauce, piled high on a toasted bun with coleslaw.',
       chefDescription: 'Patience is the secret ingredient. I smoke my pork for 12 hours over hickory wood until it’s fall-apart tender. My BBQ sauce is a family recipe that perfectly balances sweet and tangy. It’s a messy, delicious masterpiece.',
+      prepTimeMinutes: 25,
     },
 ];
 
