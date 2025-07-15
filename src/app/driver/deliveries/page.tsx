@@ -81,7 +81,7 @@ export default function FindDeliveriesPage() {
               <div>
                 <CardTitle>Delivery Job #{order.id.substring(0, 6)}</CardTitle>
                 <CardDescription>
-                  <span className="font-semibold">{dish.name}</span> by {dish.cook}
+                  <span className="font-semibold">{dish.name}</span> (x{order.quantity})
                 </CardDescription>
               </div>
               <Badge variant={order.status === 'Ready for Pickup' ? 'secondary' : 'default'} className="capitalize">
@@ -90,18 +90,18 @@ export default function FindDeliveriesPage() {
             </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
-            <ChefHat className="h-5 w-5 text-muted-foreground" />
+          <div className="flex items-start gap-4">
+            <ChefHat className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-1" />
             <div>
-              <p className="font-semibold">Pickup From: {cook.name}</p>
-              <p className="text-sm text-muted-foreground">{cook.location}</p>
+              <p className="font-semibold">Pickup: {cook.location}</p>
+              <p className="text-sm text-muted-foreground">From {cook.name}</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <MapPin className="h-5 w-5 text-muted-foreground" />
+          <div className="flex items-start gap-4">
+            <MapPin className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-1" />
             <div>
-              <p className="font-semibold">Deliver To: {order.customerName}</p>
-              <p className="text-sm text-muted-foreground">{customerAddress}</p>
+              <p className="font-semibold">Dropoff: {customerAddress}</p>
+              <p className="text-sm text-muted-foreground">To {order.customerName}</p>
             </div>
           </div>
            <div className="flex items-center gap-4 border-t pt-4">
