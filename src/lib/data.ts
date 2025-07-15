@@ -236,39 +236,12 @@ export const allDishes: Dish[] = [
     },
 ];
 
-// Sample orders data - in a real app, this would be in a database.
-export const allOrders: Order[] = [
-    // --- Chef Isabella's Orders ---
-    { id: 'xyz-123', dishId: '7', quantity: 1, status: 'Order Placed', customerName: 'Alex Johnson', verificationCode: '1234' },
-    { id: 'iso-987', dishId: '11', quantity: 2, status: 'Preparing Food', customerName: 'Samantha Lee', verificationCode: '9876', prepStartedAt: Date.now() - 5 * 60 * 1000 },
-    { id: 'iso-456', dishId: '7', quantity: 1, status: 'Ready for Pickup', customerName: 'Ben Carter', verificationCode: '4567' },
-    { id: 'iso-111', dishId: '11', quantity: 1, status: 'Ready for Pickup', customerName: 'Olivia Chen', verificationCode: '1111' },
-
-    // --- Other Cooks' Orders ---
-    { id: 'abc-456', dishId: '1', quantity: 2, status: 'Preparing Food', customerName: 'Maria Garcia', verificationCode: '5678', prepStartedAt: Date.now() - 10 * 60 * 1000 },
-    { id: 'def-789', dishId: '8', quantity: 1, status: 'Ready for Pickup', customerName: 'Chen Wei', verificationCode: '9012' },
-    { id: 'ghi-012', dishId: '3', quantity: 1, status: 'Ready for Pickup', customerName: 'Priya Patel', verificationCode: '1122' },
-    { id: 'jkl-345', dishId: '6', quantity: 3, status: 'Ready for Pickup', customerName: 'James Smith', verificationCode: '3344' },
-];
+// Orders are now created dynamically through the checkout process.
+export const allOrders: Order[] = [];
 
 export function findOrder(orderId?: string | null): Order | undefined {
     // A real implementation would query a database.
-    // For now, we find it in our static list, and add a sample if not found for demo purposes.
+    // For this simulation, we find it in our static list.
     if (!orderId) return undefined;
-    let order = allOrders.find(o => o.id === orderId);
-    if (!order) {
-        // Create a temporary order for demonstration if the ID is not in our static list
-        const dishId = orderId.includes('dishId=') ? orderId.split('dishId=')[1].split('&')[0] : '1';
-        order = {
-            id: orderId,
-            dishId: dishId,
-            quantity: 1,
-            status: 'Order Placed',
-            customerName: 'New Customer',
-            verificationCode: '9999' // Dummy code for new orders
-        };
-    }
-    return order;
+    return allOrders.find(o => o.id === orderId);
 }
-
-

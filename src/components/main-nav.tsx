@@ -75,7 +75,7 @@ const userMenuItems = [
     label: "My Profile",
   },
   {
-    href: "/order-status/xyz-123", // Default to a sample order
+    href: "/user/profile", // No default order, link to profile
     icon: Package,
     label: "My Orders",
   },
@@ -159,7 +159,7 @@ export function MainNav() {
             <SidebarMenuItem key={item.href}>
             <SidebarMenuButton
               asChild
-              isActive={pathname.startsWith(item.href)}
+              isActive={pathname.startsWith(item.href) && item.href !== '/user/profile'}
               tooltip={item.label}
             >
               <Link href={item.href}>
