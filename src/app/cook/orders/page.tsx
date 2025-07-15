@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { estimatePrepStartTime, EstimatePrepStartTimeOutput } from "@/ai/flows/estimate-delivery-time-flow";
 import { PreparationTimer } from "@/components/preparation-timer";
+import { DriverTrackingMap } from "@/components/driver-tracking-map";
 
 
 // In a real app, this would be filtered by the logged-in cook's ID
@@ -60,9 +61,13 @@ export default function CookOrdersPage() {
               if (nextStatus === "Preparing Food") {
                 centralOrder.prepStartedAt = Date.now();
               }
+              // If ready for pickup, set a simulated driver ETA
+              if (nextStatus === "Ready for Pickup") {
+                centralOrder.driverETA = Math.floor(Math.random() * 10) + 5; // 5-15 min ETA
+              }
             }
             // Return the updated order for the local state
-            return { ...order, status: nextStatus, prepStartedAt: centralOrder?.prepStartedAt };
+            return { ...order, status: nextStatus, prepStartedAt: centralOrder?.prepStartedAt, driverETA: centralOrder?.driverETA };
         }
       }
       return order;
@@ -100,6 +105,8 @@ export default function CookOrdersPage() {
     }
   }
 
+  const activeOrders = orders.filter(o => o.status !== 'Delivered' && o.status !== 'Out for Delivery');
+
   return (
     <main className="flex-1 p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
@@ -109,7 +116,7 @@ export default function CookOrdersPage() {
         </div>
 
         <div className="space-y-6">
-          {orders.filter(o => o.status !== 'Delivered' && o.status !== 'Out for Delivery' && o.status !== 'Ready for Pickup').length === 0 && (
+          {activeOrders.length === 0 && (
             <Card className="text-center p-8">
                 <CardContent>
                     <PackageCheck className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
@@ -118,13 +125,19 @@ export default function CookOrdersPage() {
                 </CardContent>
             </Card>
           )}
-          {orders.filter(o => o.status !== 'Delivered' && o.status !== 'Out for Delivery' && o.status !== 'Ready for Pickup').map(order => {
+          {activeOrders.map(order => {
             const dish = getDishForOrder(order);
             const nextStatus = statusProgression[order.status];
             const prepTime = prepTimes[order.id];
             const isLoading = loadingTimes[order.id];
 
             if (!dish) return null;
+
+            const badgeVariant = {
+              "Order Placed": "destructive",
+              "Preparing Food": "default",
+              "Ready for Pickup": "secondary"
+            }[order.status] || "default";
 
             return (
               <Card key={order.id} className="shadow-lg">
@@ -134,7 +147,7 @@ export default function CookOrdersPage() {
                       <CardTitle>Order #{order.id.substring(0, 6)}</CardTitle>
                       <CardDescription>For {order.customerName}</CardDescription>
                     </div>
-                    <Badge variant={order.status === 'Order Placed' ? 'destructive' : order.status === 'Preparing Food' ? 'default' : 'secondary'} className="capitalize">
+                    <Badge variant={badgeVariant as any} className="capitalize">
                       {order.status}
                     </Badge>
                   </div>
@@ -156,6 +169,9 @@ export default function CookOrdersPage() {
                    </div>
                    {order.status === 'Preparing Food' && order.prepStartedAt && (
                       <PreparationTimer prepTimeMinutes={dish.prepTimeMinutes} prepStartedAt={order.prepStartedAt} />
+                   )}
+                   {order.status === 'Ready for Pickup' && order.driverETA && (
+                      <DriverTrackingMap initialETA={order.driverETA} />
                    )}
                    {prepTime && (
                      <Alert>
@@ -182,7 +198,7 @@ export default function CookOrdersPage() {
                         <ChevronRight className="h-4 w-4 ml-2" />
                     </Button>
                   ) : (
-                    <p className="text-sm text-muted-foreground">Waiting for driver...</p>
+                    <p className="text-sm text-muted-foreground">Waiting for driver pickup...</p>
                   )}
                 </CardFooter>
               </Card>

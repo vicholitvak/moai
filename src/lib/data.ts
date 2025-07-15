@@ -33,6 +33,7 @@ export interface Order {
     customerName: string; // Placeholder for now
     verificationCode: string;
     prepStartedAt?: number; // Timestamp when preparation started
+    driverETA?: number; // Estimated minutes for driver to arrive
 }
 
 
@@ -236,7 +237,7 @@ export const allDishes: Dish[] = [
 export const allOrders: Order[] = [
     { id: 'xyz-123', dishId: '7', quantity: 1, status: 'Order Placed', customerName: 'Alex Johnson', verificationCode: '1234' },
     { id: 'abc-456', dishId: '1', quantity: 2, status: 'Preparing Food', customerName: 'Maria Garcia', verificationCode: '5678', prepStartedAt: Date.now() - 5 * 60 * 1000 }, // 5 minutes ago
-    { id: 'def-789', dishId: '8', quantity: 1, status: 'Ready for Pickup', customerName: 'Chen Wei', verificationCode: '9012' },
+    { id: 'def-789', dishId: '8', quantity: 1, status: 'Ready for Pickup', customerName: 'Chen Wei', verificationCode: '9012', driverETA: 8 },
 ];
 
 export function findOrder(orderId?: string | null): Order | undefined {
