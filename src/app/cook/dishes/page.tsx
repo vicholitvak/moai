@@ -1,3 +1,7 @@
+
+"use client";
+
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,7 +18,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter
+  DialogFooter,
+  DialogClose,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,11 +27,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { PlusCircle } from "lucide-react";
 import Image from "next/image";
 
-const dishes = [
+type Dish = {
+  name: string;
+  description: string;
+  price: string;
+  prepTime: number;
+  image: string;
+  hint: string;
+};
+
+const initialDishes: Dish[] = [
   {
     name: "Spaghetti Carbonara",
     description: "A classic Roman pasta dish with creamy egg sauce, pancetta, and pecorino cheese.",
     price: "18.50",
+    prepTime: 25,
     image: "https://placehold.co/600x400.png",
     hint: "pasta italian"
   },
@@ -34,6 +49,7 @@ const dishes = [
     name: "Margherita Pizza",
     description: "Simple and delicious pizza with San Marzano tomatoes, fresh mozzarella, basil, and a drizzle of olive oil.",
     price: "15.00",
+    prepTime: 20,
     image: "https://placehold.co/600x400.png",
     hint: "pizza italian"
   },
@@ -41,6 +57,7 @@ const dishes = [
     name: "Tiramisu",
     description: "A beloved Italian dessert with coffee-soaked ladyfingers, mascarpone cream, and a dusting of cocoa.",
     price: "9.50",
+    prepTime: 15,
     image: "https://placehold.co/600x400.png",
     hint: "dessert sweet"
   },
@@ -48,47 +65,92 @@ const dishes = [
     name: "Chicken Parmesan",
     description: "Breaded chicken breast, fried and topped with marinara sauce and mozzarella, served with pasta.",
     price: "22.00",
+    prepTime: 35,
     image: "https://placehold.co/600x400.png",
     hint: "chicken italian"
   },
 ];
 
+
 export default function CookDishesPage() {
+  const [dishes, setDishes] = useState<Dish[]>(initialDishes);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingDish, setEditingDish] = useState<Dish | null>(null);
+
+  const handleEditClick = (dish: Dish) => {
+    setEditingDish(dish);
+    setIsDialogOpen(true);
+  };
+
+  const handleAddNewClick = () => {
+    setEditingDish(null);
+    setIsDialogOpen(true);
+  };
+
+  const handleDialogClose = () => {
+    setIsDialogOpen(false);
+    setEditingDish(null);
+  };
+
+  const handleSaveDish = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const updatedDish = {
+      name: formData.get('dish-name') as string,
+      description: formData.get('description') as string,
+      price: formData.get('price') as string,
+      prepTime: parseInt(formData.get('prep-time') as string, 10),
+      image: editingDish?.image || 'https://placehold.co/600x400.png', 
+      hint: editingDish?.hint || 'food placeholder'
+    };
+
+    if (editingDish) {
+      // Update existing dish
+      setDishes(dishes.map(d => d.name === editingDish.name ? updatedDish : d));
+    } else {
+      // Add new dish
+      setDishes([...dishes, updatedDish]);
+    }
+
+    handleDialogClose();
+  };
+
   return (
     <main className="flex-1 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-headline">Your Dishes</h1>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Add New Dish
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[480px]">
+          <Button onClick={handleAddNewClick}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Add New Dish
+          </Button>
+        </div>
+
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="sm:max-w-[480px]">
+            <form onSubmit={handleSaveDish}>
               <DialogHeader>
-                <DialogTitle className="font-headline">Add a New Dish</DialogTitle>
+                <DialogTitle className="font-headline">{editingDish ? "Edit Dish" : "Add a New Dish"}</DialogTitle>
                 <DialogDescription>
-                  Fill out the details for your new menu item.
+                  {editingDish ? "Update the details for your menu item." : "Fill out the details for your new menu item."}
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="dish-name" className="text-right">Name</Label>
-                  <Input id="dish-name" className="col-span-3" />
+                  <Input id="dish-name" name="dish-name" defaultValue={editingDish?.name} className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="description" className="text-right">Description</Label>
-                  <Textarea id="description" className="col-span-3" />
+                  <Textarea id="description" name="description" defaultValue={editingDish?.description} className="col-span-3" />
                 </div>
                  <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="price" className="text-right">Price ($)</Label>
-                  <Input id="price" type="number" step="0.01" className="col-span-3" />
+                  <Input id="price" name="price" type="number" step="0.01" defaultValue={editingDish?.price} className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="prep-time" className="text-right">Prep Time (min)</Label>
-                  <Input id="prep-time" type="number" className="col-span-3" />
+                  <Input id="prep-time" name="prep-time" type="number" defaultValue={editingDish?.prepTime} className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="picture" className="text-right">
@@ -98,11 +160,14 @@ export default function CookDishesPage() {
                 </div>
               </div>
               <DialogFooter>
+                <DialogClose asChild>
+                  <Button type="button" variant="secondary">Cancel</Button>
+                </DialogClose>
                 <Button type="submit">Save Dish</Button>
               </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {dishes.map((dish) => (
@@ -124,7 +189,7 @@ export default function CookDishesPage() {
               <CardFooter className="p-4 pt-0 mt-auto">
                 <div className="flex justify-between items-center w-full">
                   <p className="text-lg font-semibold text-primary">${dish.price}</p>
-                  <Button variant="outline">Edit</Button>
+                  <Button variant="outline" onClick={() => handleEditClick(dish)}>Edit</Button>
                 </div>
               </CardFooter>
             </Card>
@@ -134,3 +199,5 @@ export default function CookDishesPage() {
     </main>
   );
 }
+
+    
