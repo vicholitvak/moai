@@ -40,6 +40,17 @@ export interface Order {
 }
 
 
+// Start with no orders. They will be created dynamically.
+export let allOrders: Order[] = [];
+
+export function findOrder(orderId?: string | null): Order | undefined {
+    if (!orderId) {
+        return undefined;
+    }
+    return allOrders.find(o => o.id === orderId);
+}
+
+
 export const allDishes: Dish[] = [
     {
       id: '1',
@@ -235,13 +246,3 @@ export const allDishes: Dish[] = [
       prepTimeMinutes: 25,
     },
 ];
-
-// Orders are now created dynamically through the checkout process.
-export const allOrders: Order[] = [];
-
-export function findOrder(orderId?: string | null): Order | undefined {
-    // A real implementation would query a database.
-    // For this simulation, we find it in our static list.
-    if (!orderId) return undefined;
-    return allOrders.find(o => o.id === orderId);
-}
