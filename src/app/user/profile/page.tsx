@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -17,6 +18,34 @@ export default function UserProfilePage() {
     <main className="flex-1 p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-headline mb-6">User Profile</h1>
+
+        <Card className="shadow-lg">
+           <CardHeader>
+            <CardTitle>Personal Information</CardTitle>
+            <CardDescription>
+              Update your personal details here.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Full Name</Label>
+              <Input id="name" defaultValue="Alex Johnson" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="email" defaultValue="alex.j@example.com" />
+            </div>
+             <div className="space-y-2">
+                <Label htmlFor="picture">Profile Picture</Label>
+                <Input id="picture" type="file" />
+             </div>
+          </CardContent>
+          <CardFooter className="border-t px-6 py-4">
+            <Button>Save Profile</Button>
+          </CardFooter>
+        </Card>
+
+        <Separator className="my-8" />
 
         <Card className="shadow-lg">
           <CardHeader>
@@ -80,3 +109,4 @@ export default function UserProfilePage() {
     </main>
   );
 }
+

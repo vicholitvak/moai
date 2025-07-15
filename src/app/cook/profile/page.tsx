@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -27,12 +28,16 @@ export default function CookProfilePage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
-              <Input id="name" defaultValue="John Doe" />
+              <Input id="name" defaultValue="Isabella Rossi" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" defaultValue="john.doe@example.com" />
+              <Input id="email" type="email" defaultValue="isabella.rossi@example.com" />
             </div>
+             <div className="space-y-2">
+                <Label htmlFor="picture">Profile Picture</Label>
+                <Input id="picture" type="file" />
+             </div>
           </CardContent>
           <CardFooter className="border-t px-6 py-4">
             <Button>Save</Button>
@@ -51,7 +56,7 @@ export default function CookProfilePage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="specialties">Specialties</Label>
-              <Input id="specialties" defaultValue="Authentic Italian, Handmade Pasta" />
+              <Input id="specialties" defaultValue="Authentic Italian, Handmade Pasta, Pizza" />
               <p className="text-sm text-muted-foreground">
                 Comma-separated list of your culinary specialties.
               </p>
