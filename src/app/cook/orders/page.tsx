@@ -169,10 +169,21 @@ export default function CookOrdersPage() {
                    {order.status === 'Preparing Food' && order.prepStartedAt && (
                       <PreparationTimer prepTimeMinutes={dish.prepTimeMinutes} prepStartedAt={order.prepStartedAt} />
                    )}
+                   
                    {isDriverAssigned && order.driverETA && (
-                      <DriverTrackingMap initialETA={order.driverETA} />
+                      <>
+                        <Alert variant="default" className="border-primary/50">
+                          <Truck className="h-4 w-4" />
+                          <AlertTitle>Driver Assigned!</AlertTitle>
+                          <AlertDescription>
+                            Your driver, <span className="font-bold">{order.driverName}</span>, is on their way. Estimated arrival in <span className="font-bold">{order.driverETA} minutes</span>.
+                          </AlertDescription>
+                        </Alert>
+                        <DriverTrackingMap initialETA={order.driverETA} />
+                      </>
                    )}
-                   {prepTime && (
+
+                   {prepTime && !isDriverAssigned && (
                      <Alert>
                         <ChefHat className="h-4 w-4" />
                         <AlertTitle>AI Recommendation</AlertTitle>

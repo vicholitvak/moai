@@ -36,6 +36,7 @@ export interface Order {
     prepStartedAt?: number; // Timestamp when preparation started
     driverETA?: number; // Estimated minutes for driver to arrive
     driverId?: string; // ID of the assigned driver
+    driverName?: string;
 }
 
 

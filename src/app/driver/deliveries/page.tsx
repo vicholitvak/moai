@@ -20,6 +20,8 @@ import { formatPrice } from "@/lib/utils";
 import { estimateTravelDistance } from "@/ai/flows/estimate-travel-distance-flow";
 
 const DRIVER_CUT = 0.10; // 10% of the dish price
+const DRIVER_ID = 'driver-123';
+const DRIVER_NAME = 'Daniel';
 
 const statusProgression: Record<OrderStatus, OrderStatus | null> = {
   "Order Placed": null,
@@ -53,7 +55,7 @@ export default function FindDeliveriesPage() {
   }, [orders]);
 
 
-  const myDeliveries = orders.filter(o => o.driverId === 'driver-123' && o.status !== 'Delivered');
+  const myDeliveries = orders.filter(o => o.driverId === DRIVER_ID && o.status !== 'Delivered');
   const hasActiveDelivery = myDeliveries.length > 0;
   
   const getCookForDish = (dish: Dish): {name: string, location: string} => {
@@ -100,7 +102,8 @@ export default function FindDeliveriesPage() {
     }
     const centralOrder = allOrders.find(o => o.id === orderId);
     if (centralOrder) {
-      centralOrder.driverId = 'driver-123'; // Assign a driver
+      centralOrder.driverId = DRIVER_ID;
+      centralOrder.driverName = DRIVER_NAME;
       centralOrder.driverETA = Math.floor(Math.random() * 10) + 5; // Simulate ETA
     }
     setOrders([...allOrders]);
@@ -170,8 +173,8 @@ export default function FindDeliveriesPage() {
     const nextStatus = statusProgression[order.status];
 
     const isAvailable = order.status === 'Ready for Pickup' && !order.driverId;
-    const isAccepted = order.status === 'Ready for Pickup' && order.driverId;
-    const isOutForDelivery = order.status === 'Out for Delivery';
+    const isAccepted = order.status === 'Ready for Pickup' && order.driverId === DRIVER_ID;
+    const isOutForDelivery = order.status === 'Out for Delivery' && order.driverId === DRIVER_ID;
     
     let badgeVariant: "default" | "secondary" | "destructive" = 'secondary';
     if (isAccepted) badgeVariant = 'default';
