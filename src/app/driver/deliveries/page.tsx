@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { allOrders, allDishes, type Order, type OrderStatus, type Dish } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,18 +13,31 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import Image from "next/image";
-import { ChevronRight, Truck, MapPin, ChefHat, Package, CheckCheck, KeyRound, Wallet } from "lucide-react";
+import { ChevronRight, Truck, MapPin, ChefHat, Package, CheckCheck, KeyRound, Wallet, Loader, Map } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { formatPrice } from "@/lib/utils";
+import { estimateTravelDistance } from "@/ai/flows/estimate-travel-distance-flow";
 
 const DRIVER_CUT = 0.10; // 10% of the dish price
 
 export default function FindDeliveriesPage() {
   const [orders, setOrders] = useState(allOrders);
   const [verificationCode, setVerificationCode] = useState<Record<string, string>>({});
+  const [distances, setDistances] = useState<Record<string, number | null>>({});
+  const [loadingDistances, setLoadingDistances] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Fetch distances for available orders when the component mounts
+    const availableOrders = orders.filter(o => o.status === "Ready for Pickup");
+    availableOrders.forEach(order => {
+      if (!distances[order.id] && !loadingDistances[order.id]) {
+        handleEstimateDistance(order);
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orders]);
 
 
   const getDishForOrder = (order: Order): Dish | undefined => {
@@ -34,6 +47,34 @@ export default function FindDeliveriesPage() {
   const getCookForDish = (dish: Dish): {name: string, location: string} => {
     // In a real app, this would look up the cook's profile
     return { name: dish.cook, location: '123 Cook St, Santiago' };
+  }
+  
+  const getCustomerAddress = (order: Order): string => {
+    // In a real app, this would come from the order details
+    return `456 Customer Ave, Santiago`;
+  }
+
+  const handleEstimateDistance = async (order: Order) => {
+    const dish = getDishForOrder(order);
+    if (!dish) return;
+
+    setLoadingDistances(prev => ({...prev, [order.id]: true}));
+    
+    const cookAddress = getCookForDish(dish).location;
+    const customerAddress = getCustomerAddress(order);
+
+    try {
+      const result = await estimateTravelDistance({
+        startAddress: cookAddress,
+        endAddress: customerAddress,
+      });
+      setDistances(prev => ({...prev, [order.id]: result.distanceKm}));
+    } catch(e) {
+      console.error("Failed to estimate distance", e);
+      setDistances(prev => ({...prev, [order.id]: null})); // Or a fallback
+    } finally {
+      setLoadingDistances(prev => ({...prev, [order.id]: false}));
+    }
   }
 
   const handleStatusUpdate = (orderId: string, newStatus: OrderStatus) => {
@@ -60,11 +101,6 @@ export default function FindDeliveriesPage() {
       });
     }
   }
-  
-  const getCustomerAddress = (order: Order): string => {
-    // In a real app, this would come from the order details
-    return `456 Customer Ave, Santiago`;
-  }
 
   const renderOrderCard = (order: Order, isAvailable: boolean) => {
     const dish = getDishForOrder(order);
@@ -73,6 +109,8 @@ export default function FindDeliveriesPage() {
     const cook = getCookForDish(dish);
     const customerAddress = getCustomerAddress(order);
     const earnings = dish.price * order.quantity * DRIVER_CUT;
+    const distance = distances[order.id];
+    const isLoadingDistance = loadingDistances[order.id];
 
     return (
       <Card key={order.id} className="shadow-lg">
@@ -104,11 +142,26 @@ export default function FindDeliveriesPage() {
               <p className="text-sm text-muted-foreground">To {order.customerName}</p>
             </div>
           </div>
-           <div className="flex items-center gap-4 border-t pt-4">
-            <Wallet className="h-5 w-5 text-muted-foreground" />
-            <div>
-              <p className="font-semibold">Your Earnings</p>
-              <p className="text-sm text-primary font-bold">{formatPrice(earnings)}</p>
+          <div className="grid grid-cols-2 gap-4 border-t pt-4">
+            <div className="flex items-center gap-3">
+              <Wallet className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="font-semibold">Your Earnings</p>
+                <p className="text-sm text-primary font-bold">{formatPrice(earnings)}</p>
+              </div>
+            </div>
+             <div className="flex items-center gap-3">
+              <Map className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="font-semibold">Distance</p>
+                {isLoadingDistance ? (
+                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader className="h-4 w-4 animate-spin" /> Calculating...
+                   </div>
+                ) : (
+                  <p className="text-sm font-bold">{distance ? `${distance.toFixed(1)} km` : 'N/A'}</p>
+                )}
+              </div>
             </div>
           </div>
         </CardContent>
