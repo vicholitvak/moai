@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { allOrders, allDishes, type Order, type OrderStatus } from "@/lib/data";
+import { allOrders, allDishes, type Order, type OrderStatus, type Dish } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,13 +12,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import {
   ChevronRight,
   PackageCheck,
+  ChefHat,
+  Clock,
+  Loader,
 } from "lucide-react";
+import { estimatePrepStartTime, EstimatePrepStartTimeOutput } from "@/ai/flows/estimate-delivery-time-flow";
 
 // In a real app, this would be filtered by the logged-in cook's ID
 const cookId = "Chef Isabella";
@@ -38,6 +43,8 @@ const statusProgression: Record<OrderStatus, OrderStatus | null> = {
 
 export default function CookOrdersPage() {
   const [orders, setOrders] = useState<Order[]>(cookOrders);
+  const [prepTimes, setPrepTimes] = useState<Record<string, EstimatePrepStartTimeOutput | null>>({});
+  const [loadingTimes, setLoadingTimes] = useState<Record<string, boolean>>({});
 
   const handleUpdateStatus = (orderId: string) => {
     const updatedOrders = orders.map((order) => {
@@ -56,8 +63,37 @@ export default function CookOrdersPage() {
     setOrders(updatedOrders);
   };
   
-  const getDishForOrder = (order: Order) => {
+  const getDishForOrder = (order: Order): Dish | undefined => {
     return allDishes.find(dish => dish.id === order.dishId);
+  }
+
+  const handleEstimateTime = async (order: Order) => {
+    const dish = getDishForOrder(order);
+    if (!dish) return;
+
+    setLoadingTimes(prev => ({...prev, [order.id]: true}));
+    setPrepTimes(prev => ({...prev, [order.id]: null}));
+
+    // In a real app, addresses would be dynamic
+    const cookAddress = "123 Cook St, Santiago";
+    const customerAddress = "456 Customer Ave, Santiago";
+    
+    // In a real app, prep time would be on the dish object
+    const prepTimeMinutes = 20; 
+
+    try {
+      const result = await estimatePrepStartTime({
+        cookAddress,
+        customerAddress,
+        prepTimeMinutes
+      });
+      setPrepTimes(prev => ({...prev, [order.id]: result}));
+    } catch (e) {
+      console.error(e);
+      // Handle error case if needed
+    } finally {
+      setLoadingTimes(prev => ({...prev, [order.id]: false}));
+    }
   }
 
   return (
@@ -81,6 +117,8 @@ export default function CookOrdersPage() {
           {orders.filter(o => o.status !== 'Delivered' && o.status !== 'Out for Delivery' && o.status !== 'Ready for Pickup').map(order => {
             const dish = getDishForOrder(order);
             const nextStatus = statusProgression[order.status];
+            const prepTime = prepTimes[order.id];
+            const isLoading = loadingTimes[order.id];
 
             if (!dish) return null;
 
@@ -97,7 +135,7 @@ export default function CookOrdersPage() {
                     </Badge>
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                    <div className="flex items-center gap-4">
                         <Image 
                             src={dish.image}
@@ -112,8 +150,25 @@ export default function CookOrdersPage() {
                             <p className="text-muted-foreground">Quantity: {order.quantity}</p>
                         </div>
                    </div>
+                   {prepTime && (
+                     <Alert>
+                        <ChefHat className="h-4 w-4" />
+                        <AlertTitle>AI Recommendation</AlertTitle>
+                        <AlertDescription>
+                          To ensure a fresh delivery, please start preparing this order at <span className="font-bold text-primary">{prepTime.recommendedPrepStartTime}</span>. The driver is estimated to arrive at {prepTime.estimatedDriverArrivalTime}.
+                        </AlertDescription>
+                      </Alert>
+                   )}
                 </CardContent>
-                <CardFooter className="flex justify-end">
+                <CardFooter className="flex justify-between items-center">
+                    <div>
+                    {order.status === 'Order Placed' && (
+                      <Button variant="outline" onClick={() => handleEstimateTime(order)} disabled={isLoading}>
+                         {isLoading ? <Loader className="mr-2 h-4 w-4 animate-spin" /> : <Clock className="mr-2 h-4 w-4" />}
+                        When should I start?
+                      </Button>
+                    )}
+                  </div>
                   {nextStatus ? (
                      <Button onClick={() => handleUpdateStatus(order.id)}>
                         <span>Mark as "{nextStatus}"</span>
