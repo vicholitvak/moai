@@ -136,7 +136,7 @@ export default function CookOrdersPage() {
               "Ready for Pickup": "secondary"
             }[order.status] || "default";
             
-            const isDriverAssigned = order.status === 'Ready for Pickup' && order.driverId;
+            const isDriverAssigned = order.status === 'Ready for Pickup' && !!order.driverId;
 
             return (
               <Card key={order.id} className="shadow-lg">
