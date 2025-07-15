@@ -48,6 +48,9 @@ export default function FindDeliveriesPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orders]);
 
+  const availableDeliveries = orders.filter(o => o.status === "Ready for Pickup" && !o.driverId);
+  const myDeliveries = orders.filter(o => o.driverId === 'driver-123' && o.status !== 'Delivered');
+  const hasActiveDelivery = myDeliveries.length > 0;
 
   const getDishForOrder = (order: Order): Dish | undefined => {
     return allDishes.find(dish => dish.id === order.dishId);
@@ -87,6 +90,14 @@ export default function FindDeliveriesPage() {
   }
   
   const handleAcceptDelivery = (orderId: string) => {
+    if (hasActiveDelivery) {
+        toast({
+            variant: "destructive",
+            title: "Cannot Accept Job",
+            description: "You must complete your active delivery before accepting a new one.",
+        });
+        return;
+    }
     const centralOrder = allOrders.find(o => o.id === orderId);
     if (centralOrder) {
       centralOrder.driverId = 'driver-123'; // Assign a driver
@@ -197,7 +208,7 @@ export default function FindDeliveriesPage() {
         </CardContent>
         <CardFooter className="flex justify-end items-center gap-2">
             {isAvailable && (
-              <Button onClick={() => handleAcceptDelivery(order.id)}>
+              <Button onClick={() => handleAcceptDelivery(order.id)} disabled={hasActiveDelivery}>
                 Accept Delivery
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
@@ -229,8 +240,6 @@ export default function FindDeliveriesPage() {
     )
   }
   
-  const availableDeliveries = orders.filter(o => o.status === "Ready for Pickup" && !o.driverId);
-  const myDeliveries = orders.filter(o => o.driverId === 'driver-123' && o.status !== 'Delivered');
 
   return (
     <main className="flex-1 p-4 md:p-8">
@@ -281,3 +290,4 @@ export default function FindDeliveriesPage() {
     </main>
   );
 }
+
