@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { allOrders, allDishes, type Order, type OrderStatus, type Dish } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,32 +43,17 @@ export default function FindDeliveriesPage() {
     return allDishes.find(dish => dish.id === order.dishId);
   }
 
-  useEffect(() => {
-    // Fetch distances for available orders when the component mounts
-    const availableOrders = orders.filter(o => o.status === "Ready for Pickup" && !o.driverId);
-    availableOrders.forEach(order => {
-      if (distances[order.id] === undefined && !loadingDistances[order.id]) {
-        handleEstimateDistance(order);
-      }
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orders]);
-
-
-  const myDeliveries = orders.filter(o => o.driverId === DRIVER_ID && o.status !== 'Delivered');
-  const hasActiveDelivery = myDeliveries.length > 0;
-  
-  const getCookForDish = (dish: Dish): {name: string, location: string} => {
+  const getCookForDish = useCallback((dish: Dish): {name: string, location: string} => {
     // In a real app, this would look up the cook's profile
     return { name: dish.cook, location: '123 Cook St, Santiago' };
-  }
+  }, []);
   
-  const getCustomerAddress = (order: Order): string => {
+  const getCustomerAddress = useCallback((order: Order): string => {
     // In a real app, this would come from the order details
     return `456 Customer Ave, Santiago`;
-  }
+  }, []);
 
-  const handleEstimateDistance = async (order: Order) => {
+  const handleEstimateDistance = useCallback(async (order: Order) => {
     const dish = getDishForOrder(order);
     if (!dish) return;
 
@@ -89,7 +74,22 @@ export default function FindDeliveriesPage() {
     } finally {
       setLoadingDistances(prev => ({...prev, [order.id]: false}));
     }
-  }
+  }, [getCookForDish, getCustomerAddress]);
+
+  useEffect(() => {
+    // Fetch distances for available orders when the component mounts
+    const availableOrders = orders.filter(o => o.status === "Ready for Pickup" && !o.driverId);
+    availableOrders.forEach(order => {
+      if (distances[order.id] === undefined && !loadingDistances[order.id]) {
+        handleEstimateDistance(order);
+      }
+    });
+  }, [orders, handleEstimateDistance, loadingDistances, distances]);
+
+
+  const myDeliveries = useMemo(() => orders.filter(o => o.driverId === DRIVER_ID && o.status !== 'Delivered'), [orders]);
+  const hasActiveDelivery = useMemo(() => myDeliveries.length > 0, [myDeliveries]);
+  
   
   const handleAcceptDelivery = (orderId: string) => {
     if (hasActiveDelivery) {
