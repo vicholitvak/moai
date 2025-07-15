@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { formatPrice } from '@/lib/utils';
-import { Minus, Plus } from 'lucide-react';
+import { Minus, Plus, Loader, CheckCircle } from 'lucide-react';
 import { useState } from 'react';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
@@ -26,9 +26,12 @@ const checkoutFormSchema = z.object({
 
 type CheckoutFormValues = z.infer<typeof checkoutFormSchema>;
 
+type SubmissionStatus = "idle" | "submitting" | "success";
+
 export default function CheckoutPage({ params }: { params: { id: string } }) {
   const dish = allDishes.find((d) => d.id === params.id);
   const [quantity, setQuantity] = useState(1);
+  const [status, setStatus] = useState<SubmissionStatus>("idle");
   const router = useRouter();
 
   const form = useForm<CheckoutFormValues>({
@@ -48,22 +51,35 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
   }
 
   const onSubmit = (data: CheckoutFormValues) => {
-    // In a real app, this would create an order in the database
-    const orderId = Math.random().toString(36).substr(2, 9);
-    const verificationCode = Math.floor(1000 + Math.random() * 9000).toString();
+    if (status !== 'idle') return;
+
+    setStatus('submitting');
     
-    // Add the new order to our mock database
-    allOrders.push({
-      id: orderId,
-      dishId: dish.id,
-      quantity,
-      status: 'Order Placed',
-      customerName: 'Alex Johnson', // Placeholder
-      verificationCode,
-    });
-    
-    // Redirect to the order confirmation page
-    router.push(`/order-confirmation/${orderId}`);
+    // Simulate network delay
+    setTimeout(() => {
+        // In a real app, this would create an order in the database
+        const orderId = Math.random().toString(36).substr(2, 9);
+        const verificationCode = Math.floor(1000 + Math.random() * 9000).toString();
+        
+        // Add the new order to our mock database
+        allOrders.push({
+        id: orderId,
+        dishId: dish.id,
+        quantity,
+        status: 'Order Placed',
+        customerName: 'Alex Johnson', // Placeholder
+        verificationCode,
+        });
+
+        setStatus('success');
+
+        // Wait a moment on success state before redirecting
+        setTimeout(() => {
+             // Redirect to the order confirmation page
+            router.push(`/order-confirmation/${orderId}`);
+        }, 1500);
+
+    }, 2000);
   }
 
   const subtotal = dish.price * quantity;
@@ -104,7 +120,7 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
                 <div className="flex justify-between items-center">
                   <Label>Quantity</Label>
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" size="icon" onClick={() => handleQuantityChange(-1)}>
+                    <Button variant="outline" size="icon" onClick={() => handleQuantityChange(-1)} disabled={status !== 'idle'}>
                       <Minus className="h-4 w-4" />
                     </Button>
                     <Input 
@@ -113,7 +129,7 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
                       value={quantity}
                       readOnly
                     />
-                    <Button variant="outline" size="icon" onClick={() => handleQuantityChange(1)}>
+                    <Button variant="outline" size="icon" onClick={() => handleQuantityChange(1)} disabled={status !== 'idle'}>
                       <Plus className="h-4 w-4" />
                     </Button>
                   </div>
@@ -162,7 +178,7 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
                                     <FormItem>
                                         <FormLabel>Delivery Address</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="123 Sunny Lane, Apt 4B, Flavor Town" {...field} />
+                                            <Input placeholder="123 Sunny Lane, Apt 4B, Flavor Town" {...field} disabled={status !== 'idle'} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -175,13 +191,19 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
                                     <FormItem>
                                         <FormLabel>Credit Card</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="•••• •••• •••• 4242" {...field} />
+                                            <Input placeholder="•••• •••• •••• 4242" {...field} disabled={status !== 'idle'}/>
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
-                             <Button type="submit" size="lg" className="w-full">Place Order</Button>
+                             <Button type="submit" size="lg" className="w-full" disabled={status !== 'idle'}>
+                                {status === 'submitting' && <Loader className="animate-spin mr-2" />}
+                                {status === 'success' && <CheckCircle className="mr-2" />}
+                                {status === 'idle' && 'Place Order'}
+                                {status === 'submitting' && 'Placing Order...'}
+                                {status === 'success' && 'Order Placed!'}
+                             </Button>
                         </CardContent>
                     </form>
                 </Form>
