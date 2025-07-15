@@ -29,11 +29,16 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
   }
 
   const handlePlaceOrder = () => {
+    // In a real app, this would create an order in the database
+    const orderId = Math.random().toString(36).substr(2, 9);
+    
     toast({
       title: "Order Placed!",
       description: `Your order for ${quantity}x ${dish.name} is on its way.`,
     });
-    router.push('/');
+    
+    // Redirect to the order status page
+    router.push(`/order-status/${orderId}?dishId=${dish.id}`);
   }
 
   const subtotal = dish.price * quantity;

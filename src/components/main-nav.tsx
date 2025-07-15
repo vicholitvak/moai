@@ -20,6 +20,7 @@ import {
   LayoutGrid,
   Bike,
   PieChart,
+  Package,
 } from "lucide-react";
 
 const mainMenuItems = [
@@ -62,10 +63,15 @@ const driverMenuItems = [
 ];
 
 const userMenuItems = [
-  {
+    {
     href: "/user/profile",
     icon: User,
     label: "My Profile",
+  },
+  {
+    href: "/order-status/1", // Default to a sample order
+    icon: Package,
+    label: "My Orders",
   },
 ];
 
@@ -77,18 +83,16 @@ export function MainNav() {
     <SidebarMenu className="flex-1 p-2">
       {mainMenuItems.map((item) => (
         <SidebarMenuItem key={item.href}>
-          <Link href={item.href}>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname === item.href}
-              tooltip={item.label}
-            >
-              <span>
-                <item.icon />
-                <span>{item.label}</span>
-              </span>
-            </SidebarMenuButton>
-          </Link>
+          <SidebarMenuButton
+            asChild
+            isActive={pathname === item.href}
+            tooltip={item.label}
+          >
+            <Link href={item.href}>
+              <item.icon />
+              <span>{item.label}</span>
+            </Link>
+          </SidebarMenuButton>
         </SidebarMenuItem>
       ))}
       
@@ -101,18 +105,16 @@ export function MainNav() {
         </SidebarGroupLabel>
         {cookMenuItems.map((item) => (
             <SidebarMenuItem key={item.href}>
-            <Link href={item.href}>
-                <SidebarMenuButton
-                asChild
-                isActive={pathname === item.href}
-                tooltip={item.label}
-                >
-                <span>
-                  <item.icon />
-                  <span>{item.label}</span>
-                </span>
-                </SidebarMenuButton>
-            </Link>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname === item.href}
+              tooltip={item.label}
+            >
+              <Link href={item.href}>
+                <item.icon />
+                <span>{item.label}</span>
+              </Link>
+            </SidebarMenuButton>
             </SidebarMenuItem>
         ))}
       </SidebarGroup>
@@ -126,18 +128,16 @@ export function MainNav() {
         </SidebarGroupLabel>
         {driverMenuItems.map((item) => (
             <SidebarMenuItem key={item.href}>
-            <Link href={item.href}>
-                <SidebarMenuButton
-                asChild
-                isActive={pathname === item.href}
-                tooltip={item.label}
-                >
-                <span>
-                  <item.icon />
-                  <span>{item.label}</span>
-                </span>
-                </SidebarMenuButton>
-            </Link>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname === item.href}
+              tooltip={item.label}
+            >
+              <Link href={item.href}>
+                <item.icon />
+                <span>{item.label}</span>
+              </Link>
+            </SidebarMenuButton>
             </SidebarMenuItem>
         ))}
       </SidebarGroup>
@@ -151,18 +151,16 @@ export function MainNav() {
         </SidebarGroupLabel>
         {userMenuItems.map((item) => (
             <SidebarMenuItem key={item.href}>
-            <Link href={item.href}>
-                <SidebarMenuButton
-                asChild
-                isActive={pathname === item.href}
-                tooltip={item.label}
-                >
-                <span>
-                  <item.icon />
-                  <span>{item.label}</span>
-                </span>
-                </SidebarMenuButton>
-            </Link>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname.startsWith(item.href)}
+              tooltip={item.label}
+            >
+              <Link href={item.href}>
+                <item.icon />
+                <span>{item.label}</span>
+              </Link>
+            </SidebarMenuButton>
             </SidebarMenuItem>
         ))}
       </SidebarGroup>
