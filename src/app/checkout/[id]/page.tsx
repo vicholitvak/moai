@@ -61,7 +61,6 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
         const orderId = Math.random().toString(36).substr(2, 9);
         const verificationCode = Math.floor(1000 + Math.random() * 9000).toString();
         
-        // Add the new order to our mock database
         allOrders.push({
         id: orderId,
         dishId: dish.id,
