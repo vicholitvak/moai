@@ -31,6 +31,7 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
   const handlePlaceOrder = () => {
     // In a real app, this would create an order in the database
     const orderId = Math.random().toString(36).substr(2, 9);
+    const verificationCode = Math.floor(1000 + Math.random() * 9000).toString();
     
     // Add the new order to our mock database
     allOrders.push({
@@ -38,7 +39,8 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
       dishId: dish.id,
       quantity,
       status: 'Order Placed',
-      customerName: 'Alex Johnson' // Placeholder
+      customerName: 'Alex Johnson', // Placeholder
+      verificationCode,
     });
     
     toast({

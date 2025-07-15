@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { notFound, useParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -12,8 +12,9 @@ import {
 } from "@/components/ui/card";
 import { allDishes, findOrder, type Order, type Dish } from "@/lib/data";
 import Image from "next/image";
-import { CheckCircle, Circle, Soup, Bike, Home, PackageCheck } from "lucide-react";
+import { CheckCircle, Circle, Soup, Bike, Home, PackageCheck, KeyRound } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 const orderSteps = [
   { status: "Order Placed", icon: CheckCircle },
@@ -65,6 +66,17 @@ export default function OrderStatusPage() {
         <p className="text-muted-foreground mb-6">
           Order ID: <span className="font-mono">{order.id}</span>
         </p>
+
+        {order.status === 'Out for Delivery' && (
+          <Alert className="mb-6 border-primary text-primary">
+            <KeyRound className="h-4 w-4 !text-primary" />
+            <AlertTitle>Delivery Code</AlertTitle>
+            <AlertDescription>
+              Provide this code to your driver to complete the delivery:
+              <span className="ml-2 font-bold text-2xl tracking-widest">{order.verificationCode}</span>
+            </AlertDescription>
+          </Alert>
+        )}
 
         <Card className="shadow-lg mb-8">
           <CardHeader>

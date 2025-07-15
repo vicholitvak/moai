@@ -14,14 +14,15 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
-import { ChevronRight, Truck, MapPin, ChefHat, Package, CheckCheck } from "lucide-react";
-
-// In a real app, this would use a real-time listener (e.g., Firestore)
-const availableDeliveries = allOrders.filter(o => o.status === "Ready for Pickup");
-const activeDeliveries = allOrders.filter(o => o.status === "Out for Delivery");
+import { ChevronRight, Truck, MapPin, ChefHat, Package, CheckCheck, KeyRound } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 
 export default function FindDeliveriesPage() {
   const [orders, setOrders] = useState(allOrders);
+  const [verificationCode, setVerificationCode] = useState<Record<string, string>>({});
+  const { toast } = useToast();
+
 
   const getDishForOrder = (order: Order): Dish | undefined => {
     return allDishes.find(dish => dish.id === order.dishId);
@@ -32,13 +33,30 @@ export default function FindDeliveriesPage() {
     return { name: dish.cook, location: '123 Cook St, Santiago' };
   }
 
-  const handleUpdateStatus = (orderId: string, newStatus: OrderStatus) => {
+  const handleStatusUpdate = (orderId: string, newStatus: OrderStatus) => {
      // Find the original order in the central 'database' and update it
     const centralOrder = allOrders.find(o => o.id === orderId);
     if(centralOrder) centralOrder.status = newStatus;
     // Refresh local state
     setOrders([...allOrders]);
   };
+
+  const handleCompleteDelivery = (order: Order) => {
+    const enteredCode = verificationCode[order.id] || '';
+    if (enteredCode === order.verificationCode) {
+      handleStatusUpdate(order.id, "Delivered");
+      toast({
+        title: "Delivery Complete!",
+        description: `Order #${order.id.substring(0,6)} has been successfully delivered.`,
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Incorrect Code",
+        description: "The verification code is incorrect. Please try again.",
+      });
+    }
+  }
   
   const getCustomerAddress = (order: Order): string => {
     // In a real app, this would come from the order details
@@ -83,17 +101,27 @@ export default function FindDeliveriesPage() {
             </div>
           </div>
         </CardContent>
-        <CardFooter className="flex justify-end">
+        <CardFooter className="flex justify-end items-center gap-2">
             {isAvailable ? (
-              <Button onClick={() => handleUpdateStatus(order.id, "Out for Delivery")}>
+              <Button onClick={() => handleStatusUpdate(order.id, "Out for Delivery")}>
                 Accept Delivery
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
             ) : (
-               <Button onClick={() => handleUpdateStatus(order.id, "Delivered")} variant="secondary">
-                Mark as Delivered
-                <CheckCheck className="h-4 w-4 ml-2" />
-              </Button>
+              <div className="flex w-full items-center gap-2">
+                <KeyRound className="h-5 w-5 text-muted-foreground" />
+                <Input 
+                  placeholder="4-digit code" 
+                  maxLength={4}
+                  className="w-32"
+                  value={verificationCode[order.id] || ''}
+                  onChange={(e) => setVerificationCode(prev => ({...prev, [order.id]: e.target.value}))}
+                />
+                <Button onClick={() => handleCompleteDelivery(order)} variant="secondary">
+                  Complete Delivery
+                  <CheckCheck className="h-4 w-4 ml-2" />
+                </Button>
+               </div>
             )}
         </CardFooter>
       </Card>

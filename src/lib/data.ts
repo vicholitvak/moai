@@ -30,6 +30,7 @@ export interface Order {
     quantity: number;
     status: OrderStatus;
     customerName: string; // Placeholder for now
+    verificationCode: string;
 }
 
 
@@ -219,9 +220,9 @@ export const allDishes: Dish[] = [
 
 // Sample orders data - in a real app, this would be in a database.
 export const allOrders: Order[] = [
-    { id: 'xyz-123', dishId: '7', quantity: 1, status: 'Order Placed', customerName: 'Alex Johnson' },
-    { id: 'abc-456', dishId: '1', quantity: 2, status: 'Preparing Food', customerName: 'Maria Garcia' },
-    { id: 'def-789', dishId: '8', quantity: 1, status: 'Ready for Pickup', customerName: 'Chen Wei' },
+    { id: 'xyz-123', dishId: '7', quantity: 1, status: 'Order Placed', customerName: 'Alex Johnson', verificationCode: '1234' },
+    { id: 'abc-456', dishId: '1', quantity: 2, status: 'Preparing Food', customerName: 'Maria Garcia', verificationCode: '5678' },
+    { id: 'def-789', dishId: '8', quantity: 1, status: 'Ready for Pickup', customerName: 'Chen Wei', verificationCode: '9012' },
 ];
 
 export function findOrder(orderId?: string | null): Order | undefined {
@@ -237,7 +238,8 @@ export function findOrder(orderId?: string | null): Order | undefined {
             dishId: dishId,
             quantity: 1,
             status: 'Order Placed',
-            customerName: 'New Customer'
+            customerName: 'New Customer',
+            verificationCode: '9999' // Dummy code for new orders
         };
     }
     return order;
