@@ -1,4 +1,7 @@
 
+"use client";
+
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,38 +15,55 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { CreditCard, Home, Trash2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function UserProfilePage() {
+  const { toast } = useToast();
+  const [name, setName] = useState("Alex Johnson");
+  const [email, setEmail] = useState("alex.j@example.com");
+
+  const handleSaveProfile = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    // In a real app, you'd send this data to your backend/database.
+    console.log("Saving profile:", { name, email });
+    toast({
+      title: "Profile Saved!",
+      description: "Your personal information has been updated.",
+    });
+  };
+
   return (
     <main className="flex-1 p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-headline mb-6">User Profile</h1>
 
-        <Card className="shadow-lg">
-           <CardHeader>
-            <CardTitle>Personal Information</CardTitle>
-            <CardDescription>
-              Update your personal details here.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input id="name" defaultValue="Alex Johnson" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" defaultValue="alex.j@example.com" />
-            </div>
-             <div className="space-y-2">
-                <Label htmlFor="picture">Profile Picture</Label>
-                <Input id="picture" type="file" />
-             </div>
-          </CardContent>
-          <CardFooter className="border-t px-6 py-4">
-            <Button>Save Profile</Button>
-          </CardFooter>
-        </Card>
+        <form onSubmit={handleSaveProfile}>
+          <Card className="shadow-lg">
+            <CardHeader>
+              <CardTitle>Personal Information</CardTitle>
+              <CardDescription>
+                Update your personal details here.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name</Label>
+                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                  <Label htmlFor="picture">Profile Picture</Label>
+                  <Input id="picture" type="file" />
+              </div>
+            </CardContent>
+            <CardFooter className="border-t px-6 py-4">
+              <Button type="submit">Save Profile</Button>
+            </CardFooter>
+          </Card>
+        </form>
 
         <Separator className="my-8" />
 
@@ -109,4 +129,3 @@ export default function UserProfilePage() {
     </main>
   );
 }
-
