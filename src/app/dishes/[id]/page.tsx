@@ -1,3 +1,6 @@
+
+"use client";
+
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { allDishes } from '@/lib/data';
@@ -7,12 +10,12 @@ import { Button } from '@/components/ui/button';
 import { Star, ChefHat, MapPin, GlassWater } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { formatPrice } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
-export function generateStaticParams() {
-  return allDishes.map((dish) => ({
-    id: dish.id,
-  }));
-}
 
 export default function DishDetailPage({ params }: { params: { id: string } }) {
   const dish = allDishes.find((d) => d.id === params.id);
@@ -26,15 +29,29 @@ export default function DishDetailPage({ params }: { params: { id: string } }) {
       <div className="max-w-4xl mx-auto">
         <div className="grid md:grid-cols-2 gap-8 md:gap-12">
           <div>
-            <div className="aspect-square relative rounded-lg overflow-hidden shadow-lg">
-              <Image
-                src={dish.image}
-                alt={dish.name}
-                fill
-                className="object-cover"
-                data-ai-hint={dish.hint}
-              />
-            </div>
+            <Dialog>
+              <DialogTrigger asChild>
+                <div className="aspect-square relative rounded-lg overflow-hidden shadow-lg cursor-zoom-in group">
+                  <Image
+                    src={dish.image}
+                    alt={dish.name}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    data-ai-hint={dish.hint}
+                  />
+                </div>
+              </DialogTrigger>
+              <DialogContent className="p-0 border-0 max-w-4xl bg-transparent shadow-none">
+                  <Image
+                    src={dish.image}
+                    alt={dish.name}
+                    width={1200}
+                    height={800}
+                    className="object-contain w-full h-full rounded-lg"
+                    data-ai-hint={dish.hint}
+                  />
+              </DialogContent>
+            </Dialog>
           </div>
           <div className="flex flex-col space-y-4">
             <div>
