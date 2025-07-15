@@ -1,14 +1,13 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { allOrders, allDishes, type Order, type OrderStatus, type Dish } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -45,6 +44,16 @@ export default function CookOrdersPage() {
   const [prepTimes, setPrepTimes] = useState<Record<string, EstimatePrepStartTimeOutput | null>>({});
   const [loadingTimes, setLoadingTimes] = useState<Record<string, boolean>>({});
 
+  useEffect(() => {
+    // In a real app with a database, you'd use a real-time listener (like Firestore's onSnapshot)
+    // to get live updates. For now, we'll use a polling mechanism to simulate this.
+    const interval = setInterval(() => {
+        setOrders([...allOrders]);
+    }, 2000); // Check for updates every 2 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
   const cookOrders = orders.filter(order => {
     const dish = allDishes.find(d => d.id === order.dishId);
     return dish?.cookId === CURRENT_COOK_ID;
@@ -65,7 +74,7 @@ export default function CookOrdersPage() {
               }
             }
             // Return the updated order for the local state
-            return { ...order, status: nextStatus, prepStartedAt: centralOrder?.prepStartedAt, driverETA: centralOrder?.driverETA };
+            return { ...order, status: nextStatus, prepStartedAt: centralOrder?.prepStartedAt };
         }
       }
       return order;
@@ -101,9 +110,9 @@ export default function CookOrdersPage() {
     } finally {
       setLoadingTimes(prev => ({...prev, [order.id]: false}));
     }
-  }
+  };
 
-  const activeOrders = cookOrders.filter(o => o.status !== 'Delivered' && o.status !== 'Out for Delivery');
+  const activeOrders = cookOrders.filter(o => o.status !== 'Delivered');
 
   return (
     <main className="flex-1 p-4 md:p-8">
@@ -134,10 +143,12 @@ export default function CookOrdersPage() {
             const badgeVariant = {
               "Order Placed": "destructive",
               "Preparing Food": "default",
-              "Ready for Pickup": "secondary"
+              "Ready for Pickup": "secondary",
+              "Out for Delivery": "secondary",
+              "Delivered": "secondary",
             }[order.status] || "default";
             
-            const isDriverAssigned = order.status === 'Ready for Pickup' && !!order.driverId;
+            const isDriverAssigned = !!order.driverId;
 
             return (
               <Card key={order.id} className="shadow-lg">
@@ -171,7 +182,7 @@ export default function CookOrdersPage() {
                       <PreparationTimer prepTimeMinutes={dish.prepTimeMinutes} prepStartedAt={order.prepStartedAt} />
                    )}
                    
-                   {isDriverAssigned && order.driverETA && (
+                   {order.status === 'Ready for Pickup' && isDriverAssigned && order.driverETA && (
                       <>
                         <Alert variant="default" className="border-primary/50">
                           <Truck className="h-4 w-4" />
@@ -190,7 +201,7 @@ export default function CookOrdersPage() {
                         <AlertTitle>AI Recommendation</AlertTitle>
                         <AlertDescription>
                           To ensure a fresh delivery, please start preparing this order at <span className="font-bold text-primary">{prepTime.recommendedPrepStartTime}</span>. The driver is estimated to arrive at {prepTime.estimatedDriverArrivalTime}.
-                        </AlertDescription>
+                        </Description>
                       </Alert>
                    )}
                 </CardContent>
@@ -210,10 +221,17 @@ export default function CookOrdersPage() {
                     </Button>
                   ) : (
                     <div className="text-sm text-muted-foreground flex items-center gap-2">
-                      <Truck className="h-4 w-4" />
-                      <span>
-                        {isDriverAssigned ? "Driver is on the way!" : "Waiting for driver..."}
-                      </span>
+                       {order.status === 'Ready for Pickup' ? (
+                          <>
+                            <Truck className="h-4 w-4" />
+                            <span>
+                                {isDriverAssigned ? "Driver is on the way!" : "Waiting for driver..."}
+                            </span>
+                          </>
+                       ) : (
+                           <PackageCheck className="h-4 w-4" />
+                           <span>Order is complete!</span>
+                       )}
                     </div>
                   )}
                 </CardFooter>

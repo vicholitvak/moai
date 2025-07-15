@@ -8,7 +8,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -18,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { formatPrice } from "@/lib/utils";
 import { estimateTravelDistance } from "@/ai/flows/estimate-travel-distance-flow";
+import { PreparationTimer } from "@/components/preparation-timer";
 
 const DRIVER_CUT = 0.10; // 10% of the dish price
 const DRIVER_ID = 'driver-123';
@@ -38,6 +38,16 @@ export default function FindDeliveriesPage() {
   const [distances, setDistances] = useState<Record<string, number | null>>({});
   const [loadingDistances, setLoadingDistances] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
+
+   useEffect(() => {
+    // In a real app with a database, you'd use a real-time listener (like Firestore's onSnapshot)
+    // to get live updates. For now, we'll use a polling mechanism to simulate this.
+    const interval = setInterval(() => {
+        setOrders([...allOrders]);
+    }, 2000); // Check for updates every 2 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   const getDishForOrder = (order: Order): Dish | undefined => {
     return allDishes.find(dish => dish.id === order.dishId);
@@ -74,7 +84,7 @@ export default function FindDeliveriesPage() {
     } finally {
       setLoadingDistances(prev => ({...prev, [order.id]: false}));
     }
-  }, [getCookForDish, getCustomerAddress]);
+  }, [getCookForDish, getCustomerAddress, getDishForOrder]);
 
   useEffect(() => {
     // Fetch distances for available orders when the component mounts
@@ -158,7 +168,9 @@ export default function FindDeliveriesPage() {
 
       return scoreB - scoreA; // Sort descending by score
     });
-  }, [orders, distances]);
+  }, [orders, distances, getDishForOrder]);
+
+  const incomingDeliveries = useMemo(() => orders.filter(o => o.status === "Preparing Food"), [orders]);
   
   const renderOrderCard = (order: Order) => {
     const dish = getDishForOrder(order);
@@ -175,10 +187,11 @@ export default function FindDeliveriesPage() {
     const isAvailable = order.status === 'Ready for Pickup' && !order.driverId;
     const isAccepted = order.status === 'Ready for Pickup' && order.driverId === DRIVER_ID;
     const isOutForDelivery = order.status === 'Out for Delivery' && order.driverId === DRIVER_ID;
+    const isPreparing = order.status === 'Preparing Food';
     
     let badgeVariant: "default" | "secondary" | "destructive" = 'secondary';
-    if (isAccepted) badgeVariant = 'default';
-    if (isOutForDelivery) badgeVariant = 'default';
+    if (isAccepted || isOutForDelivery) badgeVariant = 'default';
+    if (isPreparing) badgeVariant = 'destructive';
 
     return (
       <Card key={order.id} className="shadow-lg">
@@ -232,6 +245,11 @@ export default function FindDeliveriesPage() {
               </div>
             </div>
           </div>
+           {isPreparing && order.prepStartedAt && (
+            <div className="border-t pt-4">
+              <PreparationTimer prepTimeMinutes={dish.prepTimeMinutes} prepStartedAt={order.prepStartedAt} />
+            </div>
+          )}
         </CardContent>
         <CardFooter className="flex justify-end items-center gap-2">
             {isAvailable && (
@@ -262,6 +280,9 @@ export default function FindDeliveriesPage() {
                 </Button>
                </div>
             )}
+             {isPreparing && (
+                <p className="text-sm text-muted-foreground">This order will be available for pickup soon.</p>
+            )}
         </CardFooter>
       </Card>
     )
@@ -270,34 +291,17 @@ export default function FindDeliveriesPage() {
 
   return (
     <main className="flex-1 p-4 md:p-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-headline">Driver's Hub</h1>
           <p className="text-muted-foreground">Find and manage your deliveries.</p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8">
-          <div>
-            <h2 className="text-2xl font-headline mb-4 flex items-center gap-2">
-              <Package className="h-6 w-6 text-primary" />
-              Available Deliveries
-            </h2>
-            <div className="space-y-6">
-              {sortedAvailableDeliveries.length > 0 ? (
-                sortedAvailableDeliveries.map(order => renderOrderCard(order))
-              ) : (
-                <Card className="text-center p-8">
-                  <CardContent>
-                    <p className="text-muted-foreground">No deliveries are ready for pickup right now.</p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          </div>
-          <div>
+        <div className="grid md:grid-cols-3 gap-8">
+          <div className="md:col-span-1">
             <h2 className="text-2xl font-headline mb-4 flex items-center gap-2">
                <Truck className="h-6 w-6 text-primary" />
-              My Active Deliveries
+              My Active Delivery
             </h2>
             <div className="space-y-6">
                {myDeliveries.length > 0 ? (
@@ -305,10 +309,46 @@ export default function FindDeliveriesPage() {
               ) : (
                 <Card className="text-center p-8">
                   <CardContent>
-                    <p className="text-muted-foreground">You have no active deliveries.</p>
+                    <p className="text-muted-foreground">You have no active delivery.</p>
                   </CardContent>
                 </Card>
               )}
+            </div>
+          </div>
+          <div className="md:col-span-2 grid md:grid-cols-2 gap-8">
+             <div>
+                <h2 className="text-2xl font-headline mb-4 flex items-center gap-2">
+                <Package className="h-6 w-6 text-primary" />
+                Available Deliveries
+                </h2>
+                <div className="space-y-6">
+                {sortedAvailableDeliveries.length > 0 ? (
+                    sortedAvailableDeliveries.map(order => renderOrderCard(order))
+                ) : (
+                    <Card className="text-center p-8">
+                    <CardContent>
+                        <p className="text-muted-foreground">No deliveries are ready for pickup right now.</p>
+                    </CardContent>
+                    </Card>
+                )}
+                </div>
+            </div>
+            <div>
+                 <h2 className="text-2xl font-headline mb-4 flex items-center gap-2">
+                    <ChefHat className="h-6 w-6 text-primary" />
+                    Incoming
+                </h2>
+                <div className="space-y-6">
+                    {incomingDeliveries.length > 0 ? (
+                        incomingDeliveries.map(order => renderOrderCard(order))
+                    ) : (
+                        <Card className="text-center p-8">
+                        <CardContent>
+                            <p className="text-muted-foreground">No orders are currently being prepared.</p>
+                        </CardContent>
+                        </Card>
+                    )}
+                </div>
             </div>
           </div>
         </div>
@@ -317,3 +357,5 @@ export default function FindDeliveriesPage() {
     </main>
   );
 }
+
+    
