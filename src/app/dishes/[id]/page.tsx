@@ -3,6 +3,7 @@
 
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
+import Link from 'next/link';
 import { allDishes } from '@/lib/data';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -82,7 +83,9 @@ export default function DishDetailPage({ params }: { params: { id: string } }) {
             
             <p className="text-muted-foreground">{dish.description}</p>
 
-            <Button size="lg" className="w-full">Order Now</Button>
+            <Button size="lg" className="w-full" asChild>
+              <Link href={`/checkout/${dish.id}`}>Order Now</Link>
+            </Button>
 
             <Separator className="my-4" />
 

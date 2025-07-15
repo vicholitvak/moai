@@ -25,8 +25,8 @@ export default function Home() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
           {availableDishes.map((dish) => (
-            <Link key={dish.id} href={`/dishes/${dish.id}`} className="group transform transition-transform duration-300 hover:scale-105 block">
-              <Card className="shadow-lg overflow-hidden flex flex-col h-full">
+            <Card key={dish.id} className="shadow-lg overflow-hidden flex flex-col h-full group transform transition-transform duration-300 hover:scale-105">
+              <Link href={`/dishes/${dish.id}`} className="flex flex-col h-full">
                 <CardHeader className="p-0 relative">
                   <Image
                     src={dish.image}
@@ -60,11 +60,13 @@ export default function Home() {
                 <CardFooter className="p-4 pt-0 mt-auto">
                   <div className="flex justify-between items-center w-full">
                     <p className="text-xl font-semibold text-primary">{formatPrice(dish.price)}</p>
-                    <Button>Order Now</Button>
+                    <Button asChild>
+                      <Link href={`/checkout/${dish.id}`}>Order Now</Link>
+                    </Button>
                   </div>
                 </CardFooter>
-              </Card>
-            </Link>
+              </Link>
+            </Card>
           ))}
         </div>
       </div>
