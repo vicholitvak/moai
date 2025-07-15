@@ -32,6 +32,7 @@ export interface Order {
     status: OrderStatus;
     customerName: string; // Placeholder for now
     verificationCode: string;
+    prepStartedAt?: number; // Timestamp when preparation started
 }
 
 
@@ -234,7 +235,7 @@ export const allDishes: Dish[] = [
 // Sample orders data - in a real app, this would be in a database.
 export const allOrders: Order[] = [
     { id: 'xyz-123', dishId: '7', quantity: 1, status: 'Order Placed', customerName: 'Alex Johnson', verificationCode: '1234' },
-    { id: 'abc-456', dishId: '1', quantity: 2, status: 'Preparing Food', customerName: 'Maria Garcia', verificationCode: '5678' },
+    { id: 'abc-456', dishId: '1', quantity: 2, status: 'Preparing Food', customerName: 'Maria Garcia', verificationCode: '5678', prepStartedAt: Date.now() - 5 * 60 * 1000 }, // 5 minutes ago
     { id: 'def-789', dishId: '8', quantity: 1, status: 'Ready for Pickup', customerName: 'Chen Wei', verificationCode: '9012' },
 ];
 

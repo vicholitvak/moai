@@ -7,24 +7,31 @@ import { cn } from "@/lib/utils";
 
 interface PreparationTimerProps {
   prepTimeMinutes: number;
+  prepStartedAt: number;
 }
 
-export function PreparationTimer({ prepTimeMinutes }: PreparationTimerProps) {
+export function PreparationTimer({ prepTimeMinutes, prepStartedAt }: PreparationTimerProps) {
   const totalSeconds = prepTimeMinutes * 60;
-  const [remainingSeconds, setRemainingSeconds] = useState(totalSeconds);
+  
+  const calculateRemainingSeconds = () => {
+    const elapsedSeconds = (Date.now() - prepStartedAt) / 1000;
+    return Math.max(0, totalSeconds - elapsedSeconds);
+  }
+
+  const [remainingSeconds, setRemainingSeconds] = useState(calculateRemainingSeconds);
 
   useEffect(() => {
     if (remainingSeconds <= 0) return;
 
     const timer = setInterval(() => {
-      setRemainingSeconds((prevSeconds) => prevSeconds - 1);
+      setRemainingSeconds(calculateRemainingSeconds());
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [remainingSeconds]);
+  }, []);
 
   const minutes = Math.floor(remainingSeconds / 60);
-  const seconds = remainingSeconds % 60;
+  const seconds = Math.floor(remainingSeconds % 60);
   const progress = (remainingSeconds / totalSeconds) * 100;
 
   const isLowTime = remainingSeconds <= 60; // Less than or equal to 1 minute

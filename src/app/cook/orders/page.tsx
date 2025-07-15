@@ -54,9 +54,15 @@ export default function CookOrdersPage() {
         if (nextStatus) {
             // Find the original order in the central 'database' and update it
             const centralOrder = allOrders.find(o => o.id === orderId);
-            if(centralOrder) centralOrder.status = nextStatus;
+            if(centralOrder) {
+              centralOrder.status = nextStatus;
+              // If we are starting preparation, record the time
+              if (nextStatus === "Preparing Food") {
+                centralOrder.prepStartedAt = Date.now();
+              }
+            }
             // Return the updated order for the local state
-            return { ...order, status: nextStatus };
+            return { ...order, status: nextStatus, prepStartedAt: centralOrder?.prepStartedAt };
         }
       }
       return order;
@@ -148,8 +154,8 @@ export default function CookOrdersPage() {
                             <p className="text-muted-foreground">Quantity: {order.quantity}</p>
                         </div>
                    </div>
-                   {order.status === 'Preparing Food' && (
-                      <PreparationTimer prepTimeMinutes={dish.prepTimeMinutes} />
+                   {order.status === 'Preparing Food' && order.prepStartedAt && (
+                      <PreparationTimer prepTimeMinutes={dish.prepTimeMinutes} prepStartedAt={order.prepStartedAt} />
                    )}
                    {prepTime && (
                      <Alert>
