@@ -18,7 +18,6 @@ import {
   Map,
   Home,
   LayoutGrid,
-  Clock,
 } from "lucide-react";
 
 const mainMenuItems = [
@@ -45,11 +44,6 @@ const cookMenuItems = [
     icon: Map,
     label: "Find Clients",
   },
-   {
-    href: "/cook/delivery-estimator",
-    icon: Clock,
-    label: "Delivery Estimator",
-  },
   {
     href: "/cook/profile",
     icon: ChefHat,
@@ -68,8 +62,6 @@ const userMenuItems = [
 
 export function MainNav() {
   const pathname = usePathname();
-
-  const isCookSection = pathname.startsWith('/cook');
 
   return (
     <SidebarMenu className="flex-1 p-2">
