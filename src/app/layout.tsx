@@ -8,7 +8,7 @@ import { MainNav } from '@/components/main-nav';
 import { Icons } from '@/components/icons';
 
 export const metadata: Metadata = {
-  title: 'HomeTaste',
+  title: 'Moai',
   description: 'Home-cooked meals, delivered to your door.',
 };
 
@@ -30,7 +30,7 @@ export default function RootLayout({
             <div className="flex flex-col h-full">
               <div className="p-4 flex items-center gap-3">
                 <Icons.logo className="h-8 w-8 text-primary" />
-                <h1 className="text-2xl font-headline text-foreground">HomeTaste</h1>
+                <h1 className="text-2xl font-headline text-foreground">Moai</h1>
               </div>
               <MainNav />
             </div>
