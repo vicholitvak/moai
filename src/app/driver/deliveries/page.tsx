@@ -14,9 +14,12 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
-import { ChevronRight, Truck, MapPin, ChefHat, Package, CheckCheck, KeyRound } from "lucide-react";
+import { ChevronRight, Truck, MapPin, ChefHat, Package, CheckCheck, KeyRound, Wallet } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { formatPrice } from "@/lib/utils";
+
+const DRIVER_CUT = 0.10; // 10% of the dish price
 
 export default function FindDeliveriesPage() {
   const [orders, setOrders] = useState(allOrders);
@@ -69,6 +72,7 @@ export default function FindDeliveriesPage() {
     
     const cook = getCookForDish(dish);
     const customerAddress = getCustomerAddress(order);
+    const earnings = dish.price * order.quantity * DRIVER_CUT;
 
     return (
       <Card key={order.id} className="shadow-lg">
@@ -98,6 +102,13 @@ export default function FindDeliveriesPage() {
             <div>
               <p className="font-semibold">Deliver To: {order.customerName}</p>
               <p className="text-sm text-muted-foreground">{customerAddress}</p>
+            </div>
+          </div>
+           <div className="flex items-center gap-4 border-t pt-4">
+            <Wallet className="h-5 w-5 text-muted-foreground" />
+            <div>
+              <p className="font-semibold">Your Earnings</p>
+              <p className="text-sm text-primary font-bold">{formatPrice(earnings)}</p>
             </div>
           </div>
         </CardContent>
