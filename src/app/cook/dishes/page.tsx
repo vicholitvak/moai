@@ -26,58 +26,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PlusCircle } from "lucide-react";
 import Image from "next/image";
-
-type Dish = {
-  name: string;
-  description: string;
-  price: string;
-  prepTime: number;
-  image: string;
-  hint: string;
-};
-
-const initialDishes: Dish[] = [
-  {
-    name: "Spaghetti Carbonara",
-    description: "A classic Roman pasta dish with creamy egg sauce, pancetta, and pecorino cheese.",
-    price: "18.50",
-    prepTime: 25,
-    image: "https://images.unsplash.com/photo-1588013273468-31508b946d4d?q=80&w=600",
-    hint: "pasta italian"
-  },
-  {
-    name: "Margherita Pizza",
-    description: "Simple and delicious pizza with San Marzano tomatoes, fresh mozzarella, basil, and a drizzle of olive oil.",
-    price: "15.00",
-    prepTime: 20,
-    image: "https://images.unsplash.com/photo-1594007654729-407eedc4be65?q=80&w=600",
-    hint: "pizza italian"
-  },
-  {
-    name: "Tiramisu",
-    description: "A beloved Italian dessert with coffee-soaked ladyfingers, mascarpone cream, and a dusting of cocoa.",
-    price: "9.50",
-    prepTime: 15,
-    image: "https://images.unsplash.com/photo-1571115332230-d9d68b7859a8?q=80&w=600",
-    hint: "dessert sweet"
-  },
-  {
-    name: "Chicken Parmesan",
-    description: "Breaded chicken breast, fried and topped with marinara sauce and mozzarella, served with pasta.",
-    price: "22.00",
-    prepTime: 35,
-    image: "https://images.unsplash.com/photo-1632778149955-e83f3ce9b6e5?q=80&w=600",
-    hint: "chicken italian"
-  },
-];
+import { allDishes, type Dish as DishType } from "@/lib/data";
 
 
 export default function CookDishesPage() {
-  const [dishes, setDishes] = useState<Dish[]>(initialDishes);
+  const [dishes, setDishes] = useState<DishType[]>(allDishes.filter(d => d.cook === 'Chef Isabella'));
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingDish, setEditingDish] = useState<Dish | null>(null);
+  const [editingDish, setEditingDish] = useState<DishType | null>(null);
 
-  const handleEditClick = (dish: Dish) => {
+  const handleEditClick = (dish: DishType) => {
     setEditingDish(dish);
     setIsDialogOpen(true);
   };
@@ -95,23 +52,38 @@ export default function CookDishesPage() {
   const handleSaveDish = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const updatedDish = {
+    const newDishData = {
       name: formData.get('dish-name') as string,
       description: formData.get('description') as string,
       price: formData.get('price') as string,
-      prepTime: parseInt(formData.get('prep-time') as string, 10),
-      image: editingDish?.image || 'https://placehold.co/600x400.png', 
-      hint: editingDish?.hint || 'food placeholder'
+      image: editingDish?.image || 'https://placehold.co/600x400.png',
+      hint: editingDish?.hint || 'food placeholder',
     };
 
     if (editingDish) {
-      // Update existing dish
-      setDishes(dishes.map(d => d.name === editingDish.name ? updatedDish : d));
+      // Update existing dish in the central allDishes array
+      const dishIndex = allDishes.findIndex(d => d.id === editingDish.id);
+      if (dishIndex !== -1) {
+        const updatedDish = { ...allDishes[dishIndex], ...newDishData };
+        allDishes[dishIndex] = updatedDish;
+      }
     } else {
-      // Add new dish
-      setDishes([...dishes, updatedDish]);
+      // Add new dish to the central allDishes array
+      const newDish: DishType = {
+        id: (allDishes.length + 1).toString(),
+        cook: "Chef Isabella", // Assuming the current cook
+        rating: 0,
+        reviews: 0,
+        tags: [],
+        distance: 2.5, // Placeholder
+        chefDescription: "A new delicious creation!", // Placeholder
+        ...newDishData,
+      };
+      allDishes.unshift(newDish); // Add to the beginning of the list
     }
 
+    // Refresh local state to reflect changes from the central array
+    setDishes([...allDishes.filter(d => d.cook === 'Chef Isabella')]);
     handleDialogClose();
   };
 
@@ -149,10 +121,6 @@ export default function CookDishesPage() {
                   <Input id="price" name="price" type="number" step="0.01" defaultValue={editingDish?.price} className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="prep-time" className="text-right">Prep Time (min)</Label>
-                  <Input id="prep-time" name="prep-time" type="number" defaultValue={editingDish?.prepTime} className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="picture" className="text-right">
                         Image
                     </Label>
@@ -171,7 +139,7 @@ export default function CookDishesPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {dishes.map((dish) => (
-            <Card key={dish.name} className="shadow-lg overflow-hidden flex flex-col group transform transition-transform duration-300 hover:scale-105">
+            <Card key={dish.id} className="shadow-lg overflow-hidden flex flex-col group transform transition-transform duration-300 hover:scale-105">
               <CardHeader className="p-0">
                 <Image
                   src={dish.image}
