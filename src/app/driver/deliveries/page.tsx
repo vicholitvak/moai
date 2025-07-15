@@ -21,6 +21,15 @@ import { estimateTravelDistance } from "@/ai/flows/estimate-travel-distance-flow
 
 const DRIVER_CUT = 0.10; // 10% of the dish price
 
+const statusProgression: Record<OrderStatus, OrderStatus | null> = {
+  "Order Placed": null,
+  "Preparing Food": null, 
+  "Ready for Pickup": "Out for Delivery", // Driver action: Pick up food
+  "Out for Delivery": "Delivered", // Driver action: Complete delivery
+  "Delivered": null,
+};
+
+
 export default function FindDeliveriesPage() {
   const [orders, setOrders] = useState(allOrders);
   const [verificationCode, setVerificationCode] = useState<Record<string, string>>({});
@@ -30,7 +39,7 @@ export default function FindDeliveriesPage() {
 
   useEffect(() => {
     // Fetch distances for available orders when the component mounts
-    const availableOrders = orders.filter(o => o.status === "Ready for Pickup");
+    const availableOrders = orders.filter(o => o.status === "Ready for Pickup" && !o.driverId);
     availableOrders.forEach(order => {
       if (!distances[order.id] && !loadingDistances[order.id]) {
         handleEstimateDistance(order);
@@ -76,11 +85,22 @@ export default function FindDeliveriesPage() {
       setLoadingDistances(prev => ({...prev, [order.id]: false}));
     }
   }
+  
+  const handleAcceptDelivery = (orderId: string) => {
+    const centralOrder = allOrders.find(o => o.id === orderId);
+    if (centralOrder) {
+      centralOrder.driverId = 'driver-123'; // Assign a driver
+      centralOrder.driverETA = Math.floor(Math.random() * 10) + 5; // Simulate ETA
+    }
+    setOrders([...allOrders]);
+  }
 
   const handleStatusUpdate = (orderId: string, newStatus: OrderStatus) => {
      // Find the original order in the central 'database' and update it
     const centralOrder = allOrders.find(o => o.id === orderId);
-    if(centralOrder) centralOrder.status = newStatus;
+    if(centralOrder) {
+      centralOrder.status = newStatus;
+    }
     // Refresh local state
     setOrders([...allOrders]);
   };
@@ -101,8 +121,8 @@ export default function FindDeliveriesPage() {
       });
     }
   }
-
-  const renderOrderCard = (order: Order, isAvailable: boolean) => {
+  
+  const renderOrderCard = (order: Order) => {
     const dish = getDishForOrder(order);
     if (!dish) return null;
     
@@ -111,6 +131,16 @@ export default function FindDeliveriesPage() {
     const earnings = dish.price * order.quantity * DRIVER_CUT;
     const distance = distances[order.id];
     const isLoadingDistance = loadingDistances[order.id];
+    
+    const nextStatus = statusProgression[order.status];
+
+    const isAvailable = order.status === 'Ready for Pickup' && !order.driverId;
+    const isAccepted = order.status === 'Ready for Pickup' && order.driverId;
+    const isOutForDelivery = order.status === 'Out for Delivery';
+    
+    let badgeVariant: "default" | "secondary" | "destructive" = 'secondary';
+    if (isAccepted) badgeVariant = 'default';
+    if (isOutForDelivery) badgeVariant = 'default';
 
     return (
       <Card key={order.id} className="shadow-lg">
@@ -122,8 +152,8 @@ export default function FindDeliveriesPage() {
                   <span className="font-semibold">{dish.name}</span> (x{order.quantity})
                 </CardDescription>
               </div>
-              <Badge variant={order.status === 'Ready for Pickup' ? 'secondary' : 'default'} className="capitalize">
-                {order.status}
+              <Badge variant={badgeVariant} className="capitalize">
+                {isAccepted ? 'Accepted' : order.status}
               </Badge>
             </div>
         </CardHeader>
@@ -166,12 +196,19 @@ export default function FindDeliveriesPage() {
           </div>
         </CardContent>
         <CardFooter className="flex justify-end items-center gap-2">
-            {isAvailable ? (
-              <Button onClick={() => handleStatusUpdate(order.id, "Out for Delivery")}>
+            {isAvailable && (
+              <Button onClick={() => handleAcceptDelivery(order.id)}>
                 Accept Delivery
                 <ChevronRight className="h-4 w-4 ml-2" />
               </Button>
-            ) : (
+            )}
+            {isAccepted && nextStatus && (
+              <Button onClick={() => handleStatusUpdate(order.id, nextStatus)}>
+                Mark as "{nextStatus}"
+                <ChevronRight className="h-4 w-4 ml-2" />
+              </Button>
+            )}
+            {isOutForDelivery && (
               <div className="flex w-full items-center gap-2">
                 <KeyRound className="h-5 w-5 text-muted-foreground" />
                 <Input 
@@ -191,6 +228,9 @@ export default function FindDeliveriesPage() {
       </Card>
     )
   }
+  
+  const availableDeliveries = orders.filter(o => o.status === "Ready for Pickup" && !o.driverId);
+  const myDeliveries = orders.filter(o => o.driverId === 'driver-123' && o.status !== 'Delivered');
 
   return (
     <main className="flex-1 p-4 md:p-8">
@@ -207,8 +247,8 @@ export default function FindDeliveriesPage() {
               Available Deliveries
             </h2>
             <div className="space-y-6">
-              {orders.filter(o => o.status === "Ready for Pickup").length > 0 ? (
-                orders.filter(o => o.status === "Ready for Pickup").map(order => renderOrderCard(order, true))
+              {availableDeliveries.length > 0 ? (
+                availableDeliveries.map(order => renderOrderCard(order))
               ) : (
                 <Card className="text-center p-8">
                   <CardContent>
@@ -224,8 +264,8 @@ export default function FindDeliveriesPage() {
               My Active Deliveries
             </h2>
             <div className="space-y-6">
-               {orders.filter(o => o.status === "Out for Delivery").length > 0 ? (
-                orders.filter(o => o.status === "Out for Delivery").map(order => renderOrderCard(order, false))
+               {myDeliveries.length > 0 ? (
+                myDeliveries.map(order => renderOrderCard(order))
               ) : (
                 <Card className="text-center p-8">
                   <CardContent>

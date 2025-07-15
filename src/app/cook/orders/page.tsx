@@ -21,6 +21,7 @@ import {
   ChefHat,
   Clock,
   Loader,
+  Truck,
 } from "lucide-react";
 import { estimatePrepStartTime, EstimatePrepStartTimeOutput } from "@/ai/flows/estimate-delivery-time-flow";
 import { PreparationTimer } from "@/components/preparation-timer";
@@ -60,10 +61,6 @@ export default function CookOrdersPage() {
               // If we are starting preparation, record the time
               if (nextStatus === "Preparing Food") {
                 centralOrder.prepStartedAt = Date.now();
-              }
-              // If ready for pickup, set a simulated driver ETA
-              if (nextStatus === "Ready for Pickup") {
-                centralOrder.driverETA = Math.floor(Math.random() * 10) + 5; // 5-15 min ETA
               }
             }
             // Return the updated order for the local state
@@ -138,6 +135,8 @@ export default function CookOrdersPage() {
               "Preparing Food": "default",
               "Ready for Pickup": "secondary"
             }[order.status] || "default";
+            
+            const isDriverAssigned = order.status === 'Ready for Pickup' && order.driverId;
 
             return (
               <Card key={order.id} className="shadow-lg">
@@ -170,7 +169,7 @@ export default function CookOrdersPage() {
                    {order.status === 'Preparing Food' && order.prepStartedAt && (
                       <PreparationTimer prepTimeMinutes={dish.prepTimeMinutes} prepStartedAt={order.prepStartedAt} />
                    )}
-                   {order.status === 'Ready for Pickup' && order.driverETA && (
+                   {isDriverAssigned && order.driverETA && (
                       <DriverTrackingMap initialETA={order.driverETA} />
                    )}
                    {prepTime && (
@@ -198,7 +197,12 @@ export default function CookOrdersPage() {
                         <ChevronRight className="h-4 w-4 ml-2" />
                     </Button>
                   ) : (
-                    <p className="text-sm text-muted-foreground">Waiting for driver pickup...</p>
+                    <div className="text-sm text-muted-foreground flex items-center gap-2">
+                      <Truck className="h-4 w-4" />
+                      <span>
+                        {isDriverAssigned ? "Driver is on the way!" : "Waiting for driver..."}
+                      </span>
+                    </div>
                   )}
                 </CardFooter>
               </Card>
