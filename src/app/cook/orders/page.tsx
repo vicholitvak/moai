@@ -248,7 +248,6 @@ export default function CookOrdersPage() {
             )
           })}
         </div>
-
       </div>
     </main>
   );
