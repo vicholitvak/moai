@@ -1,11 +1,10 @@
 import Image from 'next/image';
-import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Star } from 'lucide-react';
+import { Star } from 'lucide-react';
 
-const availableDishes = [
+const allDishes = [
   {
     id: '1',
     name: 'Spaghetti Carbonara',
@@ -71,25 +70,42 @@ const availableDishes = [
     image: 'https://placehold.co/600x400.png',
     hint: 'bbq sandwich pork',
     tags: ['American', 'BBQ'],
-  }
+  },
+  {
+    id: '7',
+    name: 'Tiramisu',
+    cook: 'Chef Isabella',
+    rating: 4.9,
+    reviews: 180,
+    price: '9.50',
+    image: 'https://placehold.co/600x400.png',
+    hint: 'dessert sweet tiramisu',
+    tags: ['Dessert', 'Italian'],
+  },
+  {
+    id: '8',
+    name: 'Chicken Parmesan',
+    cook: 'Chef Isabella',
+    rating: 4.8,
+    reviews: 145,
+    price: '22.00',
+    image: 'https://placehold.co/600x400.png',
+    hint: 'chicken italian parmesan',
+    tags: ['Italian', 'Comfort Food'],
+  },
 ];
 
-export default function Home() {
+export default function ViewAllDishesPage() {
   return (
     <main className="flex-1 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-headline">Available Now</h1>
-          <Button variant="outline" asChild>
-            <Link href="/dishes">
-              View All
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
+        <div className="mb-6">
+          <h1 className="text-3xl font-headline">All Available Dishes</h1>
+          <p className="text-muted-foreground">Browse all the delicious meals ready to be delivered to your door.</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
-          {availableDishes.map((dish) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {allDishes.map((dish) => (
             <Card key={dish.id} className="shadow-lg overflow-hidden flex flex-col group transform transition-transform duration-300 hover:scale-105">
               <CardHeader className="p-0 relative">
                 <Image

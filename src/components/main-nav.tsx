@@ -16,40 +16,56 @@ import {
   Truck,
   CreditCard,
   Cog,
+  Home,
 } from "lucide-react";
 
 const menuItems = [
   {
     href: "/",
-    icon: Truck,
-    label: "Delivery Estimator",
-    tooltip: "AI Delivery Estimator",
+    icon: Home,
+    label: "Home",
+    tooltip: "Home",
+  },
+  {
+    href: "/dishes",
+    icon: UtensilsCrossed,
+    label: "All Dishes",
+    tooltip: "All Dishes"
   },
   {
     href: "/cook/profile",
     icon: ChefHat,
-    label: "Cook Profile",
-    tooltip: "Cook Profile",
+    label: "Cook Dashboard",
+    tooltip: "Cook Dashboard",
   },
   {
     href: "/user/profile",
     icon: User,
-    label: "User Profile",
-    tooltip: "User Profile",
-  },
-  {
-    href: "/cook/dishes",
-    icon: UtensilsCrossed,
-    label: "Dish Listings",
-    tooltip: "Dish Listings",
-  },
-  {
-    href: "/cook/find-clients",
-    icon: Map,
-    label: "Find Clients",
-    tooltip: "Find Clients",
+    label: "My Profile",
+    tooltip: "My Profile",
   },
 ];
+
+const cookMenuItems = [
+    {
+        href: "/cook/dishes",
+        icon: UtensilsCrossed,
+        label: "My Dishes",
+        tooltip: "My Dishes",
+    },
+    {
+        href: "/cook/find-clients",
+        icon: Map,
+        label: "Find Clients",
+        tooltip: "Find Clients",
+    },
+    {
+        href: "/cook/profile",
+        icon: Cog,
+        label: "Cook Settings",
+        tooltip: "Settings"
+    }
+]
 
 export function MainNav() {
   const pathname = usePathname();
