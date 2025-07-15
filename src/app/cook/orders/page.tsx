@@ -90,8 +90,8 @@ export default function CookOrdersPage() {
     const dish = getDishForOrder(order);
     if (!dish) return;
 
-    setLoadingTimes(prev => ({...prev, [order.id]: true}));
-    setPrepTimes(prev => ({...prev, [order.id]: null}));
+    setLoadingTimes(prev => ({ ...prev, [order.id]: true }));
+    setPrepTimes(prev => ({ ...prev, [order.id]: null }));
 
     // In a real app, addresses would be dynamic
     const cookAddress = "123 Cook St, Santiago";
@@ -103,12 +103,12 @@ export default function CookOrdersPage() {
         customerAddress,
         prepTimeMinutes: dish.prepTimeMinutes,
       });
-      setPrepTimes(prev => ({...prev, [order.id]: result}));
+      setPrepTimes(prev => ({ ...prev, [order.id]: result }));
     } catch (e) {
       console.error(e);
       // Handle error case if needed
     } finally {
-      setLoadingTimes(prev => ({...prev, [order.id]: false}));
+      setLoadingTimes(prev => ({ ...prev, [order.id]: false }));
     }
   };
 
