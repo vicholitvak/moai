@@ -1,7 +1,22 @@
 // This file contains the static data for the app.
 // In a real application, this data would likely be fetched from a database.
 
-export const allDishes = [
+export interface Dish {
+    id: string;
+    name: string;
+    cook: string;
+    rating: number;
+    reviews: number;
+    price: string;
+    image: string;
+    hint: string;
+    tags: string[];
+    distance: number;
+    description: string;
+    chefDescription: string;
+}
+
+export const allDishes: Dish[] = [
     {
       id: '1',
       name: 'Spaghetti Carbonara',

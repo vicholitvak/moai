@@ -1,12 +1,52 @@
+"use client";
+
+import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Star, MapPin } from 'lucide-react';
 import { allDishes } from '@/lib/data';
+import type { Dish } from '@/lib/data';
 
 export default function ViewAllDishesPage() {
+  const [sortOption, setSortOption] = useState('distance');
+  const [filterCategory, setFilterCategory] = useState('all');
+
+  const categories = useMemo(() => {
+    const allTags = allDishes.flatMap(dish => dish.tags);
+    return ['all', ...Array.from(new Set(allTags))];
+  }, []);
+
+  const sortedAndFilteredDishes = useMemo(() => {
+    let dishes: Dish[] = [...allDishes];
+
+    // Filter
+    if (filterCategory !== 'all') {
+      dishes = dishes.filter(dish => dish.tags.includes(filterCategory));
+    }
+
+    // Sort
+    switch (sortOption) {
+      case 'distance':
+        dishes.sort((a, b) => a.distance - b.distance);
+        break;
+      case 'rating':
+        dishes.sort((a, b) => b.rating - a.rating);
+        break;
+      case 'price_asc':
+        dishes.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+        break;
+      case 'price_desc':
+        dishes.sort((a, b) => parseFloat(b.price) - parseFloat(a.price));
+        break;
+    }
+
+    return dishes;
+  }, [sortOption, filterCategory]);
+
   return (
     <main className="flex-1 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
@@ -15,8 +55,40 @@ export default function ViewAllDishesPage() {
           <p className="text-muted-foreground">Browse all the delicious meals ready to be delivered to your door.</p>
         </div>
 
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">Sort by:</span>
+            <Select value={sortOption} onValueChange={setSortOption}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Sort by..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="distance">Distance (nearest)</SelectItem>
+                <SelectItem value="rating">Rating (highest)</SelectItem>
+                <SelectItem value="price_asc">Price (low to high)</SelectItem>
+                <SelectItem value="price_desc">Price (high to low)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+             <span className="text-sm font-medium">Category:</span>
+            <Select value={filterCategory} onValueChange={setFilterCategory}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by category..." />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map(category => (
+                  <SelectItem key={category} value={category} className="capitalize">
+                    {category}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {allDishes.map((dish) => (
+          {sortedAndFilteredDishes.map((dish) => (
              <Link key={dish.id} href={`/dishes/${dish.id}`} className="group transform transition-transform duration-300 hover:scale-105 block">
               <Card className="shadow-lg overflow-hidden flex flex-col h-full">
                 <CardHeader className="p-0 relative">
