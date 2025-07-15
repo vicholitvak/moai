@@ -3,6 +3,10 @@
 
 import { notFound, useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+
 import { allDishes, allOrders } from '@/lib/data';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,13 +16,28 @@ import { Separator } from '@/components/ui/separator';
 import { formatPrice } from '@/lib/utils';
 import { Minus, Plus } from 'lucide-react';
 import { useState } from 'react';
-import { useToast } from '@/hooks/use-toast';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+
+
+const checkoutFormSchema = z.object({
+  address: z.string().min(1, { message: "Delivery address is required." }),
+  creditCard: z.string().min(1, { message: "Credit card information is required." }),
+});
+
+type CheckoutFormValues = z.infer<typeof checkoutFormSchema>;
 
 export default function CheckoutPage({ params }: { params: { id: string } }) {
   const dish = allDishes.find((d) => d.id === params.id);
   const [quantity, setQuantity] = useState(1);
-  const { toast } = useToast();
   const router = useRouter();
+
+  const form = useForm<CheckoutFormValues>({
+    resolver: zodResolver(checkoutFormSchema),
+    defaultValues: {
+      address: "",
+      creditCard: "",
+    },
+  });
 
   if (!dish) {
     notFound();
@@ -28,7 +47,7 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
     setQuantity(prev => Math.max(1, prev + amount));
   }
 
-  const handlePlaceOrder = () => {
+  const onSubmit = (data: CheckoutFormValues) => {
     // In a real app, this would create an order in the database
     const orderId = Math.random().toString(36).substr(2, 9);
     const verificationCode = Math.floor(1000 + Math.random() * 9000).toString();
@@ -129,21 +148,43 @@ export default function CheckoutPage({ params }: { params: { id: string } }) {
 
           <div>
              <Card className="shadow-lg">
-                <CardHeader>
-                    <CardTitle>Delivery & Payment</CardTitle>
-                    <CardDescription>Enter your details to complete the order.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="address">Delivery Address</Label>
-                        <Input id="address" placeholder="123 Sunny Lane, Apt 4B, Flavor Town" />
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="card">Credit Card</Label>
-                        <Input id="card" placeholder="•••• •••• •••• 4242" />
-                    </div>
-                    <Button size="lg" className="w-full" onClick={handlePlaceOrder}>Place Order</Button>
-                </CardContent>
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                        <CardHeader>
+                            <CardTitle>Delivery & Payment</CardTitle>
+                            <CardDescription>Enter your details to complete the order.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <FormField
+                                control={form.control}
+                                name="address"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Delivery Address</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="123 Sunny Lane, Apt 4B, Flavor Town" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="creditCard"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Credit Card</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="•••• •••• •••• 4242" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                             <Button type="submit" size="lg" className="w-full">Place Order</Button>
+                        </CardContent>
+                    </form>
+                </Form>
              </Card>
           </div>
 
