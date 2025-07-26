@@ -54,7 +54,7 @@ export default function CookOrdersPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const cookOrders = orders.filter(order => {
+  const cookOrders = orders.filter((order) => {
     const dish = allDishes.find(d => d.id === order.dishId);
     return dish?.cookId === CURRENT_COOK_ID;
   });
