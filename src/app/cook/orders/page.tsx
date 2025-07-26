@@ -84,7 +84,7 @@ export default function CookOrdersPage() {
   
   const getDishForOrder = (order: Order): Dish | undefined => {
     return allDishes.find(dish => dish.id === order.dishId);
-  }
+  };
 
   const handleEstimateTime = async (order: Order) => {
     const dish = getDishForOrder(order);
@@ -113,6 +113,7 @@ export default function CookOrdersPage() {
   };
 
   const activeOrders = cookOrders.filter(o => o.status !== 'Delivered');
+
 
   return (
     <main className="flex-1 p-4 md:p-8">
