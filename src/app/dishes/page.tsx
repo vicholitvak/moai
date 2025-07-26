@@ -93,16 +93,17 @@ export default function ViewAllDishesPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {sortedAndFilteredDishes.map((dish) => (
              <Card key={dish.id} className="shadow-lg overflow-hidden flex flex-col h-full group transform transition-transform duration-300 hover:scale-105">
-              <Link href={`/dishes/${dish.id}`} className="flex flex-col h-full">
                 <CardHeader className="p-0 relative">
-                  <Image
-                    src={dish.image}
-                    alt={dish.name}
-                    width={600}
-                    height={400}
-                    className="object-cover w-full h-48"
-                    data-ai-hint={dish.hint}
-                  />
+                  <Link href={`/dishes/${dish.id}`}>
+                    <Image
+                      src={dish.image}
+                      alt={dish.name}
+                      width={600}
+                      height={400}
+                      className="object-cover w-full h-48"
+                      data-ai-hint={dish.hint}
+                    />
+                  </Link>
                   <div className="absolute top-2 right-2 flex items-center gap-1 bg-background/80 backdrop-blur-sm p-1.5 rounded-md">
                     <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                     <span className="text-sm font-bold">{dish.rating}</span>
@@ -110,7 +111,9 @@ export default function ViewAllDishesPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-4 flex-1">
-                  <CardTitle className="font-headline text-xl mb-1">{dish.name}</CardTitle>
+                  <CardTitle className="font-headline text-xl mb-1">
+                    <Link href={`/dishes/${dish.id}`} className="hover:underline">{dish.name}</Link>
+                  </CardTitle>
                   <div className="flex justify-between items-center text-sm text-muted-foreground mb-2">
                     <CardDescription>by {dish.cook}</CardDescription>
                      <div className="flex items-center gap-1">
@@ -132,7 +135,6 @@ export default function ViewAllDishesPage() {
                     </Button>
                   </div>
                 </CardFooter>
-              </Link>
             </Card>
           ))}
         </div>
