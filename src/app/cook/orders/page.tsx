@@ -211,7 +211,7 @@ export default function CookOrdersPage() {
                         <AlertTitle>AI Recommendation</AlertTitle>
                         <AlertDescription>
                           To ensure a fresh delivery, please start preparing this order at <span className="font-bold text-primary">{prepTime.recommendedPrepStartTime}</span>. The driver is estimated to arrive at {prepTime.estimatedDriverArrivalTime}.
-                        </Description>
+                        </AlertDescription>
                       </Alert>
                    )}
                 </CardContent>
