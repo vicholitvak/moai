@@ -1,0 +1,16 @@
+{
+  "node": {
+    "4011b7ced97e6bbb0578983dfe5481f14aac309c15": {
+      "workers": {
+        "app/cooks/orders/page": {
+          "moduleId": "[project]/.next-internal/server/app/cooks/orders/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/ai/flows/estimate-delivery-time-flow.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/cooks/orders/page": "action-browser"
+      }
+    }
+  },
+  "edge": {}
+}
