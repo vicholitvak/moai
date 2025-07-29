@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 5, "column": 0}, "map": {"version":3,"sources":["file:///D:/Moai/app/src/app/error.tsx"],"sourcesContent":["\"use client\";\n\nimport { Button } from \"@/components/ui/button\";\nimport { useEffect } from \"react\";\n\nexport default function Error({\n  error,\n  reset,\n}: {\n  error: Error & { digest?: string };\n  reset: () => void;\n}) {\n  useEffect(() => {\n    console.error(error);\n  }, [error]);\n\n  return (\n    <main className=\"flex flex-1 flex-col items-center justify-center gap-4 p-4\">\n      <div className=\"text-center\">\n        <h1 className=\"font-headline text-4xl text-destructive\">\n          Oops! Something went wrong.\n        </h1>\n        <p className=\"mt-2 text-muted-foreground\">\n          An unexpected error occurred. We're sorry for the inconvenience.\n        </p>\n      </div>\n      <Button onClick={() => reset()}>Try again</Button>\n    </main>\n  );\n}\n"],"names":[],"mappings":";;;;AAEA;AACA;AAHA;;;;AAKe,SAAS,MAAM,EAC5B,KAAK,EACL,KAAK,EAIN;IACC,CAAA,GAAA,qMAAA,CAAA,YAAS,AAAD,EAAE;QACR,QAAQ,KAAK,CAAC;IAChB,GAAG;QAAC;KAAM;IAEV,qBACE,8OAAC;QAAK,WAAU;;0BACd,8OAAC;gBAAI,WAAU;;kCACb,8OAAC;wBAAG,WAAU;kCAA0C;;;;;;kCAGxD,8OAAC;wBAAE,WAAU;kCAA6B;;;;;;;;;;;;0BAI5C,8OAAC,kIAAA,CAAA,SAAM;gBAAC,SAAS,IAAM;0BAAS;;;;;;;;;;;;AAGtC","debugId":null}}]
-}

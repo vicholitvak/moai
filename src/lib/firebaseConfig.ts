@@ -1,7 +1,13 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth, connectAuthEmulator } from "firebase/auth";
-import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
+import {
+  getFirestore,
+  connectFirestoreEmulator,
+  initializeFirestore,
+  memoryLocalCache,
+} from "firebase/firestore";
 import { getStorage, connectStorageEmulator } from "firebase/storage";
+import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -12,23 +18,23 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase for SSR
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+// Initialize Firebase
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// Export the services you need
-const firestore = getFirestore(app);
 const auth = getAuth(app);
+
+// To debug the INTERNAL ASSERTION FAILED error, we are disabling persistence.
+// This uses an in-memory cache instead of IndexedDB.
+const firestore = initializeFirestore(app, { localCache: memoryLocalCache() });
+const functions = getFunctions(app);
 const storage = getStorage(app);
 
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-  console.log("Development mode: Connecting to Firebase Emulators");
-  try {
-    connectAuthEmulator(auth, "http://localhost:9099", { disableWarnings: true });
-    connectFirestoreEmulator(firestore, "localhost", 8080);
-    connectStorageEmulator(storage, "localhost", 9199);
-  } catch (error) {
-    console.error("Error connecting to emulators:", error);
-  }
+// Connect to emulators in development mode
+if (typeof window !== "undefined" && window.location.hostname === "localhost") {
+  connectAuthEmulator(auth, "http://localhost:9099", { disableWarnings: true });
+  connectFirestoreEmulator(firestore, 'localhost', 8080);
+  connectFunctionsEmulator(functions, "localhost", 5001)
+  connectStorageEmulator(storage, "localhost", 9199);
 }
 
-export { app, firestore, auth, storage };
+export { app, auth, firestore, functions, storage };

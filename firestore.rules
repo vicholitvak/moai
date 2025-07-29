@@ -3,22 +3,65 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Deny all reads and writes by default to prevent data leaks.
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
-    // Allow a logged-in user to create, read, update, and delete
-    // their own user document.
+    // Los usuarios solo pueden leer/escribir su propio documento.
+    // Solo pueden crear un documento si ellos son los dueños.
     match /users/{userId} {
-      allow write, read: if request.auth != null && request.auth.uid == userId;
+      allow read, delete: if request.auth.uid == userId;
+      // Allow creation only if the user is the owner and provides a valid role.
+      allow create: if request.auth.uid == userId &&
+                      request.resource.data.role in ['client', 'cooker', 'delivery', 'admin'];
+      // Allow updates but prevent the user from changing their role.
+      allow update: if request.auth.uid == userId &&
+                       request.resource.data.role == resource.data.role;
     }
 
-    // Rules for the 'orders' collection
+    // Ejemplo para una colección 'dishes'
+    // Solo el rol 'cooker' puede crear/actualizar/borrar platos.
+    // Cualquiera puede leer los platos.
+    match /dishes/{dishId} {
+      // Anyone can view the dishes
+      allow read: if true;
+
+      // A cooker can create a dish if they are logged in, the new dish belongs to them,
+      // and the data is valid.
+      allow create: if request.auth.uid != null
+                    && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'cooker'
+                    && request.resource.data.cookerId == request.auth.uid
+                    && request.resource.data.name is string && request.resource.data.name.size() > 0
+                    && request.resource.data.price is number && request.resource.data.price > 0;
+
+      // The owner of the dish can update or delete it.
+      allow update, delete: if request.auth.uid != null && resource.data.cookerId == request.auth.uid;
+    }
+
+    // Ejemplo para una colección 'orders'
+    // Un cliente puede crear una orden.
+    // El cliente, el cocinero y el repartidor asociados a la orden pueden leerla.
     match /orders/{orderId} {
-      // A cook can read/update their own orders. A client can read their own orders.
-      allow read: if request.auth.uid == resource.data.cookId || request.auth.uid == resource.data.clientId;
-      allow update: if request.auth.uid == resource.data.cookId;
+      // Allow creation if the user is a client, sets themselves as the clientId,
+      // and provides a valid address.
+      allow create: if request.auth.uid != null &&
+                      get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'client' &&
+                      request.resource.data.clientId == request.auth.uid &&
+                      request.resource.data.address.street is string &&
+                      request.resource.data.address.city is string &&
+                      request.resource.data.status == 'paid'; // Ensure initial status is correct
+      // Example: Allow updates by the cooker or driver (e.g., to change the order status).
+      allow update: if request.auth.uid != null && (resource.data.cookerId == request.auth.uid || resource.data.driverId == request.auth.uid);
+      // Allow reading a single document if the user is involved in the order.
+      allow get: if request.auth.uid != null && (
+                    ('clientId' in resource.data && resource.data.clientId == request.auth.uid) ||
+                    ('cookerId' in resource.data && resource.data.cookerId == request.auth.uid) ||
+                    ('driverId' in resource.data && resource.data.driverId == request.auth.uid)
+                  );
+      // Allow querying the collection only if the query is filtered by one of the user's IDs.
+      // Drivers can query for orders that are ready for pickup.
+      allow list: if request.auth.uid != null && (
+                    request.query.where.clientId == request.auth.uid ||
+                    request.query.where.cookerId == request.auth.uid ||
+                    request.query.where.driverId == request.auth.uid ||
+                    (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'delivery' && request.query.where.status == 'paid')
+                  );
     }
   }
 }

@@ -1,23 +1,43 @@
 {
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
   "hosting": {
-    "public": "client/build",
+    "source": ".",
     "ignore": [
       "firebase.json",
+      ".firebaserc",
+      ".gitignore",
       "**/.*",
       "**/node_modules/**"
     ],
-    "rewrites": [
-      {
-        "source": "/api/**",
-        "function": "api"
-      },
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ]
+    // This enables Firebase's framework-aware hosting for Next.js.
+    // It will automatically handle server-side rendering, API routes, etc.
+    "frameworksBackend": {}
   },
-  "functions": {
-    "source": "src"
+  // By using "frameworksBackend", all backend logic including API routes should
+  // be handled by the Next.js application. This custom functions entry can cause
+  // conflicts and is no longer needed.
+  // "functions": { "source": "functions" },
+  "emulators": {
+    "auth": {
+      "port": 9099
+    },
+    "hosting": {
+      "port": 5050
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "storage": {
+      "port": 9199
+    },
+    "ui": {
+      "enabled": true
+    },
+    "singleProjectMode": true
   }
 }

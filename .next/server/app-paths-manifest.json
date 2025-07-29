@@ -1,7 +1,10 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
-  "/cooks/earnings/page": "app/cooks/earnings/page.js",
-  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/profile/setup/page": "app/profile/setup/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/signup/page": "app/signup/page.js",
   "/page": "app/page.js",
-  "/user/profile/page": "app/user/profile/page.js"
+  "/dishes/page": "app/dishes/page.js",
+  "/user/profile/page": "app/user/profile/page.js",
+  "/cooks/orders/page": "app/cooks/orders/page.js"
 }

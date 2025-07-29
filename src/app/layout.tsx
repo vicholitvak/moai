@@ -7,6 +7,7 @@ import { Header } from '@/components/header';
 import { MainNav } from '@/components/main-nav';
 import { Icons } from '@/components/icons';
 import { AuthProvider } from '@/context/AuthContext';
+import { CartProvider } from '@/context/CartContext';
 
 export const metadata: Metadata = {
   title: 'Moai',
@@ -27,21 +28,23 @@ export default function RootLayout({
       </head>
       <body className={cn('font-body antialiased', 'min-h-screen bg-background')}>
         <AuthProvider>
-          <SidebarProvider>
-            <Sidebar>
-              <div className="flex flex-col h-full">
-                <div className="p-4 flex items-center gap-3">
-                  <Icons.logo className="h-8 w-8 text-primary" />
-                  <h1 className="text-2xl font-headline text-foreground">Moai</h1>
+          <CartProvider>
+            <SidebarProvider>
+              <Sidebar>
+                <div className="flex flex-col h-full">
+                  <div className="p-4 flex items-center gap-3">
+                    <Icons.logo className="h-8 w-8 text-primary" />
+                    <h1 className="text-2xl font-headline text-foreground">Moai</h1>
+                  </div>
+                  <MainNav />
                 </div>
-                <MainNav />
-              </div>
-            </Sidebar>
-            <SidebarInset>
-              <Header />
-              {children}
-            </SidebarInset>
-          </SidebarProvider>
+              </Sidebar>
+              <SidebarInset>
+                <Header />
+                {children}
+              </SidebarInset>
+            </SidebarProvider>
+          </CartProvider>
         </AuthProvider>
         <Toaster />
       </body>

@@ -1,10 +1,8 @@
 "use client"; // This is crucial for Next.js App Router
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../../context/AuthContext'; // Adjust path to the new context location
-
-import StatCard from '../../../components/StatCard'; // Adjust path
-import EarningsChart from '../../../components/EarningsChart'; // We'll move this next
+import { useAuth } from '@/context/AuthContext';
+import withRoleAuth from '@/components/auth/withRoleAuth';
 
 // We can define simple loading/error components right here or import them
 const LoadingSpinner = () => <div style={{ textAlign: 'center', padding: '50px' }}>Loading...</div>;
@@ -27,8 +25,8 @@ const CookDashboardPage = () => {
             setIsLoading(true);
             setError(null);
             try {
-                const token = localStorage.getItem('token'); // Or get it from your auth context
-                const response = await fetch(`/api/cooks/${user.id}/earnings?period=${period}`, {
+                const token = await user.getIdToken();
+                const response = await fetch(`/api/cooks/${user.uid}/earnings?period=${period}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
@@ -87,4 +85,4 @@ const styles = {
     statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '20px' }
 };
 
-export default CookDashboardPage;
+export default withRoleAuth(CookDashboardPage, ['cooker']);

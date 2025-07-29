@@ -23,6 +23,7 @@ import {
   PieChart,
   Package,
   ListOrdered,
+  ShoppingBag,
 } from "lucide-react";
 
 interface NavLink {
@@ -42,16 +43,30 @@ const allNavLinks: NavLink[] = [
     group: 'main',
   },
   {
-    href: "/cook/orders",
+    href: "/dishes",
+    icon: ShoppingBag,
+    label: "Browse Dishes",
+    roles: ['public'],
+    group: 'main',
+  },
+  {
+    href: "/cooks/orders",
     icon: ListOrdered,
     label: "Orders",
     roles: ['cooker'],
     group: 'cook',
   },
   {
-    href: "/cook/earnings",
+    href: "/cooks/earnings",
     icon: PieChart,
     label: "Earnings",
+    roles: ['cooker'],
+    group: 'cook',
+  },
+  {
+    href: "/cooks/dishes",
+    icon: UtensilsCrossed,
+    label: "My Dishes",
     roles: ['cooker'],
     group: 'cook',
   },
@@ -81,13 +96,23 @@ const allNavLinks: NavLink[] = [
 
 export function MainNav() {
   const pathname = usePathname();
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, loading } = useAuth();
+
+  // While authentication state is loading, don't render any role-specific menus
+  // to prevent flashing incorrect items. You can return null or a skeleton loader.
+  if (loading) {
+    return null; // Or a skeleton component
+  }
 
   const visibleLinks = allNavLinks.filter(link => {
     if (link.roles.includes('public')) return true;
-    if (user && userProfile && link.roles.includes(userProfile.role)) return true;
-    if (!user && link.roles.includes('anonymous')) return true;
-    return false;
+
+    // If a user is logged in, check their role
+    if (user && userProfile) {
+      return link.roles.includes(userProfile.role);
+    }
+    // If no user is logged in, only show links for 'anonymous' users
+    return link.roles.includes('anonymous');
   });
 
   const mainMenuItems = visibleLinks.filter(l => l.group === 'main');
