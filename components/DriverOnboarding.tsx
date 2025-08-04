@@ -341,28 +341,28 @@ export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) 
           </div>
           
           {/* Progress Steps */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between overflow-x-auto px-2">
             {STEPS.map((step, index) => (
-              <div key={step.id} className="flex items-center">
-                <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
+              <div key={step.id} className="flex items-center min-w-0 flex-shrink-0">
+                <div className={`flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 ${
                   currentStep >= step.id 
                     ? 'bg-blue-500 border-blue-500 text-white' 
                     : 'border-gray-300 text-gray-400'
                 }`}>
                   {currentStep > step.id ? (
-                    <CheckCircle className="h-5 w-5" />
+                    <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5" />
                   ) : (
-                    <span className="text-sm font-medium">{step.id}</span>
+                    <span className="text-xs sm:text-sm font-medium">{step.id}</span>
                   )}
                 </div>
-                <div className="ml-3">
-                  <p className={`text-sm font-medium ${currentStep >= step.id ? 'text-blue-600' : 'text-gray-400'}`}>
+                <div className="ml-2 sm:ml-3 min-w-0">
+                  <p className={`text-xs sm:text-sm font-medium truncate ${currentStep >= step.id ? 'text-blue-600' : 'text-gray-400'}`}>
                     {step.title}
                   </p>
-                  <p className="text-xs text-gray-500">{step.description}</p>
+                  <p className="text-xs text-gray-500 truncate hidden sm:block">{step.description}</p>
                 </div>
                 {index < STEPS.length - 1 && (
-                  <ChevronRight className="h-5 w-5 text-gray-300 mx-4" />
+                  <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 text-gray-300 mx-2 sm:mx-4 flex-shrink-0" />
                 )}
               </div>
             ))}
@@ -426,7 +426,7 @@ export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) 
               {/* Vehicle Type Selection */}
               <div>
                 <Label className="text-2xl font-bold mb-8 block text-center text-gray-800">¡Elige tu vehículo de entrega!</Label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 max-w-6xl mx-auto px-4">
+                <div className="grid grid-cols-3 gap-2 sm:gap-4 md:gap-8 max-w-6xl mx-auto px-2 sm:px-4">
                   {VEHICLE_TYPES.map((vehicle) => (
                     <div
                       key={vehicle.id}
@@ -453,19 +453,19 @@ export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) 
                           </div>
                         )}
                         
-                        <CardContent className="p-8 text-center relative">
+                        <CardContent className="p-3 sm:p-6 md:p-8 text-center relative">
                           {/* Large emoji icon */}
-                          <div className="text-8xl mb-4 transform group-hover:scale-110 transition-transform duration-300">
+                          <div className="text-4xl sm:text-6xl md:text-8xl mb-2 sm:mb-4 transform group-hover:scale-110 transition-transform duration-300">
                             {vehicle.mapIcon}
                           </div>
                           
                           {/* Lucide icon as accent */}
-                          <vehicle.icon className={`h-12 w-12 mx-auto mb-4 transition-colors duration-300 ${
+                          <vehicle.icon className={`h-6 w-6 sm:h-8 sm:w-8 md:h-12 md:w-12 mx-auto mb-2 sm:mb-4 transition-colors duration-300 ${
                             data.vehicleType === vehicle.id ? 'text-moai-orange' : 'text-gray-500 group-hover:text-gray-700'
                           }`} />
                           
                           {/* Vehicle name */}
-                          <h3 className={`font-bold text-2xl mb-3 transition-colors duration-300 ${
+                          <h3 className={`font-bold text-sm sm:text-lg md:text-2xl mb-1 sm:mb-3 transition-colors duration-300 ${
                             data.vehicleType === vehicle.id ? 'text-moai-orange' : 'text-gray-800'
                           }`}>
                             {vehicle.name}
@@ -473,7 +473,7 @@ export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) 
                           
                           {/* Description */}
                           {vehicle.description && (
-                            <p className={`text-base mb-4 font-medium transition-colors duration-300 ${
+                            <p className={`text-xs sm:text-sm md:text-base mb-2 sm:mb-4 font-medium transition-colors duration-300 ${
                               data.vehicleType === vehicle.id ? 'text-orange-700' : 'text-gray-600'
                             }`}>
                               {vehicle.description}
@@ -482,12 +482,12 @@ export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) 
                           
                           {/* Benefits */}
                           {vehicle.benefits && vehicle.benefits.length > 0 && (
-                            <div className="space-y-2">
+                            <div className="space-y-1 sm:space-y-2 hidden sm:block">
                               {vehicle.benefits.map((benefit, index) => (
-                              <div key={index} className={`flex items-center justify-center text-sm font-medium transition-colors duration-300 ${
+                              <div key={index} className={`flex items-center justify-center text-xs sm:text-sm font-medium transition-colors duration-300 ${
                                 data.vehicleType === vehicle.id ? 'text-orange-600' : 'text-gray-500'
                               }`}>
-                                <CheckCircle className={`h-4 w-4 mr-2 transition-colors duration-300 ${
+                                <CheckCircle className={`h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 transition-colors duration-300 ${
                                   data.vehicleType === vehicle.id ? 'text-green-600' : 'text-green-500'
                                 }`} />
                                 {benefit}
@@ -497,7 +497,7 @@ export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) 
                           )}
                           
                           {/* Action indicator */}
-                          <div className={`mt-6 py-3 px-6 rounded-full font-bold text-lg transition-all duration-300 ${
+                          <div className={`mt-2 sm:mt-6 py-2 sm:py-3 px-2 sm:px-6 rounded-full font-bold text-xs sm:text-sm md:text-lg transition-all duration-300 ${
                             data.vehicleType === vehicle.id 
                               ? 'bg-moai-orange text-white shadow-lg' 
                               : 'bg-gray-100 text-gray-600 group-hover:bg-gray-200'
