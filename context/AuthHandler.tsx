@@ -85,6 +85,18 @@ const AuthHandler = ({ children }: { children: React.ReactNode }) => {
           return;
         }
         
+        // Allow users to stay on their correct role pages without redirecting
+        const isOnCorrectRolePage = (
+          (role === 'Client' && (pathname.startsWith('/client') || pathname.startsWith('/dishes') || pathname === '/cart')) ||
+          (role === 'Cooker' && pathname.startsWith('/cooker')) ||
+          (role === 'Driver' && pathname.startsWith('/driver'))
+        );
+        
+        // If user is already on correct page, don't redirect
+        if (isOnCorrectRolePage) {
+          return;
+        }
+        
         // Prevent non-admin users from accessing other role's pages
         const isOnWrongRolePage = (
           (role === 'Client' && (pathname.startsWith('/cooker') || pathname.startsWith('/driver'))) ||

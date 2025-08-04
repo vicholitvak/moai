@@ -92,17 +92,13 @@ const VEHICLE_TYPES = [
     id: 'bike' as const,
     name: 'Bici',
     icon: Bike,
-    description: 'Transporte preferido en San Pedro',
-    benefits: ['Sin costos de combustible' ,'Entregas rápidas en distancias cortas'],
     mapIcon: '🚴‍♂️',
     color: 'bg-green-100 border-green-300 text-green-800'
   },
   {
     id: 'moto' as const,
-    name: 'Motocicleta',
+    name: 'Moto',
     icon: Zap,
-    description: 'Rápido y eficiente para la ciudad',
-    benefits: ['Mayor velocidad de entrega', 'Bajo consumo de combustible'],
     mapIcon: '🏍️',
     color: 'bg-blue-100 border-blue-300 text-blue-800'
   },
@@ -110,8 +106,6 @@ const VEHICLE_TYPES = [
     id: 'car' as const,
     name: 'Auto',
     icon: Car,
-    description: 'Perfecto para entregas grandes',
-    benefits: ['Mayor capacidad de carga', 'Protección ante el clima'],
     mapIcon: '🚗',
     color: 'bg-purple-100 border-purple-300 text-purple-800'
   }
