@@ -89,7 +89,6 @@ const SignUpModal = ({ isOpen, onOpenChange }: SignUpModalProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [acceptTerms, setAcceptTerms] = useState(false);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,10 +112,6 @@ const SignUpModal = ({ isOpen, onOpenChange }: SignUpModalProps) => {
       return;
     }
     
-    if (!acceptTerms) {
-      setError('Please accept the terms and conditions to continue.');
-      return;
-    }
     
     setIsLoading(true);
     
@@ -146,10 +141,6 @@ const SignUpModal = ({ isOpen, onOpenChange }: SignUpModalProps) => {
     setEmailError('');
     setPasswordError('');
     
-    if (!acceptTerms) {
-      setError('Please accept the terms and conditions to continue.');
-      return;
-    }
     
     setIsGoogleLoading(true);
     
@@ -192,7 +183,6 @@ const SignUpModal = ({ isOpen, onOpenChange }: SignUpModalProps) => {
       setIsGoogleLoading(false);
       setShowPassword(false);
       setRole('Client');
-      setAcceptTerms(false);
     }
     onOpenChange(open);
   };
@@ -356,35 +346,6 @@ const SignUpModal = ({ isOpen, onOpenChange }: SignUpModalProps) => {
               )}
             </div>
 
-            {/* Terms and Conditions */}
-            <div className="flex items-start space-x-2">
-              <input
-                id="terms"
-                type="checkbox"
-                checked={acceptTerms}
-                onChange={(e) => setAcceptTerms(e.target.checked)}
-                className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2 mt-0.5"
-                disabled={isLoading || isGoogleLoading}
-              />
-              <Label htmlFor="terms" className="text-sm text-muted-foreground cursor-pointer leading-5">
-                I agree to the{' '}
-                <button
-                  type="button"
-                  className="text-primary hover:text-primary/80 font-medium transition-colors"
-                  onClick={() => toast.info('Terms and conditions coming soon!')}
-                >
-                  Terms of Service
-                </button>
-                {' '}and{' '}
-                <button
-                  type="button"
-                  className="text-primary hover:text-primary/80 font-medium transition-colors"
-                  onClick={() => toast.info('Privacy policy coming soon!')}
-                >
-                  Privacy Policy
-                </button>
-              </Label>
-            </div>
 
             {/* General Error */}
             {error && (
@@ -397,7 +358,7 @@ const SignUpModal = ({ isOpen, onOpenChange }: SignUpModalProps) => {
             <Button 
               type="submit" 
               className="w-full h-12 sm:h-11 font-semibold text-sm sm:text-base" 
-              disabled={isLoading || isGoogleLoading || !email || !password || !acceptTerms}
+              disabled={isLoading || isGoogleLoading || !email || !password}
             >
               {isLoading ? (
                 <>

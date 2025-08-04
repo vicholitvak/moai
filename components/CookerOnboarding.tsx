@@ -209,6 +209,8 @@ export default function CookerOnboarding({ onComplete }: CookerOnboardingProps) 
   const nextStep = () => {
     if (validateStep(currentStep)) {
       setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
+      // Scroll to top of the page when moving to next step
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       toast.error('Por favor completa todos los campos requeridos');
     }
@@ -216,6 +218,8 @@ export default function CookerOnboarding({ onComplete }: CookerOnboardingProps) 
 
   const prevStep = () => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
+    // Scroll to top of the page when moving to previous step
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSubmit = async () => {

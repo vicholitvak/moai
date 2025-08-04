@@ -8,6 +8,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import type { Cook, Driver, Dish } from '@/lib/firebase/dataService';
 import DriverTrackingMap from '@/components/DriverTrackingMap';
+import OnboardingFormManager from '@/components/admin/OnboardingFormManager';
 import { toast } from 'sonner';
 import { formatPrice } from '@/lib/utils';
 import { 
@@ -471,7 +472,8 @@ export default function AdminDashboard() {
             { id: 'data-management', label: 'Gestión de Datos' },
             { id: 'driver-tracking', label: 'Seguimiento de Conductores' },
             { id: 'analytics', label: 'Analytics' },
-            { id: 'management', label: 'Configuración' }
+            { id: 'management', label: 'Configuración' },
+            { id: 'onboarding', label: 'Formularios' }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -1583,6 +1585,11 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           </div>
+        )}
+
+        {/* Onboarding Forms Management Tab */}
+        {activeTab === 'onboarding' && (
+          <OnboardingFormManager />
         )}
       </div>
     </div>

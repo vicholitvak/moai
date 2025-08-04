@@ -91,28 +91,24 @@ const STEPS = [
 const VEHICLE_TYPES = [
   {
     id: 'bike' as const,
-    name: 'Bicicleta',
+    name: 'Bici',
     icon: Bike,
-    description: 'Ecológico y ágil en la ciudad',
-    benefits: ['Sin costos de combustible', 'Acceso a ciclovías', 'Entregas rápidas en distancias cortas'],
+    description: 'Transporte preferido en San Pedro',
+    benefits: ['Sin costos de combustible' ,'Entregas rápidas en distancias cortas'],
     mapIcon: '🚴‍♂️',
     color: 'bg-green-100 border-green-300 text-green-800'
   },
   {
-    id: 'motorcycle' as const,
+    id: 'moto' as const,
     name: 'Motocicleta',
     icon: Zap,
-    description: 'Rápido y eficiente',
-    benefits: ['Mayor radio de cobertura', 'Entregas rápidas', 'Mejor en tráfico'],
     mapIcon: '🏍️',
     color: 'bg-blue-100 border-blue-300 text-blue-800'
   },
   {
     id: 'car' as const,
-    name: 'Automóvil',
+    name: 'Auto',
     icon: Car,
-    description: 'Máxima capacidad y comodidad',
-    benefits: ['Pedidos grandes', 'Protección climática', 'Mayor comodidad'],
     mapIcon: '🚗',
     color: 'bg-purple-100 border-purple-300 text-purple-800'
   }
@@ -224,7 +220,7 @@ export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) 
       case 1:
         return !!(data.displayName && data.phone);
       case 2:
-        return !!(data.vehicleInfo.make && data.vehicleInfo.model && data.vehicleInfo.licensePlate);
+        return !!(data.vehicleType);
       case 3:
         return !!(data.documents.driverLicense && data.documents.vehicleRegistration);
       case 4:
@@ -239,6 +235,8 @@ export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) 
   const nextStep = () => {
     if (validateStep(currentStep)) {
       setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
+      // Scroll to top of the page when moving to next step
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       toast.error('Por favor completa todos los campos requeridos');
     }
@@ -246,6 +244,8 @@ export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) 
 
   const prevStep = () => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
+    // Scroll to top of the page when moving to previous step
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSubmit = async () => {
@@ -424,102 +424,88 @@ export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) 
               
               {/* Vehicle Type Selection */}
               <div>
-                <Label className="text-lg mb-4 block">Tipo de vehículo *</Label>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Label className="text-2xl font-bold mb-8 block text-center text-gray-800">¡Elige tu vehículo de entrega!</Label>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl mx-auto px-4">
                   {VEHICLE_TYPES.map((vehicle) => (
-                    <Card 
+                    <div
                       key={vehicle.id}
-                      className={`cursor-pointer transition-all ${
+                      className={`group cursor-pointer transition-all duration-300 transform hover:scale-105 ${
                         data.vehicleType === vehicle.id 
-                          ? 'ring-2 ring-blue-500 bg-blue-50' 
-                          : 'hover:shadow-md'
+                          ? 'scale-105' 
+                          : 'hover:shadow-2xl'
                       }`}
                       onClick={() => updateData('vehicleType', vehicle.id)}
                     >
-                      <CardContent className="p-6 text-center">
-                        <div className="text-4xl mb-3">{vehicle.mapIcon}</div>
-                        <vehicle.icon className="h-8 w-8 mx-auto mb-3 text-gray-600" />
-                        <h3 className="font-bold text-lg mb-2">{vehicle.name}</h3>
-                        <p className="text-sm text-gray-600 mb-3">{vehicle.description}</p>
-                        <div className="space-y-1">
-                          {vehicle.benefits.map((benefit, index) => (
-                            <div key={index} className="flex items-center text-xs text-gray-500">
-                              <CheckCircle className="h-3 w-3 text-green-500 mr-1" />
-                              {benefit}
+                      <Card 
+                        className={`relative overflow-hidden border-4 transition-all duration-300 ${
+                          data.vehicleType === vehicle.id 
+                            ? 'ring-4 ring-moai-orange ring-opacity-50 border-moai-orange bg-gradient-to-br from-orange-50 to-orange-100 shadow-2xl' 
+                            : 'border-gray-200 hover:border-gray-300 bg-white hover:shadow-xl'
+                        }`}
+                      >
+                        {/* Selection indicator */}
+                        {data.vehicleType === vehicle.id && (
+                          <div className="absolute top-4 right-4 z-10">
+                            <div className="bg-moai-orange text-white rounded-full p-2">
+                              <CheckCircle className="h-6 w-6" />
                             </div>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
+                          </div>
+                        )}
+                        
+                        <CardContent className="p-8 text-center relative">
+                          {/* Large emoji icon */}
+                          <div className="text-8xl mb-4 transform group-hover:scale-110 transition-transform duration-300">
+                            {vehicle.mapIcon}
+                          </div>
+                          
+                          {/* Lucide icon as accent */}
+                          <vehicle.icon className={`h-12 w-12 mx-auto mb-4 transition-colors duration-300 ${
+                            data.vehicleType === vehicle.id ? 'text-moai-orange' : 'text-gray-500 group-hover:text-gray-700'
+                          }`} />
+                          
+                          {/* Vehicle name */}
+                          <h3 className={`font-bold text-2xl mb-3 transition-colors duration-300 ${
+                            data.vehicleType === vehicle.id ? 'text-moai-orange' : 'text-gray-800'
+                          }`}>
+                            {vehicle.name}
+                          </h3>
+                          
+                          {/* Description */}
+                          <p className={`text-base mb-4 font-medium transition-colors duration-300 ${
+                            data.vehicleType === vehicle.id ? 'text-orange-700' : 'text-gray-600'
+                          }`}>
+                            {vehicle.description}
+                          </p>
+                          
+                          {/* Benefits */}
+                          <div className="space-y-2">
+                            {vehicle.benefits.map((benefit, index) => (
+                              <div key={index} className={`flex items-center justify-center text-sm font-medium transition-colors duration-300 ${
+                                data.vehicleType === vehicle.id ? 'text-orange-600' : 'text-gray-500'
+                              }`}>
+                                <CheckCircle className={`h-4 w-4 mr-2 transition-colors duration-300 ${
+                                  data.vehicleType === vehicle.id ? 'text-green-600' : 'text-green-500'
+                                }`} />
+                                {benefit}
+                              </div>
+                            ))}
+                          </div>
+                          
+                          {/* Action indicator */}
+                          <div className={`mt-6 py-3 px-6 rounded-full font-bold text-lg transition-all duration-300 ${
+                            data.vehicleType === vehicle.id 
+                              ? 'bg-moai-orange text-white shadow-lg' 
+                              : 'bg-gray-100 text-gray-600 group-hover:bg-gray-200'
+                          }`}>
+                            {data.vehicleType === vehicle.id ? '¡Seleccionado!' : 'Seleccionar'}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
                   ))}
                 </div>
               </div>
 
-              {/* Vehicle Details */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    {selectedVehicle.mapIcon}
-                    Detalles de tu {selectedVehicle.name.toLowerCase()}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="make">Marca *</Label>
-                      <Input
-                        id="make"
-                        value={data.vehicleInfo.make}
-                        onChange={(e) => updateNestedData('vehicleInfo', 'make', e.target.value)}
-                        placeholder="Honda, Yamaha, Toyota..."
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="model">Modelo *</Label>
-                      <Input
-                        id="model"
-                        value={data.vehicleInfo.model}
-                        onChange={(e) => updateNestedData('vehicleInfo', 'model', e.target.value)}
-                        placeholder="CBR, Corolla, City..."
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="year">Año</Label>
-                      <Input
-                        id="year"
-                        type="number"
-                        min="1990"
-                        max={new Date().getFullYear() + 1}
-                        value={data.vehicleInfo.year}
-                        onChange={(e) => updateNestedData('vehicleInfo', 'year', parseInt(e.target.value))}
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="color">Color</Label>
-                      <Input
-                        id="color"
-                        value={data.vehicleInfo.color}
-                        onChange={(e) => updateNestedData('vehicleInfo', 'color', e.target.value)}
-                        placeholder="Rojo, Azul, Negro..."
-                      />
-                    </div>
-                    
-                    <div className="md:col-span-2">
-                      <Label htmlFor="licensePlate">Patente *</Label>
-                      <Input
-                        id="licensePlate"
-                        value={data.vehicleInfo.licensePlate}
-                        onChange={(e) => updateNestedData('vehicleInfo', 'licensePlate', e.target.value.toUpperCase())}
-                        placeholder="ABCD12 o AB1234"
-                        className="uppercase"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           )}
 
