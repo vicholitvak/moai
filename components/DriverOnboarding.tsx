@@ -83,9 +83,8 @@ interface OnboardingData {
 const STEPS = [
   { id: 1, title: 'Información Personal', description: 'Datos básicos de contacto' },
   { id: 2, title: 'Vehículo', description: 'Información de tu vehículo' },
-  { id: 3, title: 'Documentación', description: 'Licencia y papeles del vehículo' },
-  { id: 4, title: 'Preferencias', description: 'Horarios y áreas de trabajo' },
-  { id: 5, title: 'Pago', description: 'Información bancaria' }
+  { id: 3, title: 'Preferencias', description: 'Horarios y áreas de trabajo' },
+  { id: 4, title: 'Pago', description: 'Información bancaria' }
 ];
 
 const VEHICLE_TYPES = [
@@ -129,8 +128,8 @@ const WORKING_DAYS = [
 ];
 
 const POPULAR_AREAS = [
-  'Las Condes', 'Providencia', 'Vitacura', 'Santiago Centro', 'Ñuñoa', 
-  'La Reina', 'San Miguel', 'Maipú', 'Puente Alto', 'La Florida'
+  'Centro', 'Licanantai', 'Solor', 'Sequitor', 'Yaye', 
+  'Checar',
 ];
 
 const BANKS = [
@@ -226,10 +225,8 @@ export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) 
       case 2:
         return !!(data.vehicleType);
       case 3:
-        return !!(data.documents.driverLicense && data.documents.vehicleRegistration);
-      case 4:
         return !!(data.workingDays.length > 0);
-      case 5:
+      case 4:
         return !!(data.bankInfo.accountHolderName && data.bankInfo.bankName && data.bankInfo.accountNumber);
       default:
         return true;
@@ -429,7 +426,7 @@ export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) 
               {/* Vehicle Type Selection */}
               <div>
                 <Label className="text-2xl font-bold mb-8 block text-center text-gray-800">¡Elige tu vehículo de entrega!</Label>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl mx-auto px-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 max-w-6xl mx-auto px-4">
                   {VEHICLE_TYPES.map((vehicle) => (
                     <div
                       key={vehicle.id}
@@ -517,119 +514,8 @@ export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) 
             </div>
           )}
 
-          {/* Step 3: Documentation */}
+          {/* Step 3: Working Preferences */}
           {currentStep === 3 && (
-            <div className="space-y-6">
-              <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Documentación</h2>
-                <p className="text-gray-600">Necesitamos verificar tus documentos para tu seguridad</p>
-              </div>
-
-              <Card className="bg-yellow-50 border-yellow-200">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3">
-                    <AlertCircle className="h-5 w-5 text-yellow-600" />
-                    <div>
-                      <p className="text-sm font-medium text-yellow-800">¿Por qué necesitamos estos documentos?</p>
-                      <p className="text-xs text-yellow-600">Para garantizar seguridad y cumplir con regulaciones legales</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-base font-medium">Licencia de conducir *</Label>
-                  <div className="mt-2 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                    <FileText className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600 mb-2">Sube una foto clara de tu licencia</p>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleFileUpload('driverLicense', file);
-                      }}
-                      className="hidden"
-                      id="driverLicense"
-                    />
-                    <Label htmlFor="driverLicense" className="cursor-pointer">
-                      <Button variant="outline" size="sm" asChild>
-                        <span>
-                          <Upload className="h-4 w-4 mr-2" />
-                          Subir Licencia
-                        </span>
-                      </Button>
-                    </Label>
-                    {data.documents.driverLicense && (
-                      <div className="mt-2 text-green-600 text-sm">✅ Documento subido</div>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-base font-medium">Permiso de circulación *</Label>
-                  <div className="mt-2 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                    <FileText className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600 mb-2">Permiso de circulación vigente</p>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleFileUpload('vehicleRegistration', file);
-                      }}
-                      className="hidden"
-                      id="vehicleRegistration"
-                    />
-                    <Label htmlFor="vehicleRegistration" className="cursor-pointer">
-                      <Button variant="outline" size="sm" asChild>
-                        <span>
-                          <Upload className="h-4 w-4 mr-2" />
-                          Subir Permiso
-                        </span>
-                      </Button>
-                    </Label>
-                    {data.documents.vehicleRegistration && (
-                      <div className="mt-2 text-green-600 text-sm">✅ Documento subido</div>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-base font-medium">Seguro del vehículo (opcional)</Label>
-                  <div className="mt-2 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                    <Shield className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600 mb-2">SOAP vigente (recomendado)</p>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleFileUpload('insuranceProof', file);
-                      }}
-                      className="hidden"
-                      id="insuranceProof"
-                    />
-                    <Label htmlFor="insuranceProof" className="cursor-pointer">
-                      <Button variant="outline" size="sm" asChild>
-                        <span>
-                          <Upload className="h-4 w-4 mr-2" />
-                          Subir SOAP
-                        </span>
-                      </Button>
-                    </Label>
-                    {data.documents.insuranceProof && (
-                      <div className="mt-2 text-green-600 text-sm">✅ Documento subido</div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Step 4: Working Preferences */}
-          {currentStep === 4 && (
             <div className="space-y-6">
               <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">Preferencias de Trabajo</h2>
@@ -699,8 +585,8 @@ export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) 
             </div>
           )}
 
-          {/* Step 5: Payment Information */}
-          {currentStep === 5 && (
+          {/* Step 4: Payment Information */}
+          {currentStep === 4 && (
             <div className="space-y-6">
               <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">Información de Pago</h2>
