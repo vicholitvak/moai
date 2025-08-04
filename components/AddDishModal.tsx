@@ -32,24 +32,17 @@ export function AddDishModal({
     name: '',
     description: '',
     price: '',
-    category: 'Italiana',
+    category: 'Platos principales',
     prepTime: '',
-    ingredients: [''],
-    allergens: [''],
-    nutritionInfo: {
-      calories: '',
-      protein: '',
-      carbs: '',
-      fat: ''
-    }
+    ingredients: ['']
   });
   const [imagePreview, setImagePreview] = useState<string>('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xNzUgMTI1SDE5NVYxNDVIMjE1VjE2NUgxOTVWMTg1SDE3NVYxNjVIMTU1VjE0NUgxNzVWMTI1WiIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const categories = [
-    'Italiana', 'Mexicana', 'Japonesa', 'India', 'Americana', 
-    'Francesa', 'China', 'Tailandesa', 'Mediterránea', 'Vegana', 'Saludable',
-    'Acompañamientos', 'Para Tomar'
+    'Platos principales',
+    'Acompañamientos', 
+    'Bebidas'
   ];
 
   const handleInputChange = (field: string, value: string) => {
@@ -59,31 +52,21 @@ export function AddDishModal({
     }));
   };
 
-  const handleNutritionChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      nutritionInfo: {
-        ...prev.nutritionInfo,
-        [field]: value
-      }
-    }));
-  };
-
-  const handleArrayChange = (field: 'ingredients' | 'allergens', index: number, value: string) => {
+  const handleArrayChange = (field: 'ingredients', index: number, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: prev[field].map((item, i) => i === index ? value : item)
     }));
   };
 
-  const addArrayItem = (field: 'ingredients' | 'allergens') => {
+  const addArrayItem = (field: 'ingredients') => {
     setFormData(prev => ({
       ...prev,
       [field]: [...prev[field], '']
     }));
   };
 
-  const removeArrayItem = (field: 'ingredients' | 'allergens', index: number) => {
+  const removeArrayItem = (field: 'ingredients', index: number) => {
     if (formData[field].length > 1) {
       setFormData(prev => ({
         ...prev,
@@ -124,12 +107,12 @@ export function AddDishModal({
         prepTime: formData.prepTime,
         isAvailable: true,
         ingredients: formData.ingredients.filter(ingredient => ingredient.trim() !== ''),
-        allergens: formData.allergens.filter(allergen => allergen.trim() !== ''),
+        allergens: [],
         nutritionInfo: {
-          calories: parseInt(formData.nutritionInfo.calories) || 0,
-          protein: formData.nutritionInfo.protein || '0g',
-          carbs: formData.nutritionInfo.carbs || '0g',
-          fat: formData.nutritionInfo.fat || '0g'
+          calories: 0,
+          protein: '0g',
+          carbs: '0g',
+          fat: '0g'
         }
       };
 
@@ -147,18 +130,11 @@ export function AddDishModal({
       name: '',
       description: '',
       price: '',
-      category: 'Italiana',
+      category: 'Platos principales',
       prepTime: '',
-      ingredients: [''],
-      allergens: [''],
-      nutritionInfo: {
-        calories: '',
-        protein: '',
-        carbs: '',
-        fat: ''
-      }
+      ingredients: ['']
     });
-    setImagePreview('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjNGNEY2Ci8+CjxwYXRoIGQ9Ik0xNzUgMTI1SDE5NVYxNDVIMjE1VjE2NUgxOTVWMTg1SDE3NVYxNjVIMTU1VjE0NUgxNzVWMTI1WiIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K');
+    setImagePreview('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjNGNEY2Ci8+CjxwYXRoIGQ9Ik0xNzUgMTI1SDE5NVYxNDFIMjE1VjE2NUgxOTVWMTg1SDE3NVYxNjVIMTU1VjE0NUgxNzVWMTI1WiIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K');
     onClose();
   };
 
@@ -175,9 +151,9 @@ export function AddDishModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Left Column - Basic Info */}
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div>
                 <Label htmlFor="name">Nombre del Plato *</Label>
                 <input
@@ -199,9 +175,12 @@ export function AddDishModal({
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
                   className="w-full mt-1"
-                  placeholder="Describe tu plato, ingredientes principales y técnicas de preparación..."
-                  rows={4}
+                  placeholder="Describe tu plato de manera atractiva. Incluye sabores, ingredientes especiales, técnica de preparación y qué lo hace único..."
+                  rows={5}
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Tip: Una buena descripción aumenta las ventas. Destaca lo que hace especial a tu plato.
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -250,36 +229,6 @@ export function AddDishModal({
                 </select>
               </div>
 
-              {/* Image Upload */}
-              <div>
-                <Label>Imagen del Plato</Label>
-                <div className="mt-2">
-                  <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden mb-3">
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                    id="image-upload"
-                  />
-                  <Label htmlFor="image-upload" className="cursor-pointer">
-                    <div className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors">
-                      <Upload className="h-4 w-4" />
-                      <span>Subir Imagen</span>
-                    </div>
-                  </Label>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Column - Details */}
-            <div className="space-y-4">
               {/* Ingredients */}
               <div>
                 <Label>Ingredientes *</Label>
@@ -291,7 +240,7 @@ export function AddDishModal({
                         value={ingredient}
                         onChange={(e) => handleArrayChange('ingredients', index, e.target.value)}
                         className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Ej: Pasta Spaghetti"
+                        placeholder="Ej: Pasta fresca, tomates, queso parmesano"
                         required={index === 0}
                       />
                       {formData.ingredients.length > 1 && (
@@ -317,88 +266,44 @@ export function AddDishModal({
                     Agregar Ingrediente
                   </Button>
                 </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Lista los ingredientes principales que hacen especial a tu plato.
+                </p>
               </div>
+            </div>
 
-              {/* Allergens */}
+            {/* Right Column - Image Upload */}
+            <div className="space-y-6">
+              {/* Image Upload */}
               <div>
-                <Label>Alérgenos</Label>
-                <div className="space-y-2 mt-2">
-                  {formData.allergens.map((allergen, index) => (
-                    <div key={index} className="flex gap-2">
-                      <input
-                        type="text"
-                        value={allergen}
-                        onChange={(e) => handleArrayChange('allergens', index, e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Ej: Gluten, Lácteos"
-                      />
-                      {formData.allergens.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => removeArrayItem('allergens', index)}
-                        >
-                          <Minus className="h-4 w-4" />
-                        </Button>
-                      )}
+                <Label>Imagen del Plato *</Label>
+                <div className="mt-2">
+                  <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden mb-3">
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    id="image-upload"
+                  />
+                  <Label htmlFor="image-upload" className="cursor-pointer">
+                    <div className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors">
+                      <Upload className="h-4 w-4" />
+                      <span>Subir Imagen</span>
                     </div>
-                  ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => addArrayItem('allergens')}
-                    className="w-full"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Agregar Alérgeno
-                  </Button>
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Una buena foto aumenta significativamente las ventas. Usa luz natural y muestra el plato completo.
+                  </p>
                 </div>
               </div>
 
-              {/* Nutrition Info */}
-              <div>
-                <Label>Información Nutricional</Label>
-                <div className="grid grid-cols-2 gap-3 mt-2">
-                  <div>
-                    <input
-                      type="number"
-                      value={formData.nutritionInfo.calories}
-                      onChange={(e) => handleNutritionChange('calories', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Calorías"
-                    />
-                  </div>
-                  <div>
-                    <input
-                      type="text"
-                      value={formData.nutritionInfo.protein}
-                      onChange={(e) => handleNutritionChange('protein', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Proteína (ej: 22g)"
-                    />
-                  </div>
-                  <div>
-                    <input
-                      type="text"
-                      value={formData.nutritionInfo.carbs}
-                      onChange={(e) => handleNutritionChange('carbs', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Carbohidratos (ej: 65g)"
-                    />
-                  </div>
-                  <div>
-                    <input
-                      type="text"
-                      value={formData.nutritionInfo.fat}
-                      onChange={(e) => handleNutritionChange('fat', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Grasa (ej: 26g)"
-                    />
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 
