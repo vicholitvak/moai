@@ -902,9 +902,110 @@ export default function AdminDashboard() {
         {activeTab === 'management' && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold">Gestión del Sistema</h2>
-              <p className="text-muted-foreground">Herramientas de administración y configuración del sistema</p>
+              <h2 className="text-2xl font-bold">Configuración del Sistema</h2>
+              <p className="text-muted-foreground">Configurar tarifas de entrega, comisiones y otros ajustes del sistema</p>
             </div>
+            
+            {/* App Settings Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Configuración de Tarifas
+                </CardTitle>
+                <CardDescription>Gestionar tarifas de entrega y comisiones del servicio</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {/* Delivery Fee Settings */}
+                  <div className="space-y-4">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      <Car className="h-4 w-4" />
+                      Tarifa de Entrega
+                    </h4>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Estado</label>
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="secondary" className="bg-gray-100 text-gray-700">
+                            Actualmente: DESACTIVADO (Entrega Gratis)
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Tarifa Base</label>
+                        <p className="text-sm text-muted-foreground">$0 CLP (configurado como gratuito)</p>
+                      </div>
+                    </div>
+                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <h5 className="font-medium text-blue-800 mb-2">Configuración Actual</h5>
+                      <ul className="text-sm text-blue-700 space-y-1">
+                        <li>• Entrega completamente gratuita para todos los pedidos</li>
+                        <li>• Los cocineros no pagan tarifa de entrega</li>
+                        <li>• Los clientes reciben entrega sin costo adicional</li>
+                        <li>• Configuración ideal para atraer más pedidos</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Service Fee Settings */}
+                  <div className="space-y-4 pt-4 border-t">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4" />
+                      Comisión de Servicio
+                    </h4>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Estado</label>
+                        <Badge variant="default" className="bg-green-100 text-green-800">
+                          ACTIVADO
+                        </Badge>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Porcentaje</label>
+                        <p className="text-sm text-muted-foreground">12% del subtotal del pedido</p>
+                      </div>
+                    </div>
+                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <h5 className="font-medium text-green-800 mb-2">Comisión Activa</h5>
+                      <p className="text-sm text-green-700">
+                        Se aplica un 12% de comisión sobre el subtotal de cada pedido para cubrir 
+                        costos operativos de la plataforma.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Future Admin Controls */}
+                  <div className="space-y-4 pt-4 border-t">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      <Shield className="h-4 w-4" />
+                      Controles Administrativos
+                    </h4>
+                    <div className="space-y-2">
+                      <Button variant="outline" className="w-full justify-start" disabled>
+                        <Settings className="h-4 w-4 mr-2" />
+                        Modificar Tarifa de Entrega (Próximamente)
+                      </Button>
+                      <Button variant="outline" className="w-full justify-start" disabled>
+                        <BarChart3 className="h-4 w-4 mr-2" />
+                        Ajustar Comisión de Servicio (Próximamente)
+                      </Button>
+                      <Button variant="outline" className="w-full justify-start" disabled>
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Restablecer Configuración (Próximamente)
+                      </Button>
+                    </div>
+                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <h5 className="font-medium text-yellow-800 mb-2">Nota de Desarrollo</h5>
+                      <p className="text-sm text-yellow-700">
+                        La interfaz de configuración avanzada estará disponible en futuras actualizaciones. 
+                        Actualmente las tarifas se gestionan a través del código fuente.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
             
             {/* Quick Actions */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

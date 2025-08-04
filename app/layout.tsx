@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from '../context/AuthContext';
 import { CartProvider } from '../context/CartContext';
+import { UserProfileProvider } from '../context/UserProfileContext';
 import AuthHandler from '../context/AuthHandler';
 import { Toaster } from '../components/ui/sonner';
 
@@ -22,10 +23,12 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <AuthProvider>
-          <CartProvider>
-            <AuthHandler>{children}</AuthHandler>
-            <Toaster />
-          </CartProvider>
+          <UserProfileProvider>
+            <CartProvider>
+              <AuthHandler>{children}</AuthHandler>
+              <Toaster />
+            </CartProvider>
+          </UserProfileProvider>
         </AuthProvider>
       </body>
     </html>

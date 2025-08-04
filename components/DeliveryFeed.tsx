@@ -41,7 +41,9 @@ const DeliveryFeed = ({ onOrderAccepted }: DeliveryFeedProps) => {
     if (!user) return;
 
     const unsubscribe = OrdersService.subscribeToAvailableOrders((orders) => {
-      setAvailableOrders(orders);
+      // Filter out orders that already have a driver assigned
+      const unassignedOrders = orders.filter(order => !order.driverId);
+      setAvailableOrders(unassignedOrders);
     });
 
     return () => unsubscribe();

@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
+import { AppSettingsService, AppSettings } from '@/lib/firebase/dataService';
 
 export interface CartItem {
   id: string;
@@ -49,6 +50,35 @@ const CartContext = createContext<CartContextType>({
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const [items, setItems] = useState<CartItem[]>([]);
+  const [appSettings, setAppSettings] = useState<AppSettings | null>(null);
+
+  // Load app settings on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const settings = await AppSettingsService.getSettings();
+        setAppSettings(settings);
+      } catch (error) {
+        console.error('Error loading app settings:', error);
+        // Use default settings if Firebase is not accessible
+        setAppSettings({
+          id: 'main',
+          deliveryFee: {
+            baseRate: 0,
+            freeDeliveryThreshold: 25000,
+            isEnabled: false
+          },
+          serviceFee: {
+            percentage: 0.12,
+            isEnabled: true
+          },
+          updatedAt: new Date() as any,
+          updatedBy: 'system'
+        });
+      }
+    };
+    loadSettings();
+  }, []);
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -133,14 +163,22 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const getDeliveryFee = () => {
-    // Free delivery over $25,000 CLP, otherwise $2,500 CLP
+    if (!appSettings || !appSettings.deliveryFee.isEnabled) {
+      return 0;
+    }
+    
     const subtotal = getCartSubtotal();
-    return subtotal >= 25000 ? 0 : 2500;
+    const { baseRate, freeDeliveryThreshold } = appSettings.deliveryFee;
+    
+    return subtotal >= freeDeliveryThreshold ? 0 : baseRate;
   };
 
   const getServiceFee = () => {
-    // 12% service fee
-    return getCartSubtotal() * 0.12;
+    if (!appSettings || !appSettings.serviceFee.isEnabled) {
+      return 0;
+    }
+    
+    return getCartSubtotal() * appSettings.serviceFee.percentage;
   };
 
   const getTotal = () => {

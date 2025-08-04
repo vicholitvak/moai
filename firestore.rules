@@ -13,6 +13,11 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
+    // User profiles collection - users can read/write their own profile data
+    match /userProfiles/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
     // Cooks collection - authenticated users can read all cooks, but only write their own profile, admins can do anything
     match /cooks/{cookId} {
       allow read: if request.auth != null;
@@ -67,6 +72,21 @@ service cloud.firestore {
     // Allow authenticated users to read/write their own favorites
     match /favorites/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // App settings collection - all authenticated users can read, only admins can write
+    match /appSettings/{settingId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && isAdmin();
+    }
+    
+    // Delivery tracking collection - all authenticated users can read, drivers can write their own tracking
+    match /deliveryTracking/{orderId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
+        (request.auth.uid == resource.data.driverId || 
+         request.auth.uid == request.resource.data.driverId ||
+         isAdmin());
     }
   }
 }

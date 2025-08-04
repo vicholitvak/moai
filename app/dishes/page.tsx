@@ -29,6 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { formatPrice } from '@/lib/utils';
+import RoleSwitcher from '@/components/RoleSwitcher';
 
 // Categories for filtering
 const categories = ['All', 'Plato Principal', 'Bebidas', 'Acompañamientos', 'Postres', 'Vegetariano', 'Vegano'];
@@ -335,6 +336,11 @@ const ClientDishesPage = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Temporary Role Switcher for Testing */}
+      <div className="container mx-auto px-4 py-2">
+        <RoleSwitcher />
       </div>
 
       <div className="container mx-auto px-4 py-6">

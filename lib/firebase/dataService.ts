@@ -682,10 +682,11 @@ export class OrdersService {
   }
 
   static subscribeToAvailableOrders(callback: (orders: Order[]) => void) {
+    // Use fallback query without orderBy to avoid index requirements
+    // Include 'pending' status for newly created orders from payments
     const q = query(
       collection(db, this.collection),
-      where('status', 'in', ['accepted', 'preparing', 'ready']),
-      orderBy('createdAt', 'asc')
+      where('status', 'in', ['pending', 'accepted', 'preparing', 'ready'])
     );
     
     return onSnapshot(q, (querySnapshot) => {
@@ -693,7 +694,18 @@ export class OrdersService {
         id: doc.id,
         ...doc.data()
       } as Order));
+      
+      // Sort client-side by createdAt ascending (oldest first)
+      orders.sort((a, b) => {
+        const aTime = a.createdAt?.toMillis() || 0;
+        const bTime = b.createdAt?.toMillis() || 0;
+        return aTime - bTime;
+      });
+      
       callback(orders);
+    }, (error) => {
+      console.error('Error in available orders subscription:', error);
+      callback([]); // Return empty array on error
     });
   }
 
@@ -714,10 +726,10 @@ export class OrdersService {
   }
 
   static subscribeToDriverAvailableOrders(callback: (orders: Order[]) => void) {
+    // Use fallback query without orderBy to avoid index requirements
     const q = query(
       collection(db, this.collection),
-      where('status', 'in', ['pending', 'accepted', 'preparing', 'ready']),
-      orderBy('createdAt', 'asc')
+      where('status', 'in', ['pending', 'accepted', 'preparing', 'ready'])
     );
 
     return onSnapshot(q, (querySnapshot) => {
@@ -725,7 +737,18 @@ export class OrdersService {
         id: doc.id,
         ...doc.data()
       } as Order));
+      
+      // Sort client-side by createdAt ascending
+      orders.sort((a, b) => {
+        const aTime = a.createdAt?.toMillis() || 0;
+        const bTime = b.createdAt?.toMillis() || 0;
+        return aTime - bTime;
+      });
+      
       callback(orders);
+    }, (error) => {
+      console.error('Error in driver available orders subscription:', error);
+      callback([]); // Return empty array on error
     });
   }
 }
@@ -994,10 +1017,10 @@ export class DriversService {
   }
 
   static subscribeToDriverOrders(driverId: string, callback: (orders: Order[]) => void) {
+    // Use fallback query without orderBy to avoid index requirements
     const q = query(
       collection(db, this.collection),
-      where('driverId', '==', driverId),
-      orderBy('createdAt', 'desc')
+      where('driverId', '==', driverId)
     );
     
     return onSnapshot(q, (querySnapshot) => {
@@ -1005,7 +1028,18 @@ export class DriversService {
         id: doc.id,
         ...doc.data()
       } as Order));
+      
+      // Sort client-side by createdAt descending
+      orders.sort((a, b) => {
+        const aTime = a.createdAt?.toMillis() || 0;
+        const bTime = b.createdAt?.toMillis() || 0;
+        return bTime - aTime;
+      });
+      
       callback(orders);
+    }, (error) => {
+      console.error('Error in driver orders subscription:', error);
+      callback([]); // Return empty array on error
     });
   }
 }
@@ -1065,6 +1099,101 @@ export class AdminService {
     } catch (error) {
       console.error('Error fetching all users:', error);
       return { cooks: [], drivers: [], dishes: [] };
+    }
+  }
+}
+
+// App Settings Service
+export interface AppSettings {
+  id: string;
+  deliveryFee: {
+    baseRate: number;
+    freeDeliveryThreshold: number;
+    isEnabled: boolean;
+  };
+  serviceFee: {
+    percentage: number;
+    isEnabled: boolean;
+  };
+  updatedAt: Timestamp;
+  updatedBy: string;
+}
+
+export class AppSettingsService {
+  private static collection = 'appSettings';
+  private static settingsDocId = 'main';
+
+  static async getSettings(): Promise<AppSettings | null> {
+    try {
+      const docRef = doc(db, this.collection, this.settingsDocId);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        return {
+          id: docSnap.id,
+          ...docSnap.data()
+        } as AppSettings;
+      }
+      
+      // Create default settings if none exist
+      const defaultSettings = {
+        deliveryFee: {
+          baseRate: 0,
+          freeDeliveryThreshold: 25000,
+          isEnabled: false
+        },
+        serviceFee: {
+          percentage: 0.12,
+          isEnabled: true
+        },
+        updatedAt: Timestamp.now(),
+        updatedBy: 'system'
+      };
+
+      // Try to create the default settings document
+      try {
+        await setDoc(docRef, defaultSettings);
+        console.log('Created default app settings');
+      } catch (writeError) {
+        console.warn('Could not create default settings, using fallback:', writeError);
+      }
+
+      return {
+        id: this.settingsDocId,
+        ...defaultSettings
+      };
+    } catch (error) {
+      console.error('Error fetching app settings:', error);
+      // Return default settings as fallback
+      return {
+        id: this.settingsDocId,
+        deliveryFee: {
+          baseRate: 0,
+          freeDeliveryThreshold: 25000,
+          isEnabled: false
+        },
+        serviceFee: {
+          percentage: 0.12,
+          isEnabled: true
+        },
+        updatedAt: Timestamp.now(),
+        updatedBy: 'system'
+      };
+    }
+  }
+
+  static async updateSettings(updates: Partial<Omit<AppSettings, 'id' | 'updatedAt'>>, updatedBy: string): Promise<boolean> {
+    try {
+      const docRef = doc(db, this.collection, this.settingsDocId);
+      await setDoc(docRef, {
+        ...updates,
+        updatedAt: Timestamp.now(),
+        updatedBy
+      }, { merge: true });
+      return true;
+    } catch (error) {
+      console.error('Error updating app settings:', error);
+      return false;
     }
   }
 }

@@ -8,41 +8,37 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { amount, description, orderId, customerEmail, customerName, items } = body;
 
-    // Create preference
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    
+    console.log('Creating MercadoPago preference with:', {
+      amount,
+      description,
+      orderId,
+      customerEmail,
+      customerName,
+      items,
+      hasAccessToken: !!MERCADO_PAGO_ACCESS_TOKEN,
+      baseUrl
+    });
+
+    // Create preference - simplified to match working curl example
     const preference = {
       items: items.map((item: any) => ({
         id: item.id,
         title: item.title,
         quantity: item.quantity,
         unit_price: item.unit_price,
-        currency_id: 'CLP', // Chilean peso
+        currency_id: 'CLP',
       })),
-      payer: {
-        email: customerEmail,
-        name: customerName,
-      },
-      payment_methods: {
-        excluded_payment_methods: [
-          // You can exclude specific payment methods if needed
-        ],
-        excluded_payment_types: [
-          // You can exclude specific payment types if needed
-        ],
-        installments: 12, // Max installments
-      },
       back_urls: {
-        success: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/payment/success`,
-        failure: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/payment/failure`,
-        pending: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/payment/pending`,
+        success: `${baseUrl}/payment/success`,
+        failure: `${baseUrl}/payment/failure`,
+        pending: `${baseUrl}/payment/pending`,
       },
-      auto_return: 'approved',
       external_reference: orderId,
-      notification_url: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/mercadopago/webhook`,
-      statement_descriptor: 'MOAI DELIVERY',
-      metadata: {
-        order_id: orderId,
-      },
     };
+
+    console.log('Preference object:', JSON.stringify(preference, null, 2));
 
     // Use MercadoPago REST API directly
     const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
@@ -55,7 +51,14 @@ export async function POST(request: NextRequest) {
     });
 
     if (!response.ok) {
-      throw new Error(`MercadoPago API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error('MercadoPago API error details:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+      throw new Error(`MercadoPago API error: ${response.status} - ${errorText}`);
     }
 
     const preferenceData = await response.json();
