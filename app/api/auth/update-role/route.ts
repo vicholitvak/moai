@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { verify } from 'jsonwebtoken';
+import { admin } from '@/lib/firebase/admin';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,25 +15,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get session token from cookies
+    // Get session cookie from cookies
     const cookieStore = cookies();
-    const sessionToken = cookieStore.get('session-token')?.value;
+    const sessionCookie = cookieStore.get('session')?.value;
     
-    if (!sessionToken) {
+    if (!sessionCookie) {
       return NextResponse.json(
-        { error: 'No session token found' },
+        { error: 'No session cookie found' },
         { status: 401 }
       );
     }
 
-    // Verify the session token
+    // Verify the session cookie using Firebase Admin
     let userId: string;
     try {
-      const decoded = verify(sessionToken, JWT_SECRET) as { uid: string };
-      userId = decoded.uid;
+      const decodedClaims = await admin.auth().verifySessionCookie(sessionCookie, true);
+      userId = decodedClaims.uid;
     } catch (error) {
+      console.error('Session verification error:', error);
       return NextResponse.json(
-        { error: 'Invalid session token' },
+        { error: 'Invalid session cookie' },
         { status: 401 }
       );
     }
