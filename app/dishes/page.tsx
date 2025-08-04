@@ -21,7 +21,8 @@ import {
   List,
   LogOut,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  Truck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,7 +30,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { formatPrice } from '@/lib/utils';
-import RoleSwitcher from '@/components/RoleSwitcher';
+// import RoleSwitcher from '@/components/RoleSwitcher'; // Removed for testing
 
 // Categories for filtering
 const categories = ['All', 'Plato Principal', 'Bebidas', 'Acompañamientos', 'Postres', 'Vegetariano', 'Vegano'];
@@ -40,6 +41,7 @@ interface DishWithCook extends Dish {
   cookerRating: number;
   distance: string;
   isFavorite: boolean;
+  cookerSelfDelivery: boolean;
 }
 
 const ClientDishesPage = () => {
@@ -119,9 +121,10 @@ const ClientDishesPage = () => {
           return {
             ...dish,
             cookerName: cook?.displayName || 'Cocinero Desconocido',
-            cookerAvatar: cook?.avatar || '/api/placeholder/50/50',
+            cookerAvatar: cook?.avatar || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNSAxNUMzMC41MjI5IDE1IDM1IDEwLjUyMjkgMzUgNUMzNSAyLjc5MDg2IDMzLjIwOTEgMSAzMSAxSDIwQzE3LjI5MDkgMSAxNS40NjA5IDIuNzkwODYgMTUgNUMxNSAxMC41MjI5IDE5LjQ3NzEgMTUgMjUgMTVaIiBmaWxsPSIjOUI5QkEzIi8+CjxwYXRoIGQ9Ik0xMCAzNUMxMCAyNi43MTU3IDE2LjcxNTcgMjAgMjUgMjBDMzMuMjg0MyAyMCA0MCAyNi43MTU3IDQwIDM1VjQ1SDBWMzVaIiBmaWxsPSIjOUI5QkEzIi8+Cjwvc3ZnPgo=',
             cookerRating: cook?.rating || 4.0,
             distance: `${(Math.random() * 3 + 0.5).toFixed(1)} km`, // Mock distance for now
+            cookerSelfDelivery: cook?.settings?.selfDelivery || false,
             isFavorite: favorites.includes(dish.id)
           };
         });
@@ -261,6 +264,13 @@ const ClientDishesPage = () => {
           </div>
         </div>
         
+        {dish.cookerSelfDelivery && (
+          <div className="flex items-center gap-1 text-sm text-green-600 mb-2">
+            <Truck className="h-4 w-4" />
+            <span>Entrega por el cocinero</span>
+          </div>
+        )}
+        
         <div className="flex gap-2 mb-3">
           {dish.tags.slice(0, 3).map((tag: string) => (
             <Badge key={tag} variant="outline" className="text-xs">
@@ -338,10 +348,10 @@ const ClientDishesPage = () => {
         </div>
       </div>
 
-      {/* Temporary Role Switcher for Testing */}
-      <div className="container mx-auto px-4 py-2">
+      {/* Temporary Role Switcher for Testing - Removed */}
+      {/* <div className="container mx-auto px-4 py-2">
         <RoleSwitcher />
-      </div>
+      </div> */}
 
       <div className="container mx-auto px-4 py-6">
         {/* Search and Filters */}

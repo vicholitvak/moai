@@ -228,7 +228,7 @@ export default function CookerDashboard() {
         <div className="flex justify-between items-center mb-3">
           <span className="text-lg font-bold">${order.total.toLocaleString('es-CL')}</span>
           <div className="text-sm text-muted-foreground">
-            <div>Pedido: {order.orderTime.toDate().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}</div>
+            <div>Pedido: {order.orderTime?.toDate()?.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) || 'N/A'}</div>
           </div>
         </div>
         <div className="flex gap-2">

@@ -201,18 +201,18 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
           <div className="space-y-1 text-sm text-gray-600">
             <div className="flex items-center space-x-2">
               <Clock className="h-4 w-4" />
-              <span>Pedido Realizado: {order.orderTime.toDate().toLocaleString('es-CL')}</span>
+              <span>Pedido Realizado: {order.orderTime?.toDate()?.toLocaleString('es-CL') || 'N/A'}</span>
             </div>
             {order.estimatedDeliveryTime && (
               <div className="flex items-center space-x-2">
                 <Clock className="h-4 w-4" />
-                <span>Estimado de Entrega: {order.estimatedDeliveryTime.toDate().toLocaleString('es-CL')}</span>
+                <span>Estimado de Entrega: {order.estimatedDeliveryTime?.toDate()?.toLocaleString('es-CL') || 'N/A'}</span>
               </div>
             )}
             {order.actualDeliveryTime && (
               <div className="flex items-center space-x-2">
                 <Clock className="h-4 w-4" />
-                <span>Entregado: {order.actualDeliveryTime.toDate().toLocaleString('es-CL')}</span>
+                <span>Entregado: {order.actualDeliveryTime?.toDate()?.toLocaleString('es-CL') || 'N/A'}</span>
               </div>
             )}
           </div>

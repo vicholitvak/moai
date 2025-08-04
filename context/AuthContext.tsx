@@ -26,23 +26,51 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setUser(user);
-        const docRef = doc(db, 'users', user.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setRole(docSnap.data().role);
+      try {
+        if (user) {
+          setUser(user);
+          
+          // Check if user is admin by email or UID
+          const isAdminUser = user.email === 'admin@moai.com' || user.uid === 'admin' || (user.email && user.email.includes('admin'));
+          
+          const docRef = doc(db, 'users', user.uid);
+          const docSnap = await getDoc(docRef);
+          
+          if (docSnap.exists()) {
+            const userData = docSnap.data();
+            let userRole = userData.role;
+            
+            // If user is admin but role is not Admin, set it to Admin
+            if (isAdminUser && userRole !== 'Admin') {
+              userRole = 'Admin';
+              await setDoc(docRef, { role: 'Admin' }, { merge: true });
+            }
+            
+            setRole(userRole);
+          } else {
+            // New user - check if admin or assign default Client role
+            const defaultRole = isAdminUser ? 'Admin' : 'Client';
+            await setDoc(docRef, { role: defaultRole }, { merge: true });
+            setRole(defaultRole);
+          }
         } else {
-          // New user - assign default Client role
-          const defaultRole = 'Client';
-          await setDoc(docRef, { role: defaultRole }, { merge: true });
-          setRole(defaultRole);
+          setUser(null);
+          setRole(null);
         }
-      } else {
-        setUser(null);
-        setRole(null);
+      } catch (error) {
+        console.error('Auth state change error:', error);
+        // Set user but don't crash the app
+        if (user) {
+          setUser(user);
+          const isAdminUser = user.email === 'admin@moai.com' || user.uid === 'admin' || (user.email && user.email.includes('admin'));
+          setRole(isAdminUser ? 'Admin' : 'Client'); // Default role if Firestore fails
+        } else {
+          setUser(null);
+          setRole(null);
+        }
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -52,7 +80,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       await signOut(auth);
       // Clear any session cookies by calling the logout API
-      await fetch('/api/auth/logout', { method: 'POST' });
+      try {
+        await fetch('/api/auth/logout', { method: 'POST' });
+      } catch (apiError) {
+        // API logout failed but Firebase logout succeeded - this is okay
+        console.warn('API logout failed, but Firebase logout succeeded:', apiError);
+      }
     } catch (error) {
       console.error('Error signing out:', error);
     }

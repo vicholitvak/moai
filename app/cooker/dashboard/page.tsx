@@ -15,7 +15,18 @@ import {
   Bell,
   LogOut,
   Power,
-  PowerOff
+  PowerOff,
+  Truck,
+  AlertCircle,
+  CheckCircle,
+  ChevronDown,
+  Timer,
+  MapPin,
+  Phone,
+  MessageCircle,
+  ArrowRight,
+  Utensils,
+  Package
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,7 +35,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import EditDishModal from '@/components/EditDishModal';
 import CookerSettingsModal from '@/components/CookerSettingsModal';
 import { AddDishModal } from '@/components/AddDishModal';
-import LocationSetup from '@/components/LocationSetup';
+import CookerOnboarding from '@/components/CookerOnboarding';
+// import LocationSetup from '@/components/LocationSetup'; // Unused import
 import { DishesService, OrdersService, CooksService, AnalyticsService, type Dish, type Order, type Cook } from '@/lib/firebase/dataService';
 
 export default function CookerDashboard() {
@@ -35,6 +47,8 @@ export default function CookerDashboard() {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isAddDishModalOpen, setIsAddDishModalOpen] = useState(false);
   const [isUpdatingAvailability, setIsUpdatingAvailability] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [profileCompleted, setProfileCompleted] = useState(false);
   
   // Firebase data states
   const [dishes, setDishes] = useState<Dish[]>([]);
@@ -57,7 +71,33 @@ export default function CookerDashboard() {
       try {
         // Load cook profile
         const profile = await CooksService.getCookById(user.uid);
+        
+        if (!profile) {
+          // No profile exists, show onboarding
+          setShowOnboarding(true);
+          setLoading(false);
+          return;
+        }
+        
+        // Check if profile is complete
+        const isComplete = !!(
+          profile.displayName &&
+          profile.location?.address?.street &&
+          profile.location?.address?.city &&
+          profile.specialties?.length > 0 &&
+          profile.cookingStyle &&
+          profile.settings?.workingDays?.length > 0
+        );
+        
+        if (!isComplete) {
+          // Profile exists but incomplete, show onboarding
+          setShowOnboarding(true);
+          setLoading(false);
+          return;
+        }
+        
         setCookProfile(profile);
+        setProfileCompleted(true);
         
         // Load dishes
         const dishesData = await DishesService.getDishesByCook(user.uid);
@@ -80,6 +120,41 @@ export default function CookerDashboard() {
     
     loadData();
   }, [user?.uid]);
+
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+    setProfileCompleted(true);
+    // Reload the data after onboarding is complete
+    if (user?.uid) {
+      const loadData = async () => {
+        const profile = await CooksService.getCookById(user.uid);
+        setCookProfile(profile);
+        
+        // Load dishes and orders
+        const [dishesData, ordersData] = await Promise.all([
+          DishesService.getDishesByCook(user.uid),
+          OrdersService.getOrdersByCook(user.uid)
+        ]);
+        
+        setDishes(dishesData);
+        setOrders(ordersData);
+        
+        // Update stats
+        const totalEarnings = ordersData.reduce((sum, order) => sum + order.total, 0);
+        const activeDishes = dishesData.filter(dish => dish.isAvailable).length;
+        const pendingOrders = ordersData.filter(order => order.status === 'pending').length;
+        
+        setStats({
+          totalEarnings,
+          activeDishes,
+          pendingOrders,
+          averageRating: profile?.rating || 0
+        });
+      };
+      
+      loadData();
+    }
+  };
   
   // Set up real-time order updates
   useEffect(() => {
@@ -118,6 +193,21 @@ export default function CookerDashboard() {
   
   const handleUpdateOrderStatus = async (orderId: string, newStatus: Order['status']) => {
     try {
+      // If accepting order and cook has self-delivery, set driverId to cookerId
+      if (newStatus === 'accepted' && cookProfile?.settings?.selfDelivery) {
+        const order = orders.find(o => o.id === orderId);
+        if (order) {
+          // Update order with self-delivery info
+          await OrdersService.updateOrder(orderId, {
+            status: newStatus,
+            driverId: user?.uid, // Cook is the driver
+            isSelfDelivery: true
+          });
+          console.log('Order accepted with self-delivery');
+          return;
+        }
+      }
+      
       const success = await OrdersService.updateOrderStatus(orderId, newStatus);
       if (success) {
         console.log('Order status updated successfully');
@@ -337,6 +427,166 @@ export default function CookerDashboard() {
     </Card>
   );
 
+  // Enhanced Order Card Component for active orders
+  const EnhancedOrderCard = ({ order, isPriority }: { order: Order; isPriority: boolean }) => {
+    const getStatusColor = (status: Order['status']) => {
+      switch (status) {
+        case 'pending': return 'bg-red-100 text-red-800 border-red-300';
+        case 'accepted': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+        case 'preparing': return 'bg-blue-100 text-blue-800 border-blue-300';
+        case 'ready': return 'bg-green-100 text-green-800 border-green-300';
+        default: return 'bg-gray-100 text-gray-800 border-gray-300';
+      }
+    };
+
+    const getStatusText = (status: Order['status']) => {
+      switch (status) {
+        case 'pending': return 'Nuevo Pedido';
+        case 'accepted': return 'Aceptado';
+        case 'preparing': return 'Preparando';
+        case 'ready': return 'Listo';
+        default: return status;
+      }
+    };
+
+    const getNextAction = (status: Order['status']) => {
+      switch (status) {
+        case 'pending': return { action: 'accepted', text: 'Aceptar Pedido', color: 'bg-green-600 hover:bg-green-700' };
+        case 'accepted': return { action: 'preparing', text: 'Iniciar Preparación', color: 'bg-blue-600 hover:bg-blue-700' };
+        case 'preparing': return { action: 'ready', text: 'Marcar como Listo', color: 'bg-orange-600 hover:bg-orange-700' };
+        case 'ready': return null;
+        default: return null;
+      }
+    };
+
+    const nextAction = getNextAction(order.status);
+    
+    return (
+      <Card className={`transition-all duration-300 hover:shadow-lg ${isPriority ? 'ring-2 ring-red-200 bg-red-50/50' : 'hover:shadow-md'}`}>
+        <CardContent className="p-5">
+          {/* Header with Status */}
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-bold text-lg text-gray-900">{order.customerName}</h3>
+                {isPriority && <span className="text-xl">🚨</span>}
+              </div>
+              <Badge className={`${getStatusColor(order.status)} text-xs font-medium border`}>
+                {getStatusText(order.status)}
+              </Badge>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-bold text-green-600">${order.total.toLocaleString('es-CL')}</div>
+              <div className="text-xs text-gray-500">
+                {order.orderTime?.toDate()?.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) || 'N/A'}
+              </div>
+            </div>
+          </div>
+
+          {/* Order Items */}
+          <div className="bg-gray-50 rounded-lg p-3 mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Utensils className="h-4 w-4 text-gray-600" />
+              <span className="text-sm font-medium text-gray-700">Platos ({order.dishes.length})</span>
+            </div>
+            <div className="space-y-1">
+              {order.dishes.slice(0, 3).map((dish, index) => (
+                <div key={index} className="flex justify-between items-center text-sm">
+                  <span className="text-gray-700">{dish.dishName} x{dish.quantity}</span>
+                  <span className="font-medium text-gray-900">${(dish.price * dish.quantity).toLocaleString('es-CL')}</span>
+                </div>
+              ))}
+              {order.dishes.length > 3 && (
+                <div className="text-xs text-gray-500 text-center pt-1">
+                  +{order.dishes.length - 3} platos más
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Delivery Info */}
+          <div className="space-y-2 mb-4">
+            <div className="flex items-center gap-2 text-sm">
+              <MapPin className="h-4 w-4 text-gray-500" />
+              <span className="text-gray-700 text-xs">{order.deliveryInfo.address}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Phone className="h-4 w-4 text-gray-500" />
+              <span className="text-gray-700 text-xs">{order.deliveryInfo.phone}</span>
+            </div>
+            {order.isSelfDelivery && (
+              <div className="flex items-center gap-2 text-sm text-green-600">
+                <Truck className="h-4 w-4" />
+                <span className="text-xs font-medium">Entregarás tú mismo</span>
+              </div>
+            )}
+          </div>
+
+          {/* Special Instructions */}
+          {order.deliveryInfo.instructions && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+              <div className="flex items-start gap-2">
+                <MessageCircle className="h-4 w-4 text-yellow-600 mt-0.5" />
+                <div>
+                  <span className="text-sm font-medium text-yellow-800">Instrucciones:</span>
+                  <p className="text-sm text-yellow-700 mt-1">{order.deliveryInfo.instructions}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            {nextAction && (
+              <Button 
+                onClick={() => handleUpdateOrderStatus(order.id, nextAction.action as Order['status'])}
+                className={`flex-1 ${nextAction.color} text-white`}
+                size="sm"
+              >
+                <ArrowRight className="h-4 w-4 mr-2" />
+                {nextAction.text}
+              </Button>
+            )}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => window.open(`tel:${order.deliveryInfo.phone}`)}
+              className="flex items-center gap-1"
+            >
+              <Phone className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // Compact Order Card for completed orders
+  const CompactOrderCard = ({ order }: { order: Order }) => (
+    <Card className="hover:shadow-md transition-shadow">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <CheckCircle className="h-4 w-4 text-green-500" />
+            <span className="font-medium text-sm">{order.customerName}</span>
+          </div>
+          <Badge variant="outline" className="text-xs bg-green-50 text-green-700">
+            {order.status === 'delivered' ? 'Entregado' : 'En camino'}
+          </Badge>
+        </div>
+        <div className="text-sm text-gray-600 mb-2">
+          {order.dishes.length} plato{order.dishes.length > 1 ? 's' : ''}
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="font-bold text-green-600">${order.total.toLocaleString('es-CL')}</span>
+          <span className="text-xs text-gray-500">
+            {order.orderTime?.toDate()?.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) || 'N/A'}
+          </span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   const OrderCard = ({ order }: { order: Order }) => (
     <Card>
       <CardContent className="p-4">
@@ -348,6 +598,12 @@ export default function CookerDashboard() {
                 <div key={index}>{dish.dishName} x{dish.quantity}</div>
               ))}
             </div>
+            {order.isSelfDelivery && (
+              <div className="flex items-center gap-1 text-sm text-green-600 mt-1">
+                <Truck className="h-3 w-3" />
+                <span>Entregarás tú mismo</span>
+              </div>
+            )}
           </div>
           <Badge className={getStatusColor(order.status)}>
             {order.status === 'pending' ? 'Pendiente' :
@@ -362,7 +618,7 @@ export default function CookerDashboard() {
         <div className="flex justify-between items-center mb-3">
           <span className="text-lg font-bold">${order.total.toLocaleString('es-CL')}</span>
           <div className="text-sm text-muted-foreground">
-            <div>Pedido: {order.orderTime.toDate().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}</div>
+            <div>Pedido: {order.orderTime?.toDate()?.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) || 'N/A'}</div>
           </div>
         </div>
         <div className="flex gap-2">
@@ -396,6 +652,11 @@ export default function CookerDashboard() {
     );
   }
 
+  // Show onboarding if profile is not complete
+  if (showOnboarding) {
+    return <CookerOnboarding onComplete={handleOnboardingComplete} />;
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -404,7 +665,7 @@ export default function CookerDashboard() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Avatar className="h-12 w-12">
-                <AvatarImage src={cookProfile?.avatar || user.photoURL || '/api/placeholder/50/50'} />
+                <AvatarImage src={cookProfile?.avatar || user.photoURL || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNSAxNUMzMC41MjI5IDE1IDM1IDEwLjUyMjkgMzUgNUMzNSAyLjc5MDg2IDMzLjIwOTEgMSAzMSAxSDIwQzE3LjI5MDkgMSAxNS40NjA5IDIuNzkwODYgMTUgNUMxNSAxMC41MjI5IDE5LjQ3NzEgMTUgMjUgMTVaIiBmaWxsPSIjOUI5QkEzIi8+CjxwYXRoIGQ9Ik0xMCAzNUMxMCAyNi43MTU3IDE2LjcxNTcgMjAgMjUgMjBDMzMuMjg0MyAyMCA0MCAyNi43MTU3IDQwIDM1VjQ1SDBWMzVaIiBmaWxsPSIjOUI5QkEzIi8+Cjwvc3ZnPgo=' } />
                 <AvatarFallback>{cookProfile?.displayName?.charAt(0) || user.displayName?.charAt(0) || 'C'}</AvatarFallback>
               </Avatar>
               <div>
@@ -614,23 +875,174 @@ export default function CookerDashboard() {
         {/* Orders Tab */}
         {activeTab === 'orders' && (
           <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold">Orders</h2>
-              <p className="text-muted-foreground">Manage incoming orders</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {orders.length > 0 ? (
-                orders.map((order) => (
-                  <OrderCard key={order.id} order={order} />
-                ))
-              ) : (
-                <div className="col-span-full text-center py-12">
-                  <Clock className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No hay pedidos pendientes</h3>
-                  <p className="text-muted-foreground">Los nuevos pedidos aparecerán aquí</p>
+            {/* Enhanced Orders Header with Stats */}
+            <div className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-3xl font-bold text-gray-900">Gestión de Pedidos</h2>
+                  <p className="text-gray-600 mt-1">Administra todos tus pedidos de manera eficiente</p>
                 </div>
-              )}
+                <div className="flex items-center gap-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-orange-600">{orders.filter(o => o.status === 'pending').length}</div>
+                    <div className="text-xs text-gray-500">Pendientes</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">{orders.filter(o => o.status === 'preparing').length}</div>
+                    <div className="text-xs text-gray-500">Preparando</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">{orders.filter(o => o.status === 'ready').length}</div>
+                    <div className="text-xs text-gray-500">Listos</div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Quick Stats Bar */}
+              <div className="grid grid-cols-4 gap-4">
+                <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 text-center">
+                  <Clock className="h-5 w-5 text-orange-500 mx-auto mb-1" />
+                  <div className="text-sm font-medium">{orders.length} Total</div>
+                  <div className="text-xs text-gray-500">Hoy</div>
+                </div>
+                <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 text-center">
+                  <TrendingUp className="h-5 w-5 text-green-500 mx-auto mb-1" />
+                  <div className="text-sm font-medium">${orders.reduce((sum, o) => sum + o.total, 0).toLocaleString('es-CL')}</div>
+                  <div className="text-xs text-gray-500">Ingresos</div>
+                </div>
+                <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 text-center">
+                  <Star className="h-5 w-5 text-yellow-500 mx-auto mb-1" />
+                  <div className="text-sm font-medium">4.8</div>
+                  <div className="text-xs text-gray-500">Promedio</div>
+                </div>
+                <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 text-center">
+                  <Bell className="h-5 w-5 text-blue-500 mx-auto mb-1" />
+                  <div className="text-sm font-medium">{orders.filter(o => ['pending', 'accepted'].includes(o.status)).length}</div>
+                  <div className="text-xs text-gray-500">Urgentes</div>
+                </div>
+              </div>
             </div>
+
+            {/* Orders by Status Sections */}
+            {orders.length > 0 ? (
+              <div className="space-y-8">
+                {/* Pending Orders - Highest Priority */}
+                {orders.filter(order => order.status === 'pending').length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="bg-red-100 p-2 rounded-lg">
+                        <AlertCircle className="h-5 w-5 text-red-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-red-700">🚨 Pedidos Pendientes</h3>
+                        <p className="text-sm text-red-600">¡Requieren atención inmediata!</p>
+                      </div>
+                      <div className="ml-auto bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                        {orders.filter(order => order.status === 'pending').length} nuevos
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                      {orders.filter(order => order.status === 'pending').map((order) => (
+                        <EnhancedOrderCard key={order.id} order={order} isPriority={true} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Accepted/Preparing Orders */}
+                {orders.filter(order => ['accepted', 'preparing'].includes(order.status)).length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="bg-blue-100 p-2 rounded-lg">
+                        <ChefHat className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-blue-700">👨‍🍳 En Preparación</h3>
+                        <p className="text-sm text-blue-600">Pedidos que estás preparando</p>
+                      </div>
+                      <div className="ml-auto bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                        {orders.filter(order => ['accepted', 'preparing'].includes(order.status)).length} activos
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                      {orders.filter(order => ['accepted', 'preparing'].includes(order.status)).map((order) => (
+                        <EnhancedOrderCard key={order.id} order={order} isPriority={false} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Ready Orders */}
+                {orders.filter(order => order.status === 'ready').length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="bg-green-100 p-2 rounded-lg">
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-green-700">✅ Listos para Entrega</h3>
+                        <p className="text-sm text-green-600">Esperando ser recogidos</p>
+                      </div>
+                      <div className="ml-auto bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                        {orders.filter(order => order.status === 'ready').length} completados
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                      {orders.filter(order => order.status === 'ready').map((order) => (
+                        <EnhancedOrderCard key={order.id} order={order} isPriority={false} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Completed Orders - Collapsible */}
+                {orders.filter(order => ['delivering', 'delivered'].includes(order.status)).length > 0 && (
+                  <div className="border-t pt-6">
+                    <details className="group">
+                      <summary className="flex items-center gap-3 mb-4 cursor-pointer">
+                        <div className="bg-gray-100 p-2 rounded-lg">
+                          <Package className="h-5 w-5 text-gray-600" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold text-gray-700">📦 Historial Reciente</h3>
+                          <p className="text-sm text-gray-600">Pedidos completados hoy</p>
+                        </div>
+                        <div className="ml-auto bg-gray-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                          {orders.filter(order => ['delivering', 'delivered'].includes(order.status)).length} completados
+                        </div>
+                        <ChevronDown className="h-5 w-5 text-gray-400 group-open:rotate-180 transition-transform" />
+                      </summary>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4 mt-4">
+                        {orders.filter(order => ['delivering', 'delivered'].includes(order.status)).map((order) => (
+                          <CompactOrderCard key={order.id} order={order} />
+                        ))}
+                      </div>
+                    </details>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-16">
+                <div className="bg-gray-100 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-6">
+                  <ChefHat className="h-12 w-12 text-gray-400" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-800 mb-2">¡Todo tranquilo por aquí!</h3>
+                <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                  No tienes pedidos pendientes en este momento. Los nuevos pedidos aparecerán aquí 
+                  tan pronto como los clientes hagan sus órdenes.
+                </p>
+                <div className="flex justify-center gap-4">
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <Eye className="h-4 w-4" />
+                    Ver mis platos
+                  </Button>
+                  <Button className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    Agregar nuevo plato
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -684,8 +1096,43 @@ export default function CookerDashboard() {
       <CookerSettingsModal
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
-        onSave={(settings: any) => {
-          console.log('Settings saved:', settings);
+        onSave={async (settings: any) => {
+          try {
+            // Update cook profile with new settings
+            await CooksService.updateCook(user?.uid || '', {
+              displayName: settings.displayName,
+              bio: settings.bio,
+              avatar: settings.avatar,
+              coverImage: settings.coverImage,
+              location: {
+                ...cookProfile?.location,
+                address: {
+                  ...cookProfile?.location?.address,
+                  fullAddress: settings.location
+                }
+              },
+              deliveryRadius: settings.deliveryRadius,
+              specialties: settings.specialties,
+              languages: settings.languages,
+              settings: {
+                autoAcceptOrders: settings.autoAcceptOrders,
+                maxOrdersPerDay: settings.maxOrdersPerDay,
+                selfDelivery: settings.selfDelivery,
+                workingHours: settings.workingHours,
+                workingDays: settings.workingDays,
+                currency: settings.currency,
+                timezone: settings.timezone,
+                language: settings.language
+              }
+            });
+            
+            // Refresh cook profile
+            const profile = await CooksService.getCookById(user?.uid || '');
+            setCookProfile(profile);
+            console.log('Settings saved successfully');
+          } catch (error) {
+            console.error('Error saving settings:', error);
+          }
           setIsSettingsModalOpen(false);
         }}
         currentUser={user}
@@ -698,7 +1145,7 @@ export default function CookerDashboard() {
         onSave={handleAddDish}
         cookerId={user?.uid || ''}
         cookerName={cookProfile?.displayName || user?.displayName || 'Cocinero'}
-        cookerAvatar={cookProfile?.avatar || user?.photoURL || '/api/placeholder/50/50'}
+        cookerAvatar={cookProfile?.avatar || user?.photoURL || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNSAxNUMzMC41MjI5IDE1IDM1IDEwLjUyMjkgMzUgNUMzNSAyLjc5MDg2IDMzLjIwOTEgMSAzMSAxSDIwQzE3LjI5MDkgMSAxNS40NjA5IDIuNzkwODYgMTUgNUMxNSAxMC41MjI5IDE5LjQ3NzEgMTUgMjUgMTVaIiBmaWxsPSIjOUI5QkEzIi8+CjxwYXRoIGQ9Ik0xMCAzNUMxMCAyNi43MTU3IDE2LjcxNTcgMjAgMjUgMjBDMzMuMjg0MyAyMCA0MCAyNi43MTU3IDQwIDM1VjQ1SDBWMzVaIiBmaWxsPSIjOUI5QkEzIi8+Cjwvc3ZnPgo='}
         cookerRating={cookProfile?.rating || 0}
       />
     </div>

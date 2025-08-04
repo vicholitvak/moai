@@ -30,9 +30,11 @@ import { Progress } from '@/components/ui/progress';
 
 interface DeliveryFeedProps {
   onOrderAccepted?: (orderId: string) => void;
+  hasActiveDelivery?: boolean;
+  isDriverOnline?: boolean;
 }
 
-const DeliveryFeed = ({ onOrderAccepted }: DeliveryFeedProps) => {
+const DeliveryFeed = ({ onOrderAccepted, hasActiveDelivery = false, isDriverOnline = false }: DeliveryFeedProps) => {
   const { user } = useAuth();
   const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
   const [acceptingOrder, setAcceptingOrder] = useState<string | null>(null);
@@ -108,12 +110,40 @@ const DeliveryFeed = ({ onOrderAccepted }: DeliveryFeedProps) => {
     }));
     
     const totalPrepTime = calculateOrderPreparationTime(dishesWithPrepTime);
-    const startTime = order.createdAt.toDate();
+    const startTime = order.createdAt?.toDate() || new Date();
     const progress = calculateProgressPercentage(startTime, totalPrepTime);
     const timeRemaining = formatTimeRemaining(startTime, totalPrepTime);
 
     return { progress, timeRemaining, totalPrepTime };
   };
+
+  if (!isDriverOnline) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center">
+          <Package className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Estás fuera de línea</h3>
+          <p className="text-muted-foreground">
+            Activa tu estado en línea para ver pedidos disponibles
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (hasActiveDelivery) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center">
+          <Navigation className="h-16 w-16 text-orange-500 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Entrega en progreso</h3>
+          <p className="text-muted-foreground">
+            Completa tu entrega actual antes de aceptar nuevos pedidos
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (availableOrders.length === 0) {
     return (
@@ -255,7 +285,7 @@ const DeliveryFeed = ({ onOrderAccepted }: DeliveryFeedProps) => {
               {/* Accept Button */}
               <Button 
                 onClick={() => handleAcceptOrder(order.id)}
-                disabled={acceptingOrder === order.id}
+                disabled={acceptingOrder === order.id || hasActiveDelivery || !isDriverOnline}
                 className={`w-full ${isReady ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
                 size="lg"
               >
@@ -263,6 +293,16 @@ const DeliveryFeed = ({ onOrderAccepted }: DeliveryFeedProps) => {
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                     Aceptando...
+                  </>
+                ) : hasActiveDelivery ? (
+                  <>
+                    <AlertCircle className="h-5 w-5 mr-2" />
+                    Entrega en progreso
+                  </>
+                ) : !isDriverOnline ? (
+                  <>
+                    <AlertCircle className="h-5 w-5 mr-2" />
+                    Actívate en línea
                   </>
                 ) : (
                   <>

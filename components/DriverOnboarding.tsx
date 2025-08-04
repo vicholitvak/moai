@@ -1,0 +1,819 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { DriversService, type Driver } from '@/lib/firebase/dataService';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { 
+  Truck, 
+  MapPin, 
+  Phone, 
+  Clock, 
+  Star, 
+  Camera, 
+  ChevronRight, 
+  ChevronLeft,
+  CheckCircle,
+  FileText,
+  CreditCard,
+  Shield,
+  Calendar,
+  Navigation,
+  Bike,
+  Car,
+  Zap,
+  Upload,
+  AlertCircle,
+  Globe
+} from 'lucide-react';
+import { Timestamp } from 'firebase/firestore';
+
+interface DriverOnboardingProps {
+  onComplete: () => void;
+}
+
+interface OnboardingData {
+  // Step 1: Personal Information
+  displayName: string;
+  phone: string;
+  
+  // Step 2: Vehicle Information
+  vehicleType: 'bike' | 'motorcycle' | 'car';
+  vehicleInfo: {
+    make: string;
+    model: string;
+    year: number;
+    licensePlate: string;
+    color: string;
+  };
+  
+  // Step 3: Documentation
+  documents: {
+    driverLicense: string; // Base64 or URL
+    vehicleRegistration: string; // Base64 or URL
+    insuranceProof: string; // Base64 or URL
+  };
+  
+  // Step 4: Working Preferences
+  workingHours: {
+    start: string;
+    end: string;
+  };
+  workingDays: string[];
+  preferredAreas: string[];
+  
+  // Step 5: Payment Information
+  bankInfo: {
+    accountHolderName: string;
+    bankName: string;
+    accountNumber: string;
+    routingNumber: string; // RUT for Chile
+  };
+}
+
+const STEPS = [
+  { id: 1, title: 'Información Personal', description: 'Datos básicos de contacto' },
+  { id: 2, title: 'Vehículo', description: 'Información de tu vehículo' },
+  { id: 3, title: 'Documentación', description: 'Licencia y papeles del vehículo' },
+  { id: 4, title: 'Preferencias', description: 'Horarios y áreas de trabajo' },
+  { id: 5, title: 'Pago', description: 'Información bancaria' }
+];
+
+const VEHICLE_TYPES = [
+  {
+    id: 'bike' as const,
+    name: 'Bicicleta',
+    icon: Bike,
+    description: 'Ecológico y ágil en la ciudad',
+    benefits: ['Sin costos de combustible', 'Acceso a ciclovías', 'Entregas rápidas en distancias cortas'],
+    mapIcon: '🚴‍♂️',
+    color: 'bg-green-100 border-green-300 text-green-800'
+  },
+  {
+    id: 'motorcycle' as const,
+    name: 'Motocicleta',
+    icon: Zap,
+    description: 'Rápido y eficiente',
+    benefits: ['Mayor radio de cobertura', 'Entregas rápidas', 'Mejor en tráfico'],
+    mapIcon: '🏍️',
+    color: 'bg-blue-100 border-blue-300 text-blue-800'
+  },
+  {
+    id: 'car' as const,
+    name: 'Automóvil',
+    icon: Car,
+    description: 'Máxima capacidad y comodidad',
+    benefits: ['Pedidos grandes', 'Protección climática', 'Mayor comodidad'],
+    mapIcon: '🚗',
+    color: 'bg-purple-100 border-purple-300 text-purple-800'
+  }
+];
+
+const WORKING_DAYS = [
+  { id: 'monday', label: 'Lunes' },
+  { id: 'tuesday', label: 'Martes' },
+  { id: 'wednesday', label: 'Miércoles' },
+  { id: 'thursday', label: 'Jueves' },
+  { id: 'friday', label: 'Viernes' },
+  { id: 'saturday', label: 'Sábado' },
+  { id: 'sunday', label: 'Domingo' }
+];
+
+const POPULAR_AREAS = [
+  'Las Condes', 'Providencia', 'Vitacura', 'Santiago Centro', 'Ñuñoa', 
+  'La Reina', 'San Miguel', 'Maipú', 'Puente Alto', 'La Florida'
+];
+
+const BANKS = [
+  'Banco de Chile', 'BancoEstado', 'Santander', 'BCI', 'Scotiabank',
+  'Banco Falabella', 'Banco Ripley', 'Itaú', 'BBVA', 'Banco Security'
+];
+
+export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) {
+  const { user } = useAuth();
+  const [currentStep, setCurrentStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [data, setData] = useState<OnboardingData>({
+    displayName: user?.displayName || '',
+    phone: '',
+    vehicleType: 'motorcycle',
+    vehicleInfo: {
+      make: '',
+      model: '',
+      year: new Date().getFullYear(),
+      licensePlate: '',
+      color: ''
+    },
+    documents: {
+      driverLicense: '',
+      vehicleRegistration: '',
+      insuranceProof: ''
+    },
+    workingHours: {
+      start: '08:00',
+      end: '20:00'
+    },
+    workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+    preferredAreas: [],
+    bankInfo: {
+      accountHolderName: user?.displayName || '',
+      bankName: '',
+      accountNumber: '',
+      routingNumber: ''
+    }
+  });
+
+  const updateData = (field: string, value: any) => {
+    setData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const updateNestedData = (parent: string, field: string, value: any) => {
+    setData(prev => ({
+      ...prev,
+      [parent]: {
+        ...prev[parent as keyof OnboardingData],
+        [field]: value
+      }
+    }));
+  };
+
+  const toggleWorkingDay = (day: string) => {
+    setData(prev => ({
+      ...prev,
+      workingDays: prev.workingDays.includes(day)
+        ? prev.workingDays.filter(d => d !== day)
+        : [...prev.workingDays, day]
+    }));
+  };
+
+  const togglePreferredArea = (area: string) => {
+    setData(prev => ({
+      ...prev,
+      preferredAreas: prev.preferredAreas.includes(area)
+        ? prev.preferredAreas.filter(a => a !== area)
+        : [...prev.preferredAreas, area]
+    }));
+  };
+
+  const handleFileUpload = (documentType: keyof OnboardingData['documents'], file: File) => {
+    // In a real app, you'd upload to cloud storage
+    // For now, we'll just store a placeholder
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target?.result as string;
+      updateNestedData('documents', documentType, base64);
+      toast.success('Documento subido correctamente');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const validateStep = (step: number): boolean => {
+    switch (step) {
+      case 1:
+        return !!(data.displayName && data.phone);
+      case 2:
+        return !!(data.vehicleInfo.make && data.vehicleInfo.model && data.vehicleInfo.licensePlate);
+      case 3:
+        return !!(data.documents.driverLicense && data.documents.vehicleRegistration);
+      case 4:
+        return !!(data.workingDays.length > 0);
+      case 5:
+        return !!(data.bankInfo.accountHolderName && data.bankInfo.bankName && data.bankInfo.accountNumber);
+      default:
+        return true;
+    }
+  };
+
+  const nextStep = () => {
+    if (validateStep(currentStep)) {
+      setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
+    } else {
+      toast.error('Por favor completa todos los campos requeridos');
+    }
+  };
+
+  const prevStep = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 1));
+  };
+
+  const handleSubmit = async () => {
+    if (!user) return;
+    
+    setIsSubmitting(true);
+    
+    try {
+      const now = Timestamp.now();
+      
+      const driverProfile: Omit<Driver, 'id' | 'createdAt' | 'updatedAt'> = {
+        displayName: data.displayName,
+        email: user.email || '',
+        avatar: user.photoURL || '',
+        phone: data.phone,
+        vehicleType: data.vehicleType,
+        vehicleInfo: data.vehicleInfo,
+        currentLocation: {
+          coordinates: {
+            latitude: 0,
+            longitude: 0,
+            timestamp: now
+          },
+          address: {
+            street: '',
+            city: '',
+            state: '',
+            zipCode: '',
+            country: 'Chile',
+            fullAddress: ''
+          },
+          isActive: false,
+          lastUpdated: now
+        },
+        isOnline: false,
+        isAvailable: false,
+        rating: 5.0,
+        reviewCount: 0,
+        totalDeliveries: 0,
+        completionRate: 100,
+        earnings: {
+          today: 0,
+          thisWeek: 0,
+          thisMonth: 0,
+          total: 0
+        },
+        workingHours: data.workingHours,
+        workingDays: data.workingDays,
+        lastLocationUpdate: now
+      };
+
+      // Create driver profile with specific user ID
+      const success = await DriversService.createDriverProfile(driverProfile, user.uid);
+      
+      if (!success) {
+        throw new Error('Failed to create driver profile');
+      }
+      
+      // Update user role to Driver
+      await fetch('/api/auth/update-role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'Driver' })
+      });
+
+      toast.success('¡Perfil de conductor creado exitosamente!');
+      onComplete();
+      
+    } catch (error) {
+      console.error('Error creating driver profile:', error);
+      toast.error('Error al crear el perfil. Inténtalo de nuevo.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const selectedVehicle = VEHICLE_TYPES.find(v => v.id === data.vehicleType)!;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-4xl">
+        {/* Progress Header */}
+        <div className="bg-white rounded-t-xl p-6 border-b">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">¡Únete como Conductor! 🚗</h1>
+              <p className="text-gray-600">Comienza a ganar dinero entregando pedidos</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Truck className="h-8 w-8 text-blue-500" />
+            </div>
+          </div>
+          
+          {/* Progress Steps */}
+          <div className="flex items-center justify-between">
+            {STEPS.map((step, index) => (
+              <div key={step.id} className="flex items-center">
+                <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
+                  currentStep >= step.id 
+                    ? 'bg-blue-500 border-blue-500 text-white' 
+                    : 'border-gray-300 text-gray-400'
+                }`}>
+                  {currentStep > step.id ? (
+                    <CheckCircle className="h-5 w-5" />
+                  ) : (
+                    <span className="text-sm font-medium">{step.id}</span>
+                  )}
+                </div>
+                <div className="ml-3">
+                  <p className={`text-sm font-medium ${currentStep >= step.id ? 'text-blue-600' : 'text-gray-400'}`}>
+                    {step.title}
+                  </p>
+                  <p className="text-xs text-gray-500">{step.description}</p>
+                </div>
+                {index < STEPS.length - 1 && (
+                  <ChevronRight className="h-5 w-5 text-gray-300 mx-4" />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Step Content */}
+        <div className="bg-white rounded-b-xl p-8">
+          {/* Step 1: Personal Information */}
+          {currentStep === 1 && (
+            <div className="space-y-6">
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Información Personal</h2>
+                <p className="text-gray-600">Cuéntanos quién eres para comenzar</p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Label htmlFor="displayName">Nombre completo *</Label>
+                  <Input
+                    id="displayName"
+                    value={data.displayName}
+                    onChange={(e) => updateData('displayName', e.target.value)}
+                    placeholder="Tu nombre como aparecerá para los clientes"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="phone">Número de teléfono *</Label>
+                  <Input
+                    id="phone"
+                    value={data.phone}
+                    onChange={(e) => updateData('phone', e.target.value)}
+                    placeholder="+56 9 1234 5678"
+                  />
+                </div>
+              </div>
+
+              <Card className="bg-blue-50 border-blue-200">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <Shield className="h-5 w-5 text-blue-600" />
+                    <div>
+                      <p className="text-sm font-medium text-blue-800">Tu información está segura</p>
+                      <p className="text-xs text-blue-600">Solo se compartirá lo necesario para las entregas</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Step 2: Vehicle Information */}
+          {currentStep === 2 && (
+            <div className="space-y-6">
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Tu Vehículo</h2>
+                <p className="text-gray-600">Selecciona tu método de entrega</p>
+              </div>
+              
+              {/* Vehicle Type Selection */}
+              <div>
+                <Label className="text-lg mb-4 block">Tipo de vehículo *</Label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {VEHICLE_TYPES.map((vehicle) => (
+                    <Card 
+                      key={vehicle.id}
+                      className={`cursor-pointer transition-all ${
+                        data.vehicleType === vehicle.id 
+                          ? 'ring-2 ring-blue-500 bg-blue-50' 
+                          : 'hover:shadow-md'
+                      }`}
+                      onClick={() => updateData('vehicleType', vehicle.id)}
+                    >
+                      <CardContent className="p-6 text-center">
+                        <div className="text-4xl mb-3">{vehicle.mapIcon}</div>
+                        <vehicle.icon className="h-8 w-8 mx-auto mb-3 text-gray-600" />
+                        <h3 className="font-bold text-lg mb-2">{vehicle.name}</h3>
+                        <p className="text-sm text-gray-600 mb-3">{vehicle.description}</p>
+                        <div className="space-y-1">
+                          {vehicle.benefits.map((benefit, index) => (
+                            <div key={index} className="flex items-center text-xs text-gray-500">
+                              <CheckCircle className="h-3 w-3 text-green-500 mr-1" />
+                              {benefit}
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Vehicle Details */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    {selectedVehicle.mapIcon}
+                    Detalles de tu {selectedVehicle.name.toLowerCase()}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="make">Marca *</Label>
+                      <Input
+                        id="make"
+                        value={data.vehicleInfo.make}
+                        onChange={(e) => updateNestedData('vehicleInfo', 'make', e.target.value)}
+                        placeholder="Honda, Yamaha, Toyota..."
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="model">Modelo *</Label>
+                      <Input
+                        id="model"
+                        value={data.vehicleInfo.model}
+                        onChange={(e) => updateNestedData('vehicleInfo', 'model', e.target.value)}
+                        placeholder="CBR, Corolla, City..."
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="year">Año</Label>
+                      <Input
+                        id="year"
+                        type="number"
+                        min="1990"
+                        max={new Date().getFullYear() + 1}
+                        value={data.vehicleInfo.year}
+                        onChange={(e) => updateNestedData('vehicleInfo', 'year', parseInt(e.target.value))}
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="color">Color</Label>
+                      <Input
+                        id="color"
+                        value={data.vehicleInfo.color}
+                        onChange={(e) => updateNestedData('vehicleInfo', 'color', e.target.value)}
+                        placeholder="Rojo, Azul, Negro..."
+                      />
+                    </div>
+                    
+                    <div className="md:col-span-2">
+                      <Label htmlFor="licensePlate">Patente *</Label>
+                      <Input
+                        id="licensePlate"
+                        value={data.vehicleInfo.licensePlate}
+                        onChange={(e) => updateNestedData('vehicleInfo', 'licensePlate', e.target.value.toUpperCase())}
+                        placeholder="ABCD12 o AB1234"
+                        className="uppercase"
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Step 3: Documentation */}
+          {currentStep === 3 && (
+            <div className="space-y-6">
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Documentación</h2>
+                <p className="text-gray-600">Necesitamos verificar tus documentos para tu seguridad</p>
+              </div>
+
+              <Card className="bg-yellow-50 border-yellow-200">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <AlertCircle className="h-5 w-5 text-yellow-600" />
+                    <div>
+                      <p className="text-sm font-medium text-yellow-800">¿Por qué necesitamos estos documentos?</p>
+                      <p className="text-xs text-yellow-600">Para garantizar seguridad y cumplir con regulaciones legales</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-base font-medium">Licencia de conducir *</Label>
+                  <div className="mt-2 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                    <FileText className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600 mb-2">Sube una foto clara de tu licencia</p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleFileUpload('driverLicense', file);
+                      }}
+                      className="hidden"
+                      id="driverLicense"
+                    />
+                    <Label htmlFor="driverLicense" className="cursor-pointer">
+                      <Button variant="outline" size="sm" asChild>
+                        <span>
+                          <Upload className="h-4 w-4 mr-2" />
+                          Subir Licencia
+                        </span>
+                      </Button>
+                    </Label>
+                    {data.documents.driverLicense && (
+                      <div className="mt-2 text-green-600 text-sm">✅ Documento subido</div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-base font-medium">Permiso de circulación *</Label>
+                  <div className="mt-2 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                    <FileText className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600 mb-2">Permiso de circulación vigente</p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleFileUpload('vehicleRegistration', file);
+                      }}
+                      className="hidden"
+                      id="vehicleRegistration"
+                    />
+                    <Label htmlFor="vehicleRegistration" className="cursor-pointer">
+                      <Button variant="outline" size="sm" asChild>
+                        <span>
+                          <Upload className="h-4 w-4 mr-2" />
+                          Subir Permiso
+                        </span>
+                      </Button>
+                    </Label>
+                    {data.documents.vehicleRegistration && (
+                      <div className="mt-2 text-green-600 text-sm">✅ Documento subido</div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-base font-medium">Seguro del vehículo (opcional)</Label>
+                  <div className="mt-2 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                    <Shield className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600 mb-2">SOAP vigente (recomendado)</p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleFileUpload('insuranceProof', file);
+                      }}
+                      className="hidden"
+                      id="insuranceProof"
+                    />
+                    <Label htmlFor="insuranceProof" className="cursor-pointer">
+                      <Button variant="outline" size="sm" asChild>
+                        <span>
+                          <Upload className="h-4 w-4 mr-2" />
+                          Subir SOAP
+                        </span>
+                      </Button>
+                    </Label>
+                    {data.documents.insuranceProof && (
+                      <div className="mt-2 text-green-600 text-sm">✅ Documento subido</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: Working Preferences */}
+          {currentStep === 4 && (
+            <div className="space-y-6">
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Preferencias de Trabajo</h2>
+                <p className="text-gray-600">Define cuándo y dónde quieres trabajar</p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Label>Hora de inicio</Label>
+                  <Input
+                    type="time"
+                    value={data.workingHours.start}
+                    onChange={(e) => updateNestedData('workingHours', 'start', e.target.value)}
+                  />
+                </div>
+                
+                <div>
+                  <Label>Hora de término</Label>
+                  <Input
+                    type="time"
+                    value={data.workingHours.end}
+                    onChange={(e) => updateNestedData('workingHours', 'end', e.target.value)}
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <Label>Días de trabajo *</Label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
+                  {WORKING_DAYS.map(day => (
+                    <Badge
+                      key={day.id}
+                      variant={data.workingDays.includes(day.id) ? "default" : "outline"}
+                      className={`cursor-pointer text-center justify-center py-2 ${
+                        data.workingDays.includes(day.id) 
+                          ? 'bg-blue-500 hover:bg-blue-600' 
+                          : 'hover:bg-gray-100'
+                      }`}
+                      onClick={() => toggleWorkingDay(day.id)}
+                    >
+                      {day.label}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <Label>Áreas preferidas (opcional)</Label>
+                <p className="text-sm text-gray-500 mb-3">Selecciona las comunas donde prefieres trabajar</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {POPULAR_AREAS.map(area => (
+                    <Badge
+                      key={area}
+                      variant={data.preferredAreas.includes(area) ? "default" : "outline"}
+                      className={`cursor-pointer text-center justify-center py-2 ${
+                        data.preferredAreas.includes(area) 
+                          ? 'bg-green-500 hover:bg-green-600' 
+                          : 'hover:bg-gray-100'
+                      }`}
+                      onClick={() => togglePreferredArea(area)}
+                    >
+                      {area}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 5: Payment Information */}
+          {currentStep === 5 && (
+            <div className="space-y-6">
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Información de Pago</h2>
+                <p className="text-gray-600">Para depositar tus ganancias</p>
+              </div>
+
+              <Card className="bg-green-50 border-green-200">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <CreditCard className="h-5 w-5 text-green-600" />
+                    <div>
+                      <p className="text-sm font-medium text-green-800">Pagos semanales</p>
+                      <p className="text-xs text-green-600">Recibe tus ganancias cada viernes</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Label htmlFor="accountHolderName">Nombre del titular *</Label>
+                  <Input
+                    id="accountHolderName"
+                    value={data.bankInfo.accountHolderName}
+                    onChange={(e) => updateNestedData('bankInfo', 'accountHolderName', e.target.value)}
+                    placeholder="Nombre completo como aparece en la cuenta"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="bankName">Banco *</Label>
+                  <Select onValueChange={(value) => updateNestedData('bankInfo', 'bankName', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona tu banco" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {BANKS.map(bank => (
+                        <SelectItem key={bank} value={bank}>{bank}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="accountNumber">Número de cuenta *</Label>
+                  <Input
+                    id="accountNumber"
+                    value={data.bankInfo.accountNumber}
+                    onChange={(e) => updateNestedData('bankInfo', 'accountNumber', e.target.value)}
+                    placeholder="Número de cuenta corriente"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="routingNumber">RUT *</Label>
+                  <Input
+                    id="routingNumber"
+                    value={data.bankInfo.routingNumber}
+                    onChange={(e) => updateNestedData('bankInfo', 'routingNumber', e.target.value)}
+                    placeholder="12.345.678-9"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Navigation Buttons */}
+          <div className="flex justify-between mt-8 pt-6 border-t">
+            <Button
+              variant="outline"
+              onClick={prevStep}
+              disabled={currentStep === 1}
+            >
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              Anterior
+            </Button>
+            
+            {currentStep < STEPS.length ? (
+              <Button
+                onClick={nextStep}
+                disabled={!validateStep(currentStep)}
+              >
+                Siguiente
+                <ChevronRight className="h-4 w-4 ml-2" />
+              </Button>
+            ) : (
+              <Button
+                onClick={handleSubmit}
+                disabled={isSubmitting || !validateStep(currentStep)}
+                className="bg-blue-500 hover:bg-blue-600"
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Creando perfil...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    ¡Completar registro!
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

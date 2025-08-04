@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
@@ -10,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 const RoleSwitcher = () => {
   const { user, role } = useAuth();
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const switchRole = async (newRole: string) => {
     if (!user) return;
@@ -18,8 +20,25 @@ const RoleSwitcher = () => {
     try {
       const userRef = doc(db, 'users', user.uid);
       await updateDoc(userRef, { role: newRole });
-      // Reload the page to refresh the role
-      window.location.reload();
+      
+      // Navigate directly to the appropriate dashboard with full page reload
+      let targetUrl = '/dishes'; // default
+      switch (newRole) {
+        case 'Client':
+          targetUrl = '/dishes';
+          break;
+        case 'Cooker':
+          targetUrl = '/cooker/dashboard';
+          break;
+        case 'Driver':
+          targetUrl = '/driver/dashboard';
+          break;
+        default:
+          targetUrl = '/dishes';
+      }
+      
+      // Use window.location.href for full page navigation to ensure auth context refresh
+      window.location.href = targetUrl;
     } catch (error) {
       console.error('Error updating role:', error);
     } finally {

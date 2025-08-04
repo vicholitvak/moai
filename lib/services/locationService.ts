@@ -35,6 +35,32 @@ export interface DriverLocation extends LocationData {
   speed?: number; // Speed in km/h
 }
 
+export interface DeliveryZone {
+  id: string;
+  name: string;
+  coordinates: Coordinates[];
+  center: Coordinates;
+  radius: number; // in meters
+  deliveryFee: number;
+  isActive: boolean;
+  maxDeliveryTime: number; // in minutes
+  priority: number; // for overlapping zones
+  description?: string;
+  operatingHours?: {
+    start: string; // HH:MM format
+    end: string;   // HH:MM format
+  };
+}
+
+export interface DeliveryFeeCalculation {
+  baseFee: number;
+  distanceFee: number;
+  zoneFee: number;
+  totalFee: number;
+  distance: number;
+  estimatedTime: number;
+}
+
 export class LocationService {
   private static watchId: number | null = null;
   private static isTracking = false;
@@ -368,5 +394,310 @@ export class LocationService {
       console.error('Location permission denied:', error);
       return false;
     }
+  }
+
+  // ==================== NEW: DELIVERY ZONE MANAGEMENT ====================
+
+  // Get default delivery zones for Santiago
+  static getDefaultDeliveryZones(): DeliveryZone[] {
+    return [
+      {
+        id: 'zone-centro',
+        name: 'Centro de Santiago',
+        coordinates: [],
+        center: { latitude: -33.4489, longitude: -70.6693, timestamp: Timestamp.now() },
+        radius: 5000,
+        deliveryFee: 2000,
+        isActive: true,
+        maxDeliveryTime: 45,
+        priority: 1,
+        description: 'Centro histórico y comercial de Santiago',
+        operatingHours: { start: '08:00', end: '22:00' }
+      },
+      {
+        id: 'zone-providencia',
+        name: 'Providencia',
+        coordinates: [],
+        center: { latitude: -33.4242, longitude: -70.6118, timestamp: Timestamp.now() },
+        radius: 3000,
+        deliveryFee: 2500,
+        isActive: true,
+        maxDeliveryTime: 35,
+        priority: 2,
+        description: 'Zona residencial y comercial',
+        operatingHours: { start: '09:00', end: '23:00' }
+      },
+      {
+        id: 'zone-las-condes',
+        name: 'Las Condes',
+        coordinates: [],
+        center: { latitude: -33.4172, longitude: -70.5476, timestamp: Timestamp.now() },
+        radius: 4000,
+        deliveryFee: 3000,
+        isActive: true,
+        maxDeliveryTime: 50,
+        priority: 3,
+        description: 'Distrito financiero y residencial',
+        operatingHours: { start: '10:00', end: '22:00' }
+      },
+      {
+        id: 'zone-nunoa',
+        name: 'Ñuñoa',
+        coordinates: [],
+        center: { latitude: -33.4569, longitude: -70.5956, timestamp: Timestamp.now() },
+        radius: 3500,
+        deliveryFee: 2300,
+        isActive: true,
+        maxDeliveryTime: 40,
+        priority: 4,
+        description: 'Comuna universitaria y residencial',
+        operatingHours: { start: '08:30', end: '22:30' }
+      }
+    ];
+  }
+
+  // Check if coordinates are within a delivery zone
+  static isWithinDeliveryZone(coordinates: Coordinates, zone: DeliveryZone): boolean {
+    const distance = this.calculateDistance(
+      coordinates.latitude,
+      coordinates.longitude,
+      zone.center.latitude,
+      zone.center.longitude
+    ) * 1000; // Convert km to meters
+    
+    return distance <= zone.radius;
+  }
+
+  // Find the best delivery zone for given coordinates
+  static findDeliveryZone(coordinates: Coordinates, zones: DeliveryZone[]): DeliveryZone | null {
+    const validZones = zones
+      .filter(zone => zone.isActive && this.isWithinDeliveryZone(coordinates, zone))
+      .sort((a, b) => a.priority - b.priority);
+
+    return validZones.length > 0 ? validZones[0] : null;
+  }
+
+  // Check if point is inside polygon (for complex delivery zones)
+  static isPointInPolygon(point: Coordinates, polygon: Coordinates[]): boolean {
+    let inside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+      if (((polygon[i].latitude > point.latitude) !== (polygon[j].latitude > point.latitude)) &&
+          (point.longitude < (polygon[j].longitude - polygon[i].longitude) * 
+           (point.latitude - polygon[i].latitude) / (polygon[j].latitude - polygon[i].latitude) + polygon[i].longitude)) {
+        inside = !inside;
+      }
+    }
+    return inside;
+  }
+
+  // ==================== NEW: DISTANCE-BASED FEE CALCULATION ====================
+
+  // Calculate comprehensive delivery fee
+  static calculateDeliveryFee(
+    customerCoords: Coordinates, 
+    cookCoords: Coordinates,
+    zones: DeliveryZone[] = this.getDefaultDeliveryZones()
+  ): DeliveryFeeCalculation {
+    const distance = this.calculateDistance(
+      customerCoords.latitude,
+      customerCoords.longitude,
+      cookCoords.latitude,
+      cookCoords.longitude
+    );
+
+    // Find applicable delivery zone
+    const zone = this.findDeliveryZone(customerCoords, zones);
+    
+    // Base fee configuration
+    const baseFee = 1500; // CLP
+    const freeDeliveryThreshold = 3; // km
+    
+    // Calculate distance-based fee
+    let distanceFee = 0;
+    if (distance > freeDeliveryThreshold) {
+      const extraKm = distance - freeDeliveryThreshold;
+      distanceFee = Math.ceil(extraKm) * 800; // 800 CLP per extra km
+    }
+
+    // Zone-specific fee
+    const zoneFee = zone ? zone.deliveryFee : 2500; // Default zone fee
+
+    // Calculate total
+    const totalFee = baseFee + distanceFee + zoneFee;
+
+    // Estimate delivery time
+    const estimatedTime = this.estimateAdvancedDeliveryTime(distance, zone);
+
+    return {
+      baseFee,
+      distanceFee,
+      zoneFee,
+      totalFee,
+      distance: Math.round(distance * 10) / 10, // Round to 1 decimal
+      estimatedTime
+    };
+  }
+
+  // Advanced delivery time estimation
+  static estimateAdvancedDeliveryTime(distance: number, zone?: DeliveryZone | null): number {
+    // Base preparation time
+    let baseTime = 20; // minutes
+    
+    // Zone-specific adjustments
+    if (zone) {
+      baseTime = Math.min(baseTime, zone.maxDeliveryTime - 15);
+    }
+
+    // Travel time calculation (considering Santiago traffic)
+    const avgSpeed = 22; // km/h average in Santiago
+    const travelTime = (distance / avgSpeed) * 60; // Convert to minutes
+    
+    // Traffic multiplier based on time of day
+    const now = new Date();
+    const hour = now.getHours();
+    let trafficMultiplier = 1.0;
+    
+    if ((hour >= 7 && hour <= 9) || (hour >= 18 && hour <= 20)) {
+      trafficMultiplier = 1.5; // Rush hour
+    } else if (hour >= 12 && hour <= 14) {
+      trafficMultiplier = 1.2; // Lunch time
+    }
+
+    const adjustedTravelTime = travelTime * trafficMultiplier;
+    const totalTime = baseTime + adjustedTravelTime;
+
+    return Math.max(15, Math.ceil(totalTime)); // Minimum 15 minutes
+  }
+
+  // ==================== NEW: GEOFENCING FOR DELIVERY AREAS ====================
+
+  // Check if delivery is allowed to specific coordinates
+  static isDeliveryAllowed(coordinates: Coordinates, zones: DeliveryZone[] = this.getDefaultDeliveryZones()): boolean {
+    return zones.some(zone => zone.isActive && this.isWithinDeliveryZone(coordinates, zone));
+  }
+
+  // Get delivery restrictions for coordinates
+  static getDeliveryRestrictions(coordinates: Coordinates, zones: DeliveryZone[] = this.getDefaultDeliveryZones()): {
+    allowed: boolean;
+    zone?: DeliveryZone;
+    reason?: string;
+    nearestZone?: { zone: DeliveryZone; distance: number };
+  } {
+    const applicableZone = this.findDeliveryZone(coordinates, zones);
+    
+    if (applicableZone) {
+      return {
+        allowed: true,
+        zone: applicableZone
+      };
+    }
+
+    // Find nearest zone
+    const nearestZone = zones
+      .filter(zone => zone.isActive)
+      .map(zone => ({
+        zone,
+        distance: this.calculateDistance(
+          coordinates.latitude,
+          coordinates.longitude,
+          zone.center.latitude,
+          zone.center.longitude
+        )
+      }))
+      .sort((a, b) => a.distance - b.distance)[0];
+
+    return {
+      allowed: false,
+      reason: 'Esta dirección está fuera de nuestras zonas de entrega',
+      nearestZone
+    };
+  }
+
+  // ==================== NEW: ENHANCED LOCATION-BASED DISCOVERY ====================
+
+  // Get dishes available for delivery to specific coordinates
+  static async getDishesForLocation(coordinates: Coordinates, maxDistance: number = 10): Promise<any[]> {
+    try {
+      // Check if delivery is allowed
+      const restrictions = this.getDeliveryRestrictions(coordinates);
+      if (!restrictions.allowed) {
+        return [];
+      }
+
+      // Get nearby cooks
+      const nearbyCooks = await this.getNearbyCooks(
+        coordinates.latitude,
+        coordinates.longitude,
+        maxDistance
+      );
+
+      // Get dishes from nearby cooks
+      const { DishesService } = await import('@/lib/firebase/dataService');
+      const allDishes = await DishesService.getAllDishes();
+
+      const availableDishes = allDishes
+        .filter(dish => {
+          // Filter by cook proximity
+          const cook = nearbyCooks.find(c => c.id === dish.cookerId);
+          return cook && dish.isAvailable;
+        })
+        .map(dish => {
+          const cook = nearbyCooks.find(c => c.id === dish.cookerId);
+          const deliveryFee = this.calculateDeliveryFee(
+            coordinates,
+            cook.location.coordinates
+          );
+          
+          return {
+            ...dish,
+            cookDistance: cook.distance,
+            deliveryFee: deliveryFee.totalFee,
+            estimatedDeliveryTime: deliveryFee.estimatedTime,
+            cookLocation: cook.location
+          };
+        })
+        .sort((a, b) => a.cookDistance - b.cookDistance);
+
+      return availableDishes;
+    } catch (error) {
+      console.error('Error getting dishes for location:', error);
+      return [];
+    }
+  }
+
+  // ==================== NEW: UTILITY METHODS ====================
+
+  // Format delivery fee for display
+  static formatDeliveryFee(fee: number): string {
+    return `$${fee.toLocaleString('es-CL')} CLP`;
+  }
+
+  // Format distance for display
+  static formatDistance(distance: number): string {
+    if (distance < 1) {
+      return `${Math.round(distance * 1000)} m`;
+    } else {
+      return `${distance.toFixed(1)} km`;
+    }
+  }
+
+  // Get delivery zone by ID
+  static getDeliveryZoneById(zoneId: string, zones: DeliveryZone[] = this.getDefaultDeliveryZones()): DeliveryZone | null {
+    return zones.find(zone => zone.id === zoneId) || null;
+  }
+
+  // Check if zone is currently operating
+  static isZoneOperating(zone: DeliveryZone): boolean {
+    if (!zone.operatingHours) return true;
+
+    const now = new Date();
+    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    
+    return currentTime >= zone.operatingHours.start && currentTime <= zone.operatingHours.end;
+  }
+
+  // Get all active zones for current time
+  static getActiveZones(zones: DeliveryZone[] = this.getDefaultDeliveryZones()): DeliveryZone[] {
+    return zones.filter(zone => zone.isActive && this.isZoneOperating(zone));
   }
 }

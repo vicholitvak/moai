@@ -100,6 +100,7 @@ export interface Cook {
     timezone: string;
     language: string;
     lastLocationUpdate?: Timestamp;
+    selfDelivery: boolean; // Cook delivers their own orders
   };
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -111,6 +112,7 @@ export interface Order {
   customerName: string;
   cookerId: string;
   driverId?: string;
+  isSelfDelivery?: boolean; // Cook is delivering this order themselves
   dishes: Array<{
     dishId: string;
     dishName: string;
@@ -504,6 +506,22 @@ export class CooksService {
       return null;
     }
   }
+
+  static async createCookProfileWithId(cookId: string, cookData: Omit<Cook, 'id' | 'createdAt' | 'updatedAt'>): Promise<boolean> {
+    try {
+      const now = Timestamp.now();
+      const docRef = doc(db, this.collection, cookId);
+      await setDoc(docRef, {
+        ...cookData,
+        createdAt: now,
+        updatedAt: now
+      });
+      return true;
+    } catch (error) {
+      console.error('Error creating cook profile with ID:', error);
+      return false;
+    }
+  }
 }
 
 // Orders Service
@@ -574,6 +592,20 @@ export class OrdersService {
       return true;
     } catch (error) {
       console.error('Error updating order status:', error);
+      return false;
+    }
+  }
+
+  static async updateOrder(orderId: string, updates: Partial<Order>): Promise<boolean> {
+    try {
+      const docRef = doc(db, this.collection, orderId);
+      await updateDoc(docRef, {
+        ...updates,
+        updatedAt: Timestamp.now()
+      });
+      return true;
+    } catch (error) {
+      console.error('Error updating order:', error);
       return false;
     }
   }

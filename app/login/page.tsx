@@ -15,13 +15,22 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const router = useRouter();
-  const { user } = useAuth();
+  
+  let user = null;
+  try {
+    const authData = useAuth();
+    user = authData?.user;
+  } catch (error) {
+    console.error('Auth context error:', error);
+    setAuthError('Authentication service unavailable');
+  }
 
   // Handle redirect when user is authenticated
   useEffect(() => {
     if (user) {
-      router.push('/dishes');
+      router.push('/');
     }
   }, [user, router]);
 
@@ -60,6 +69,13 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">
       <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
         <h2 className="mb-6 text-center text-2xl font-bold text-gray-900 dark:text-white">Login to Moai</h2>
+        
+        {authError && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-700 rounded-lg text-sm">
+            {authError}
+          </div>
+        )}
+        
         <form onSubmit={handleLogin} className="space-y-5">
           <div className="space-y-2">
             <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">Email</Label>

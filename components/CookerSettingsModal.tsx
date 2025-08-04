@@ -38,6 +38,7 @@ const CookerSettingsModal: React.FC<CookerSettingsModalProps> = ({
     // Preferences
     autoAcceptOrders: false,
     maxOrdersPerDay: 20,
+    selfDelivery: false,
     workingHours: {
       start: '09:00',
       end: '21:00'
@@ -428,6 +429,18 @@ const CookerSettingsModal: React.FC<CookerSettingsModalProps> = ({
                         value={formData.maxOrdersPerDay}
                         onChange={(e) => handleInputChange('maxOrdersPerDay', parseInt(e.target.value))}
                         className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label>Self-delivery</Label>
+                        <p className="text-sm text-gray-600">Deliver orders yourself instead of using drivers</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={formData.selfDelivery || false}
+                        onChange={(e) => handleInputChange('selfDelivery', e.target.checked)}
+                        className="h-4 w-4"
                       />
                     </div>
                   </CardContent>

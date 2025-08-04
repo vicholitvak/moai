@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { DriversService, OrdersService, CooksService, DishesService } from '@/lib/firebase/dataService';
+import DriverOnboarding from '@/components/DriverOnboarding';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import { 
@@ -21,6 +23,12 @@ import {
   Timer
 } from 'lucide-react';
 import type { Driver, Order, Cook, Dish } from '@/lib/firebase/dataService';
+import { 
+  calculateOrderPreparationTime, 
+  calculateProgressPercentage, 
+  formatTimeRemaining,
+  getEstimatedReadyTime 
+} from '@/lib/utils';
 import OrderDetailsModal from '@/components/OrderDetailsModal';
 import DeliveryFeed from '@/components/DeliveryFeed';
 import ActiveDeliveryView from '@/components/ActiveDeliveryView';
@@ -41,6 +49,8 @@ export default function DriverDashboard() {
   const [loading, setLoading] = useState(true);
   const [driverData, setDriverData] = useState<Driver | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [profileCompleted, setProfileCompleted] = useState(false);
   const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState<DriverStats>({
     totalEarnings: 0,
@@ -77,7 +87,35 @@ export default function DriverDashboard() {
       let driver = await DriversService.getDriverById(user.uid);
       
       if (!driver) {
-        // Create driver profile if it doesn't exist
+        // No profile exists, show onboarding
+        setShowOnboarding(true);
+        setLoading(false);
+        return;
+      }
+      
+      // Check if profile is complete
+      const isComplete = !!(
+        driver.displayName &&
+        driver.phone &&
+        driver.vehicleInfo?.make &&
+        driver.vehicleInfo?.model &&
+        driver.vehicleInfo?.licensePlate &&
+        driver.workingDays?.length > 0
+      );
+      
+      if (!isComplete) {
+        // Profile exists but incomplete, show onboarding
+        setShowOnboarding(true);
+        setLoading(false);
+        return;
+      }
+      
+      setDriverData(driver);
+      setProfileCompleted(true);
+      
+      // Continue with existing logic if profile is complete
+      if (!driver) {
+        // Create driver profile if it doesn't exist (this is now unreachable but kept for safety)
         const newDriver: Omit<Driver, 'id' | 'createdAt' | 'updatedAt'> = {
           displayName: user.displayName || 'Conductor',
           email: user.email || '',
@@ -192,18 +230,28 @@ export default function DriverDashboard() {
     };
   }, [user, driverData, availableOrders]);
 
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+    setProfileCompleted(true);
+    // Reload the data after onboarding is complete
+    if (user?.uid) {
+      loadDriverData();
+    }
+  };
+
   const updateStats = (currentOrders: Order[]) => {
     const deliveredOrders = currentOrders.filter(order => order.status === 'delivered');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const todayDeliveredOrders = deliveredOrders.filter(order => {
-      const orderDate = order.actualDeliveryTime?.toDate() || order.createdAt.toDate();
+      const orderDate = order.actualDeliveryTime?.toDate() || order.createdAt?.toDate() || new Date();
       return orderDate >= today;
     });
 
-    const todayEarnings = todayDeliveredOrders.reduce((sum, order) => sum + order.total, 0);
-    const totalEarnings = deliveredOrders.reduce((sum, order) => sum + order.total, 0);
+    // Drivers typically earn delivery fees, not full order total
+    const todayEarnings = todayDeliveredOrders.reduce((sum, order) => sum + (order.deliveryFee || 2500), 0);
+    const totalEarnings = deliveredOrders.reduce((sum, order) => sum + (order.deliveryFee || 2500), 0);
     const totalDeliveries = deliveredOrders.length;
     const todayDeliveries = todayDeliveredOrders.length;
 
@@ -292,11 +340,25 @@ export default function DriverDashboard() {
 
   const handleStatusUpdate = async (orderId: string, newStatus: Order['status']) => {
     try {
-      const success = await OrdersService.updateOrderStatus(orderId, newStatus);
+      // If marking as delivered, add actual delivery time
+      const updateData: Partial<Order> = { status: newStatus };
+      if (newStatus === 'delivered') {
+        updateData.actualDeliveryTime = new Date() as any; // Will be converted to Firestore Timestamp
+        updateData.isDelivered = true;
+      }
+
+      const success = await OrdersService.updateOrder(orderId, updateData);
       if (success) {
-        toast.success(`Estado del pedido ${orderId} actualizado a ${getStatusText(newStatus)}`);
+        toast.success(`Estado del pedido actualizado a ${getStatusText(newStatus)}`);
+        
+        // Show completion message for delivered orders
+        if (newStatus === 'delivered') {
+          toast.success('¡Entrega completada! Las ganancias se han actualizado.', {
+            duration: 4000,
+          });
+        }
       } else {
-        toast.error(`Error al actualizar el estado del pedido ${orderId}`);
+        toast.error(`Error al actualizar el estado del pedido`);
       }
     } catch (error) {
       console.error('Error updating order status:', error);
@@ -354,6 +416,24 @@ export default function DriverDashboard() {
     }
   };
 
+  const calculateOrderProgress = (order: Order) => {
+    if (!order.createdAt) return { progress: 0, timeRemaining: 'Calculando...', totalPrepTime: 30, isReady: false };
+
+    // Calculate preparation time from the dishes (longest prep time)
+    const dishesWithPrepTime = order.dishes.map(dish => ({
+      prepTime: dish.prepTime || '30 min',
+      quantity: dish.quantity
+    }));
+    
+    const totalPrepTime = calculateOrderPreparationTime(dishesWithPrepTime);
+    const startTime = order.createdAt?.toDate() || new Date();
+    const progress = calculateProgressPercentage(startTime, totalPrepTime);
+    const timeRemaining = formatTimeRemaining(startTime, totalPrepTime);
+    const isReady = progress >= 100 || order.status === 'ready';
+
+    return { progress, timeRemaining, totalPrepTime, isReady };
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -363,6 +443,11 @@ export default function DriverDashboard() {
         </div>
       </div>
     );
+  }
+
+  // Show onboarding if profile is not complete
+  if (showOnboarding) {
+    return <DriverOnboarding onComplete={handleOnboardingComplete} />;
   }
 
   if (!user) {
@@ -498,7 +583,13 @@ export default function DriverDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Available Orders with Live Progress */}
           <div>
-            <DeliveryFeed />
+            <DeliveryFeed 
+              hasActiveDelivery={!!activeDeliveryOrder}
+              isDriverOnline={isOnline}
+              onOrderAccepted={(orderId) => {
+                console.log('Order accepted:', orderId);
+              }}
+            />
           </div>
 
           {/* Active Orders */}
@@ -524,11 +615,12 @@ export default function DriverDashboard() {
                     const cook = cooksMap.get(order.cookerId);
                     const dish = dishesMap.get(order.dishes[0]?.dishId || '');
                     const nextAction = getNextAction(order.status);
+                    const { progress, timeRemaining, totalPrepTime, isReady } = calculateOrderProgress(order);
                     
                     return (
                       <div 
                         key={order.id} 
-                        className="border rounded-lg p-4 space-y-3 cursor-pointer hover:bg-gray-100 transition-colors"
+                        className={`border rounded-lg p-4 space-y-3 cursor-pointer hover:bg-gray-100 transition-colors ${isReady ? 'ring-2 ring-green-200 bg-green-50' : ''}`}
                         onClick={() => {
                           setSelectedOrder(order);
                           setIsModalOpen(true);
@@ -544,6 +636,53 @@ export default function DriverDashboard() {
                             {getStatusText(order.status)}
                           </Badge>
                         </div>
+
+                        {/* Preparation Progress - only show for accepted/preparing status */}
+                        {['accepted', 'preparing'].includes(order.status) && (
+                          <div className="bg-white p-3 rounded-lg border">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <Timer className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm font-medium">Progreso de preparación</span>
+                              </div>
+                              <span className="text-sm font-mono font-bold">
+                                {isReady ? '🟢 LISTO' : timeRemaining}
+                              </span>
+                            </div>
+                            <Progress 
+                              value={progress} 
+                              className="h-2"
+                            />
+                            <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                              <span>Iniciado: {order.createdAt?.toDate().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}</span>
+                              <span>Estimado: {getEstimatedReadyTime(order.createdAt?.toDate() || new Date(), totalPrepTime).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Order Items - show when there are multiple dishes */}
+                        {order.dishes.length > 1 && (
+                          <div className="bg-gray-50 p-3 rounded-lg">
+                            <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
+                              <Package className="h-4 w-4" />
+                              Platos ({order.dishes.length})
+                            </h4>
+                            <div className="space-y-1">
+                              {order.dishes.map((orderDish, index) => (
+                                <div key={index} className="flex justify-between items-center text-sm">
+                                  <span>{orderDish.dishName} x {orderDish.quantity}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {orderDish.prepTime || '30 min'}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                              <Timer className="h-3 w-3" />
+                              Tiempo basado en el plato que toma más tiempo
+                            </div>
+                          </div>
+                        )}
                         
                         <div className="flex items-center justify-between text-sm text-gray-600">
                           <span className="flex items-center">
@@ -608,12 +747,28 @@ export default function DriverDashboard() {
                           </Badge>
                         </div>
                         
-                        <div className="flex items-center justify-between text-sm text-gray-600">
-                          <span className="flex items-center">
-                            <Clock className="h-4 w-4 mr-1" />
-                            {order.createdAt?.toDate?.()?.toLocaleDateString('es-CL') || 'Fecha no disponible'}
-                          </span>
-                          <span className="font-medium">${order.total.toLocaleString('es-CL')}</span>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="flex items-center text-gray-600">
+                              <Clock className="h-4 w-4 mr-1" />
+                              {order.actualDeliveryTime?.toDate?.()?.toLocaleDateString('es-CL') || 
+                               order.createdAt?.toDate?.()?.toLocaleDateString('es-CL') || 'Fecha no disponible'}
+                            </span>
+                            <div className="text-right">
+                              <span className="text-green-600 font-medium">
+                                +${(order.deliveryFee || 2500).toLocaleString('es-CL')}
+                              </span>
+                              <p className="text-xs text-gray-500">Ganancia por entrega</p>
+                            </div>
+                          </div>
+                          {order.actualDeliveryTime && (
+                            <div className="text-xs text-gray-500">
+                              Completado: {order.actualDeliveryTime?.toDate()?.toLocaleTimeString('es-CL', { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                              }) || 'N/A'}
+                            </div>
+                          )}
                         </div>
                       </div>
                     );

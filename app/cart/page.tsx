@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
-import { OrdersService } from '@/lib/firebase/dataService';
+import { OrdersService, CooksService } from '@/lib/firebase/dataService';
 import { MercadoPagoService } from '@/lib/services/mercadoPagoService';
 import { toast } from 'sonner';
 import { 
@@ -83,6 +83,9 @@ const CartPage = () => {
       
       // Create orders for each cook
       const orderPromises = Object.entries(ordersByCook).map(async ([cookerId, items]) => {
+        // Check if cook has self-delivery enabled
+        const cook = await CooksService.getCookById(cookerId);
+        const isSelfDelivery = cook?.settings?.selfDelivery || false;
         const orderData = {
           customerId: user.uid,
           customerName: user.displayName || user.email || 'Customer',
@@ -108,7 +111,9 @@ const CartPage = () => {
           },
           paymentId: mainOrderId,
           deliveryCode: deliveryCode,
-          isDelivered: false
+          isDelivered: false,
+          isSelfDelivery: isSelfDelivery,
+          driverId: isSelfDelivery ? cookerId : undefined // Cook is the driver for self-delivery
         };
 
         return OrdersService.createOrder(orderData);

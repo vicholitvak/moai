@@ -293,7 +293,7 @@ const ClientOrdersPage = () => {
                       <div className="flex items-center gap-2">
                         <CheckCircle className="h-4 w-4 text-green-600" />
                         <span className="text-sm font-medium text-green-800">
-                          Entregado el {order.actualDeliveryTime.toDate().toLocaleString('es-CL')}
+                          Entregado el {order.actualDeliveryTime?.toDate()?.toLocaleString('es-CL') || 'N/A'}
                         </span>
                       </div>
                     </div>
