@@ -247,7 +247,7 @@ export default function AdminDashboard() {
     try {
       const success = await DishesService.updateDish(dishId, { isAvailable: !currentAvailability });
       if (success) {
-        setDishes(prev => prev.map(dish => 
+        setDishes(prev => (prev || []).map(dish => 
           dish.id === dishId 
             ? { ...dish, isAvailable: !currentAvailability }
             : dish
@@ -751,7 +751,7 @@ export default function AdminDashboard() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <ChefHat className="h-5 w-5" />
-                  Cocineros ({cooks.length})
+                  Cocineros ({(cooks || []).length})
                 </CardTitle>
                 <CardDescription>Gestionar perfiles de cocineros y sus platos</CardDescription>
               </CardHeader>
@@ -760,11 +760,11 @@ export default function AdminDashboard() {
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin" />
                   </div>
-                ) : cooks.length === 0 ? (
+                ) : (cooks || []).length === 0 ? (
                   <p className="text-muted-foreground text-center py-8">No hay cocineros registrados</p>
                 ) : (
                   <div className="space-y-3">
-                    {cooks.map((cook) => (
+                    {(cooks || []).map((cook) => (
                       <div key={cook.id} className="flex items-center justify-between p-3 border rounded-lg">
                         <div className="flex items-center gap-3">
                           <Avatar>
@@ -813,7 +813,7 @@ export default function AdminDashboard() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Car className="h-5 w-5" />
-                  Conductores ({drivers.length})
+                  Conductores ({(drivers || []).length})
                 </CardTitle>
                 <CardDescription>Gestionar perfiles de conductores</CardDescription>
               </CardHeader>
@@ -822,11 +822,11 @@ export default function AdminDashboard() {
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin" />
                   </div>
-                ) : drivers.length === 0 ? (
+                ) : (drivers || []).length === 0 ? (
                   <p className="text-muted-foreground text-center py-8">No hay conductores registrados</p>
                 ) : (
                   <div className="space-y-3">
-                    {drivers.map((driver) => (
+                    {(drivers || []).map((driver) => (
                       <div key={driver.id} className="flex items-center justify-between p-3 border rounded-lg">
                         <div className="flex items-center gap-3">
                           <Avatar>
@@ -878,7 +878,7 @@ export default function AdminDashboard() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <ShoppingBag className="h-5 w-5" />
-                  Platos ({dishes.length})
+                  Platos ({(dishes || []).length})
                 </CardTitle>
                 <CardDescription>Gestionar platos disponibles en la plataforma</CardDescription>
               </CardHeader>
@@ -887,12 +887,12 @@ export default function AdminDashboard() {
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin" />
                   </div>
-                ) : dishes.length === 0 ? (
+                ) : (dishes || []).length === 0 ? (
                   <p className="text-muted-foreground text-center py-8">No hay platos registrados</p>
                 ) : (
                   <div className="space-y-3">
-                    {dishes.map((dish) => {
-                      const cook = cooks.find(c => c.id === dish.cookerId);
+                    {(dishes || []).map((dish) => {
+                      const cook = (cooks || []).find(c => c.id === dish.cookerId);
                       return (
                         <div key={dish.id} className="flex items-center justify-between p-3 border rounded-lg">
                           <div className="flex items-center gap-3">
