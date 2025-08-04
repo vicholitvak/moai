@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run build:*)",
+      "Bash(firebase deploy:*)",
+      "WebFetch(domain:console.firebase.google.com)",
+      "Bash(npx tsx:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run lint:*)"
+    ],
+    "deny": []
+  }
+}
