@@ -47,7 +47,7 @@ interface OnboardingData {
   phone: string;
   
   // Step 2: Vehicle Information
-  vehicleType: 'bike' | 'motorcycle' | 'car';
+  vehicleType: 'bike' | 'moto' | 'car';
   vehicleInfo: {
     make: string;
     model: string;
@@ -102,6 +102,8 @@ const VEHICLE_TYPES = [
     id: 'moto' as const,
     name: 'Motocicleta',
     icon: Zap,
+    description: 'Rápido y eficiente para la ciudad',
+    benefits: ['Mayor velocidad de entrega', 'Bajo consumo de combustible'],
     mapIcon: '🏍️',
     color: 'bg-blue-100 border-blue-300 text-blue-800'
   },
@@ -109,6 +111,8 @@ const VEHICLE_TYPES = [
     id: 'car' as const,
     name: 'Auto',
     icon: Car,
+    description: 'Perfecto para entregas grandes',
+    benefits: ['Mayor capacidad de carga', 'Protección ante el clima'],
     mapIcon: '🚗',
     color: 'bg-purple-100 border-purple-300 text-purple-800'
   }
@@ -141,7 +145,7 @@ export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) 
   const [data, setData] = useState<OnboardingData>({
     displayName: user?.displayName || '',
     phone: '',
-    vehicleType: 'motorcycle',
+    vehicleType: 'moto',
     vehicleInfo: {
       make: '',
       model: '',
@@ -471,15 +475,18 @@ export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) 
                           </h3>
                           
                           {/* Description */}
-                          <p className={`text-base mb-4 font-medium transition-colors duration-300 ${
-                            data.vehicleType === vehicle.id ? 'text-orange-700' : 'text-gray-600'
-                          }`}>
-                            {vehicle.description}
-                          </p>
+                          {vehicle.description && (
+                            <p className={`text-base mb-4 font-medium transition-colors duration-300 ${
+                              data.vehicleType === vehicle.id ? 'text-orange-700' : 'text-gray-600'
+                            }`}>
+                              {vehicle.description}
+                            </p>
+                          )}
                           
                           {/* Benefits */}
-                          <div className="space-y-2">
-                            {vehicle.benefits.map((benefit, index) => (
+                          {vehicle.benefits && vehicle.benefits.length > 0 && (
+                            <div className="space-y-2">
+                              {vehicle.benefits.map((benefit, index) => (
                               <div key={index} className={`flex items-center justify-center text-sm font-medium transition-colors duration-300 ${
                                 data.vehicleType === vehicle.id ? 'text-orange-600' : 'text-gray-500'
                               }`}>
@@ -488,8 +495,9 @@ export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) 
                                 }`} />
                                 {benefit}
                               </div>
-                            ))}
-                          </div>
+                              ))}
+                            </div>
+                          )}
                           
                           {/* Action indicator */}
                           <div className={`mt-6 py-3 px-6 rounded-full font-bold text-lg transition-all duration-300 ${
