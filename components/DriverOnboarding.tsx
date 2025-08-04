@@ -507,12 +507,14 @@ export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) 
                           )}
                           
                           {/* Action indicator */}
-                          <div className={`mt-2 sm:mt-6 py-2 sm:py-3 px-2 sm:px-6 rounded-full font-bold text-xs sm:text-sm md:text-lg transition-all duration-300 ${
+                          <div className={`mt-2 sm:mt-6 py-2 sm:py-3 px-1 sm:px-4 md:px-6 rounded-full font-bold text-xs sm:text-sm md:text-base transition-all duration-300 whitespace-nowrap overflow-hidden ${
                             data.vehicleType === vehicle.id 
                               ? 'bg-moai-orange text-white shadow-lg' 
                               : 'bg-gray-100 text-gray-600 group-hover:bg-gray-200'
                           }`}>
-                            {data.vehicleType === vehicle.id ? '¡Seleccionado!' : 'Seleccionar'}
+                            <span className="block truncate">
+                              {data.vehicleType === vehicle.id ? '¡Seleccionado!' : 'Seleccionar'}
+                            </span>
                           </div>
                         </CardContent>
                       </Card>
@@ -629,12 +631,12 @@ export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) 
                 <div>
                   <Label htmlFor="bankName">Banco *</Label>
                   <Select onValueChange={(value) => updateNestedData('bankInfo', 'bankName', value)}>
-                    <SelectTrigger>
+                    <SelectTrigger className="bg-white">
                       <SelectValue placeholder="Selecciona tu banco" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white border shadow-lg">
                       {BANKS.map(bank => (
-                        <SelectItem key={bank} value={bank}>{bank}</SelectItem>
+                        <SelectItem key={bank} value={bank} className="bg-white hover:bg-gray-50 text-gray-900">{bank}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
