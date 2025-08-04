@@ -416,11 +416,11 @@ export default function CookerDashboard() {
             onClick={() => onEdit(dish)}
           >
             <Edit className="h-4 w-4 mr-1" />
-            Edit
+            Editar
           </Button>
           <Button variant="outline" size="sm" className="flex-1">
             <Eye className="h-4 w-4 mr-1" />
-            View
+            Ver
           </Button>
         </div>
       </CardContent>
@@ -638,7 +638,7 @@ export default function CookerDashboard() {
   );
 
   if (!user) {
-    return <div>Please log in to access the cooker dashboard.</div>;
+    return <div>Por favor inicia sesión para acceder al panel de cocinero.</div>;
   }
   
   if (loading) {
@@ -676,7 +676,7 @@ export default function CookerDashboard() {
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm">
                 <Bell className="h-4 w-4 mr-2" />
-                Notifications
+                Notificaciones
               </Button>
               <Button 
                 variant="outline" 
@@ -684,7 +684,7 @@ export default function CookerDashboard() {
                 onClick={() => setIsSettingsModalOpen(true)}
               >
                 <Settings className="h-4 w-4 mr-2" />
-                Settings
+                Configuración
               </Button>
               <Button 
                 variant="outline" 
@@ -693,7 +693,7 @@ export default function CookerDashboard() {
                 className="text-muted-foreground hover:text-destructive"
               >
                 <LogOut className="h-4 w-4 mr-2" />
-                Logout
+                Cerrar Sesión
               </Button>
             </div>
           </div>
@@ -704,10 +704,10 @@ export default function CookerDashboard() {
         {/* Navigation Tabs */}
         <div className="flex space-x-1 mb-6 bg-muted p-1 rounded-lg w-fit">
           {[
-            { id: 'overview', label: 'Overview' },
-            { id: 'dishes', label: 'My Dishes' },
-            { id: 'orders', label: 'Orders' },
-            { id: 'analytics', label: 'Analytics' }
+            { id: 'overview', label: 'Resumen' },
+            { id: 'dishes', label: 'Mis Platos' },
+            { id: 'orders', label: 'Pedidos' },
+            { id: 'analytics', label: 'Analíticas' }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -762,8 +762,8 @@ export default function CookerDashboard() {
             <div className="grid gap-6 lg:grid-cols-2">
               <Card>
                 <CardHeader>
-                  <CardTitle>Recent Orders</CardTitle>
-                  <CardDescription>Latest orders from customers</CardDescription>
+                  <CardTitle>Pedidos Recientes</CardTitle>
+                  <CardDescription>Últimos pedidos de clientes</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {orders.slice(0, 3).map((order) => (
@@ -785,8 +785,8 @@ export default function CookerDashboard() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Top Performing Dishes</CardTitle>
-                  <CardDescription>Your most popular dishes this month</CardDescription>
+                  <CardTitle>Platos Más Populares</CardTitle>
+                  <CardDescription>Tus platos más populares este mes</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {dishes
@@ -818,8 +818,8 @@ export default function CookerDashboard() {
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <div>
-                <h2 className="text-2xl font-bold">My Dishes</h2>
-                <p className="text-muted-foreground">Manage your menu items</p>
+                <h2 className="text-2xl font-bold">Mis Platos</h2>
+                <p className="text-muted-foreground">Administra los elementos de tu menú</p>
               </div>
               <div className="flex items-center gap-3">
                 {dishes.length > 0 && (
@@ -846,7 +846,7 @@ export default function CookerDashboard() {
                 )}
                 <Button onClick={() => setIsAddDishModalOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Add New Dish
+                  Agregar Nuevo Plato
                 </Button>
               </div>
             </div>
@@ -1032,11 +1032,18 @@ export default function CookerDashboard() {
                   tan pronto como los clientes hagan sus órdenes.
                 </p>
                 <div className="flex justify-center gap-4">
-                  <Button variant="outline" className="flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    className="flex items-center gap-2"
+                    onClick={() => setActiveTab('dishes')}
+                  >
                     <Eye className="h-4 w-4" />
                     Ver mis platos
                   </Button>
-                  <Button className="flex items-center gap-2">
+                  <Button 
+                    className="flex items-center gap-2"
+                    onClick={() => setIsAddDishModalOpen(true)}
+                  >
                     <Plus className="h-4 w-4" />
                     Agregar nuevo plato
                   </Button>
@@ -1050,29 +1057,29 @@ export default function CookerDashboard() {
         {activeTab === 'analytics' && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold">Analytics</h2>
-              <p className="text-muted-foreground">Track your performance</p>
+              <h2 className="text-2xl font-bold">Analíticas</h2>
+              <p className="text-muted-foreground">Rastrea tu rendimiento</p>
             </div>
             <div className="grid gap-6 lg:grid-cols-2">
               <Card>
                 <CardHeader>
-                  <CardTitle>Earnings Overview</CardTitle>
+                  <CardTitle>Resumen de Ganancias</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-center py-8">
                     <TrendingUp className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">Analytics charts coming soon!</p>
+                    <p className="text-muted-foreground">¡Los gráficos de analíticas llegan pronto!</p>
                   </div>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader>
-                  <CardTitle>Customer Insights</CardTitle>
+                  <CardTitle>Información de Clientes</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-center py-8">
                     <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">Customer data coming soon!</p>
+                    <p className="text-muted-foreground">¡Los datos de clientes llegan pronto!</p>
                   </div>
                 </CardContent>
               </Card>
