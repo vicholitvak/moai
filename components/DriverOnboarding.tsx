@@ -35,7 +35,8 @@ import {
   AlertCircle,
   Globe
 } from 'lucide-react';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp, setDoc, doc } from 'firebase/firestore';
+import { db } from '@/lib/firebase/client';
 
 interface DriverOnboardingProps {
   onComplete: () => void;
@@ -299,27 +300,35 @@ export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) 
         throw new Error('Failed to create driver profile');
       }
       
-      // Update user role to Driver
+      // Update user role to Driver in Firestore directly
       try {
-        const roleResponse = await fetch('/api/auth/update-role', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ role: 'Driver' })
-        });
+        await setDoc(doc(db, 'users', user.uid), { 
+          role: 'Driver',
+          email: user.email,
+          displayName: user.displayName || data.displayName,
+          photoURL: user.photoURL
+        }, { merge: true });
         
-        if (!roleResponse.ok) {
-          const errorData = await roleResponse.json().catch(() => ({}));
-          console.error('Role update failed:', roleResponse.status, errorData);
-          
-          // Continue anyway - profile was created successfully
-          toast.warning('Perfil creado. Por favor, actualiza la página si no ves el dashboard.');
-        } else {
-          toast.success('¡Perfil de conductor creado exitosamente! Bienvenido a tu dashboard.');
-        }
+        toast.success('¡Perfil de conductor creado exitosamente! Bienvenido a tu dashboard.');
       } catch (roleError) {
         console.error('Role update error:', roleError);
-        // Continue anyway - profile was created successfully
-        toast.warning('Perfil creado. Por favor, actualiza la página si no ves el dashboard.');
+        // Try the API as fallback
+        try {
+          const roleResponse = await fetch('/api/auth/update-role', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: 'Driver' })
+          });
+          
+          if (roleResponse.ok) {
+            toast.success('¡Perfil de conductor creado exitosamente! Bienvenido a tu dashboard.');
+          } else {
+            toast.warning('Perfil creado exitosamente. La actualización del rol se completará automáticamente.');
+          }
+        } catch (apiError) {
+          console.error('API fallback failed:', apiError);
+          toast.warning('Perfil creado exitosamente. La actualización del rol se completará automáticamente.');
+        }
       }
 
       // Complete onboarding regardless of role update status

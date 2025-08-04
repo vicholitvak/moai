@@ -48,7 +48,8 @@ export function AddDishModal({
 
   const categories = [
     'Italiana', 'Mexicana', 'Japonesa', 'India', 'Americana', 
-    'Francesa', 'China', 'Tailandesa', 'Mediterránea', 'Vegana', 'Saludable'
+    'Francesa', 'China', 'Tailandesa', 'Mediterránea', 'Vegana', 'Saludable',
+    'Acompañamientos', 'Para Tomar'
   ];
 
   const handleInputChange = (field: string, value: string) => {

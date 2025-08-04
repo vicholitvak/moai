@@ -33,7 +33,11 @@ import { formatPrice } from '@/lib/utils';
 // import RoleSwitcher from '@/components/RoleSwitcher'; // Removed for testing
 
 // Categories for filtering
-const categories = ['All', 'Plato Principal', 'Bebidas', 'Acompañamientos', 'Postres', 'Vegetariano', 'Vegano'];
+const categories = [
+  'All', 
+  'Italiana', 'Mexicana', 'Japonesa', 'India', 'Americana', 'Francesa', 'China', 'Tailandesa', 'Mediterránea', 
+  'Vegana', 'Saludable', 'Acompañamientos', 'Para Tomar'
+];
 
 interface DishWithCook extends Dish {
   cookerName: string;
@@ -123,7 +127,7 @@ const ClientDishesPage = () => {
             cookerName: cook?.displayName || 'Cocinero Desconocido',
             cookerAvatar: cook?.avatar || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNSAxNUMzMC41MjI5IDE1IDM1IDEwLjUyMjkgMzUgNUMzNSAyLjc5MDg2IDMzLjIwOTEgMSAzMSAxSDIwQzE3LjI5MDkgMSAxNS40NjA5IDIuNzkwODYgMTUgNUMxNSAxMC41MjI5IDE5LjQ3NzEgMTUgMjUgMTVaIiBmaWxsPSIjOUI5QkEzIi8+CjxwYXRoIGQ9Ik0xMCAzNUMxMCAyNi43MTU3IDE2LjcxNTcgMjAgMjUgMjBDMzMuMjg0MyAyMCA0MCAyNi43MTU3IDQwIDM1VjQ1SDBWMzVaIiBmaWxsPSIjOUI5QkEzIi8+Cjwvc3ZnPgo=',
             cookerRating: cook?.rating || 4.0,
-            distance: `${(Math.random() * 3 + 0.5).toFixed(1)} km`, // Mock distance for now
+            distance: cook?.distance || 'Nearby', // Real distance from cook profile or default
             cookerSelfDelivery: cook?.settings?.selfDelivery || false,
             isFavorite: favorites.includes(dish.id)
           };

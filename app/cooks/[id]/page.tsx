@@ -31,238 +31,28 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { Badge } from '../../../components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../../../components/ui/avatar';
 import { formatPrice } from '@/lib/utils';
+import { CooksService, DishesService, ReviewsService } from '@/lib/firebase/dataService';
+import type { Cook, Dish, Review } from '@/lib/firebase/dataService';
 
-// Mock data for cook profiles - replace with real data from your backend
-const mockCookProfiles = {
-  'maria-rossi': {
-    id: 'maria-rossi',
-    name: 'Maria Rossi',
-    avatar: '/api/placeholder/200/200',
-    coverImage: '/api/placeholder/800/300',
-    rating: 4.8,
-    reviewCount: 234,
-    totalOrders: 1247,
-    yearsExperience: 20,
-    joinedDate: 'March 2023',
-    location: 'Little Italy, NYC',
-    deliveryRadius: '5 km',
-    bio: 'Born and raised in Rome, I moved to New York 25 years ago with my grandmother\'s recipes and a passion for authentic Italian cuisine. I specialize in traditional pasta dishes, homemade sauces, and classic Italian desserts. Every dish I prepare is made with love and the finest imported ingredients from Italy.',
-    story: 'My culinary journey began in my nonna\'s kitchen in Trastevere, Rome, where I learned the secrets of authentic Italian cooking. At age 8, I was already rolling pasta by hand and stirring the perfect ragù. When I moved to New York, I brought these treasured family recipes with me. For years, I cooked only for my family and friends, but they convinced me to share my passion with the community. Now, through Moai, I can bring the taste of authentic Italy to your table.',
-    specialties: ['Traditional Italian', 'Handmade Pasta', 'Authentic Sauces', 'Italian Desserts'],
-    certifications: ['Certified Italian Chef', 'Food Safety Certified', 'Top Rated Cook'],
-    languages: ['Italian (Native)', 'English (Fluent)'],
-    cookingStyle: 'Traditional Italian with modern presentation',
-    favoriteIngredients: ['San Marzano Tomatoes', 'Parmigiano-Reggiano', 'Fresh Basil', 'Extra Virgin Olive Oil'],
-    achievements: [
-      { title: 'Top Rated Cook 2024', description: 'Maintained 4.8+ rating for 12 months', icon: '🏆' },
-      { title: '1000+ Happy Customers', description: 'Served over 1000 satisfied customers', icon: '👥' },
-      { title: 'Authentic Italian Badge', description: 'Verified traditional Italian recipes', icon: '🇮🇹' },
-      { title: 'Fast Delivery Champion', description: 'Average delivery time under 30 minutes', icon: '⚡' }
-    ],
-    dishes: [
-      {
-        id: '1',
-        name: 'Spaghetti Carbonara',
-        description: 'Authentic Roman carbonara with eggs, pecorino, and guanciale',
-        price: 12500,
-        image: '/api/placeholder/300/200',
-        rating: 4.9,
-        reviewCount: 127,
-        prepTime: '25 mins',
-        isAvailable: true,
-        category: 'Main Dish'
-      },
-      {
-        id: '7',
-        name: 'Homemade Lasagna',
-        description: 'Traditional layered pasta with meat sauce, béchamel, and mozzarella',
-        price: 18500,
-        image: '/api/placeholder/300/200',
-        rating: 4.8,
-        reviewCount: 89,
-        prepTime: '45 mins',
-        isAvailable: true,
-        category: 'Main Dish'
-      },
-      {
-        id: '8',
-        name: 'Tiramisu',
-        description: 'Classic Italian dessert with mascarpone, coffee, and ladyfingers',
-        price: 8500,
-        image: '/api/placeholder/300/200',
-        rating: 4.9,
-        reviewCount: 156,
-        prepTime: '20 mins',
-        isAvailable: true,
-        category: 'Dessert'
-      },
-      {
-        id: '9',
-        name: 'Risotto ai Funghi',
-        description: 'Creamy mushroom risotto with porcini and Parmigiano-Reggiano',
-        price: 15500,
-        image: '/api/placeholder/300/200',
-        rating: 4.7,
-        reviewCount: 73,
-        prepTime: '35 mins',
-        isAvailable: false,
-        category: 'Main Dish'
-      }
-    ],
-    drinks: [
-      {
-        id: 'd1',
-        name: 'Italian Sparkling Water',
-        description: 'San Pellegrino sparkling mineral water',
-        price: 2500,
-        image: '/api/placeholder/300/200',
-        rating: 4.5,
-        reviewCount: 45,
-        prepTime: '0 mins',
-        isAvailable: true,
-        category: 'Drink',
-        size: '500ml'
-      },
-      {
-        id: 'd2',
-        name: 'Homemade Limoncello',
-        description: 'Traditional Italian lemon liqueur made with Amalfi lemons',
-        price: 8500,
-        image: '/api/placeholder/300/200',
-        rating: 4.8,
-        reviewCount: 67,
-        prepTime: '2 mins',
-        isAvailable: true,
-        category: 'Drink',
-        size: '50ml'
-      },
-      {
-        id: 'd3',
-        name: 'Fresh Orange Juice',
-        description: 'Freshly squeezed Italian blood orange juice',
-        price: 4500,
-        image: '/api/placeholder/300/200',
-        rating: 4.6,
-        reviewCount: 32,
-        prepTime: '3 mins',
-        isAvailable: true,
-        category: 'Drink',
-        size: '250ml'
-      },
-      {
-        id: 'd4',
-        name: 'Italian Wine (Chianti)',
-        description: 'Classic Chianti Classico red wine from Tuscany',
-        price: 24500,
-        image: '/api/placeholder/300/200',
-        rating: 4.9,
-        reviewCount: 89,
-        prepTime: '0 mins',
-        isAvailable: true,
-        category: 'Drink',
-        size: '750ml'
-      }
-    ],
-    sides: [
-      {
-        id: 's1',
-        name: 'Garlic Bread',
-        description: 'Homemade focaccia with roasted garlic, herbs, and olive oil',
-        price: 5500,
-        image: '/api/placeholder/300/200',
-        rating: 4.7,
-        reviewCount: 98,
-        prepTime: '10 mins',
-        isAvailable: true,
-        category: 'Side'
-      },
-      {
-        id: 's2',
-        name: 'Caesar Salad',
-        description: 'Fresh romaine lettuce with parmesan, croutons, and Caesar dressing',
-        price: 7500,
-        image: '/api/placeholder/300/200',
-        rating: 4.6,
-        reviewCount: 76,
-        prepTime: '8 mins',
-        isAvailable: true,
-        category: 'Side'
-      },
-      {
-        id: 's3',
-        name: 'Antipasto Platter',
-        description: 'Selection of Italian meats, cheeses, olives, and marinated vegetables',
-        price: 12500,
-        image: '/api/placeholder/300/200',
-        rating: 4.8,
-        reviewCount: 54,
-        prepTime: '5 mins',
-        isAvailable: true,
-        category: 'Side'
-      },
-      {
-        id: 's4',
-        name: 'Bruschetta',
-        description: 'Toasted bread topped with fresh tomatoes, basil, and balsamic glaze',
-        price: 6500,
-        image: '/api/placeholder/300/200',
-        rating: 4.5,
-        reviewCount: 43,
-        prepTime: '7 mins',
-        isAvailable: true,
-        category: 'Side'
-      }
-    ],
-    reviews: [
-      {
-        id: 1,
-        customerName: 'John D.',
-        customerAvatar: '/api/placeholder/50/50',
-        rating: 5,
-        comment: 'Maria\'s carbonara is absolutely incredible! The most authentic I\'ve had outside of Italy. Her technique is flawless and you can taste the love in every bite.',
-        date: '2 days ago',
-        dishOrdered: 'Spaghetti Carbonara',
-        verified: true
-      },
-      {
-        id: 2,
-        customerName: 'Sarah M.',
-        customerAvatar: '/api/placeholder/50/50',
-        rating: 5,
-        comment: 'Perfect texture and flavor in the lasagna. You can taste the quality of ingredients. Maria is a true artist in the kitchen. Will definitely order again!',
-        date: '1 week ago',
-        dishOrdered: 'Homemade Lasagna',
-        verified: true
-      },
-      {
-        id: 3,
-        customerName: 'Mike R.',
-        customerAvatar: '/api/placeholder/50/50',
-        rating: 4,
-        comment: 'Really good tiramisu, though I prefer it a bit less sweet. Still highly recommend Maria\'s cooking - very authentic and well-prepared.',
-        date: '2 weeks ago',
-        dishOrdered: 'Tiramisu',
-        verified: true
-      },
-      {
-        id: 4,
-        customerName: 'Lisa K.',
-        customerAvatar: '/api/placeholder/50/50',
-        rating: 5,
-        comment: 'The risotto was creamy perfection! Maria\'s attention to detail shows in every dish. Fast delivery and beautiful presentation too.',
-        date: '3 weeks ago',
-        dishOrdered: 'Risotto ai Funghi',
-        verified: true
-      }
-    ]
-  }
-};
+interface CookProfile extends Cook {
+  dishes: Dish[];
+  reviews: Review[];
+  achievements?: Array<{
+    title: string;
+    description: string;
+    icon: string;
+  }>;
+  favoriteIngredients?: string[];
+  cookingStyle?: string;
+}
 
 const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { addToCart } = useCart();
-  const [cook, setCook] = useState<any>(null);
+  const [cook, setCook] = useState<CookProfile | null>(null);
+  const [dishes, setDishes] = useState<Dish[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [cookId, setCookId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'dishes' | 'about' | 'reviews'>('dishes');
@@ -279,22 +69,56 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
   useEffect(() => {
     if (!cookId) return;
     
-    // Simulate fetching cook data - replace with real API call
-    const fetchCook = async () => {
+    const fetchCookData = async () => {
       try {
-        // For now, use mock data
-        const cookData = mockCookProfiles[cookId as keyof typeof mockCookProfiles];
-        if (cookData) {
-          setCook(cookData);
+        setLoading(true);
+        
+        // Fetch cook profile
+        const cookData = await CooksService.getCookById(cookId);
+        if (!cookData) {
+          setLoading(false);
+          return;
         }
+        
+        // Fetch cook's dishes
+        const cookDishes = await DishesService.getDishesByCookId(cookId);
+        
+        // Fetch cook's reviews (if ReviewsService exists)
+        let cookReviews: Review[] = [];
+        try {
+          cookReviews = await ReviewsService.getReviewsByCookId(cookId);
+        } catch (error) {
+          console.warn('Reviews service not available:', error);
+          cookReviews = [];
+        }
+        
+        // Combine data
+        const fullCookProfile: CookProfile = {
+          ...cookData,
+          dishes: cookDishes,
+          reviews: cookReviews,
+          achievements: [
+            { title: 'Top Rated Cook', description: `Maintained ${cookData.rating}+ rating`, icon: '🏆' },
+            { title: 'Satisfied Customers', description: `Served ${cookData.totalOrders || 0} customers`, icon: '👥' },
+            { title: 'Verified Chef', description: 'Professional cooking certification', icon: '✓' }
+          ],
+          favoriteIngredients: cookData.specialties || [],
+          cookingStyle: cookData.bio?.split('.')[0] || 'Traditional cooking'
+        };
+        
+        setCook(fullCookProfile);
+        setDishes(cookDishes);
+        setReviews(cookReviews);
+        
       } catch (error) {
-        console.error('Error fetching cook:', error);
+        console.error('Error fetching cook data:', error);
+        toast.error('Failed to load cook profile');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchCook();
+    fetchCookData();
   }, [cookId]);
 
   const handleAddToCart = (item: any) => {
@@ -320,20 +144,18 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
     });
   };
 
-  // Combine all items for filtering
-  const getAllItems = () => {
-    if (!cook) return [];
-    return [...cook.dishes, ...cook.drinks, ...cook.sides];
-  };
-
+  // Filter dishes by category
   const getFilteredItems = () => {
-    const allItems = getAllItems();
-    if (selectedCategory === 'all') return allItems;
-    if (selectedCategory === 'main') return cook.dishes;
-    if (selectedCategory === 'drinks') return cook.drinks;
-    if (selectedCategory === 'sides') return cook.sides;
-    return allItems;
+    if (!dishes.length) return [];
+    
+    if (selectedCategory === 'all') return dishes;
+    if (selectedCategory === 'main') return dishes.filter(dish => dish.category === 'main' || dish.category === 'Main Dish');
+    if (selectedCategory === 'drinks') return dishes.filter(dish => dish.category === 'drink' || dish.category === 'Drink');
+    if (selectedCategory === 'sides') return dishes.filter(dish => dish.category === 'side' || dish.category === 'Side');
+    return dishes;
   };
+  
+  const getAllItems = () => dishes;
 
   if (loading) {
     return (
@@ -471,7 +293,7 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-primary">{cook.dishes.length + cook.drinks.length + cook.sides.length}</div>
+              <div className="text-2xl font-bold text-primary">{dishes.length}</div>
               <div className="text-sm text-muted-foreground">Total Items</div>
             </CardContent>
           </Card>

@@ -461,7 +461,7 @@ export class AnalyticsService {
   static async getTopPerformingDishes(metric: 'views' | 'orders' | 'revenue' = 'orders', limit: number = 10) {
     try {
       // This would require aggregated data or complex queries
-      // For now, return placeholder data structure
+      // This would require complex aggregation queries or pre-computed data
       return [];
     } catch (error) {
       console.error('Error getting top performing dishes:', error);

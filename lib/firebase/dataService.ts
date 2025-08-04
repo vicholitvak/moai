@@ -566,6 +566,25 @@ export class OrdersService {
     }
   }
 
+  static async getOrderById(orderId: string): Promise<Order | null> {
+    try {
+      const docRef = doc(db, this.collection, orderId);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        return {
+          id: docSnap.id,
+          ...docSnap.data()
+        } as Order;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error fetching order by ID:', error);
+      return null;
+    }
+  }
+
   static async createOrder(orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>): Promise<string | null> {
     try {
       const now = Timestamp.now();

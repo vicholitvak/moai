@@ -32,6 +32,7 @@ import {
 import OrderDetailsModal from '@/components/OrderDetailsModal';
 import DeliveryFeed from '@/components/DeliveryFeed';
 import ActiveDeliveryView from '@/components/ActiveDeliveryView';
+import { IdleDriverTrackingService } from '@/lib/services/idleDriverTrackingService';
 
 interface DriverStats {
   totalEarnings: number;
@@ -70,12 +71,22 @@ export default function DriverDashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [activeDeliveryOrder, setActiveDeliveryOrder] = useState<Order | null>(null);
+  const [idleTracking, setIdleTracking] = useState<{ stop: () => void } | null>(null);
 
   useEffect(() => {
     if (user) {
       loadDriverData();
     }
   }, [user]);
+
+  // Cleanup idle tracking when component unmounts
+  useEffect(() => {
+    return () => {
+      if (idleTracking) {
+        idleTracking.stop();
+      }
+    };
+  }, [idleTracking]);
 
   const loadDriverData = async () => {
     if (!user) return;
@@ -322,9 +333,21 @@ export default function DriverDashboard() {
         setIsOnline(newStatus);
         setDriverData(prev => prev ? { ...prev, isOnline: newStatus, isAvailable: newStatus } : null);
         
+        // Handle idle tracking based on online status
         if (newStatus) {
+          // Driver is going online - start idle tracking
+          const tracking = IdleDriverTrackingService.startIdleTracking(
+            user.uid,
+            driverData?.displayName || user.displayName || 'Conductor'
+          );
+          setIdleTracking(tracking);
           toast.success('¡Estás en línea! Los pedidos comenzarán a aparecer.');
         } else {
+          // Driver is going offline - stop idle tracking
+          if (idleTracking) {
+            idleTracking.stop();
+            setIdleTracking(null);
+          }
           toast.success('Ahora estás fuera de línea');
         }
       } else {
@@ -356,6 +379,15 @@ export default function DriverDashboard() {
           toast.success('¡Entrega completada! Las ganancias se han actualizado.', {
             duration: 4000,
           });
+          
+          // Restart idle tracking after completing a delivery (if driver is still online)
+          if (isOnline && user && driverData && !idleTracking) {
+            const tracking = IdleDriverTrackingService.startIdleTracking(
+              user.uid,
+              driverData.displayName || user.displayName || 'Conductor'
+            );
+            setIdleTracking(tracking);
+          }
         }
       } else {
         toast.error(`Error al actualizar el estado del pedido`);
@@ -371,6 +403,11 @@ export default function DriverDashboard() {
     try {
       const success = await OrdersService.assignOrderToDriver(orderId, user.uid);
       if (success) {
+        // Stop idle tracking when accepting an order (switching to active delivery)
+        if (idleTracking) {
+          idleTracking.stop();
+          setIdleTracking(null);
+        }
         toast.success(`Pedido ${orderId} aceptado y asignado.`);
         // The subscription will update the orders state
       } else {

@@ -16,6 +16,8 @@ import {
   AlertCircle
 } from 'lucide-react';
 import type { Driver } from '@/lib/firebase/dataService';
+import { DriversService } from '@/lib/firebase/dataService';
+import { DeliveryTrackingService } from '@/lib/services/deliveryTrackingService';
 
 interface DriverLocation extends Driver {
   lat: number;
@@ -53,27 +55,47 @@ export default function DriverTrackingMap({ drivers, onDriverSelect }: DriverTra
   const [mapLoaded, setMapLoaded] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Generate mock locations for drivers
+  // Load real driver locations from Firebase
   useEffect(() => {
-    const generateDriverLocations = (): DriverLocation[] => {
-      return drivers.map((driver, index) => {
-        const baseLocation = SAN_PEDRO_LOCATIONS[index % SAN_PEDRO_LOCATIONS.length];
-        // Add some random offset to avoid overlapping markers
-        const lat = baseLocation.lat + (Math.random() - 0.5) * 0.02;
-        const lng = baseLocation.lng + (Math.random() - 0.5) * 0.02;
+    const loadRealDriverLocations = async (): Promise<DriverLocation[]> => {
+      const locations: DriverLocation[] = [];
+      
+      for (const driver of drivers) {
+        let driverLocation: DriverLocation;
         
-        return {
-          ...driver,
-          lat,
-          lng,
-          lastUpdate: new Date(Date.now() - Math.random() * 300000), // Last 5 minutes
-          speed: driver.isOnline ? Math.floor(Math.random() * 60) + 10 : 0,
-          heading: Math.floor(Math.random() * 360)
-        };
-      });
+        // Check if driver has a real location from current/recent location updates
+        if (driver.currentLocation?.coordinates?.latitude && driver.currentLocation?.coordinates?.longitude) {
+          driverLocation = {
+            ...driver,
+            lat: driver.currentLocation.coordinates.latitude,
+            lng: driver.currentLocation.coordinates.longitude,
+            lastUpdate: driver.currentLocation.coordinates.timestamp?.toDate() || new Date(),
+            speed: driver.isOnline ? (driver.currentLocation as any)?.speed || 0 : 0,
+            heading: (driver.currentLocation as any)?.heading || 0
+          };
+        } else {
+          // Fallback to San Pedro area if no real location available
+          const baseLocation = SAN_PEDRO_LOCATIONS[locations.length % SAN_PEDRO_LOCATIONS.length];
+          const lat = baseLocation.lat + (Math.random() - 0.5) * 0.01;
+          const lng = baseLocation.lng + (Math.random() - 0.5) * 0.01;
+          
+          driverLocation = {
+            ...driver,
+            lat,
+            lng,
+            lastUpdate: new Date(Date.now() - Math.random() * 600000), // Last 10 minutes
+            speed: 0,
+            heading: 0
+          };
+        }
+        
+        locations.push(driverLocation);
+      }
+      
+      return locations;
     };
 
-    setDriverLocations(generateDriverLocations());
+    loadRealDriverLocations().then(setDriverLocations);
   }, [drivers]);
 
   // Load Leaflet CSS and JS
@@ -216,18 +238,61 @@ export default function DriverTrackingMap({ drivers, onDriverSelect }: DriverTra
   const handleRefresh = async () => {
     setIsRefreshing(true);
     
-    // Simulate real-time update
-    setTimeout(() => {
-      setDriverLocations(prev => prev.map(driver => ({
-        ...driver,
-        lat: driver.lat + (Math.random() - 0.5) * 0.005,
-        lng: driver.lng + (Math.random() - 0.5) * 0.005,
-        lastUpdate: new Date(),
-        speed: driver.isOnline ? Math.floor(Math.random() * 60) + 10 : 0,
-        heading: Math.floor(Math.random() * 360)
-      })));
+    try {
+      // Reload fresh driver data from Firebase
+      const locations: DriverLocation[] = [];
+      
+      for (const driver of drivers) {
+        // Get fresh driver data
+        const freshDriver = await DriversService.getDriverById(driver.id);
+        if (!freshDriver) continue;
+        
+        let driverLocation: DriverLocation;
+        
+        if (freshDriver.currentLocation?.coordinates?.latitude && freshDriver.currentLocation?.coordinates?.longitude) {
+          driverLocation = {
+            ...freshDriver,
+            lat: freshDriver.currentLocation.coordinates.latitude,
+            lng: freshDriver.currentLocation.coordinates.longitude,
+            lastUpdate: freshDriver.currentLocation.coordinates.timestamp?.toDate() || new Date(),
+            speed: freshDriver.isOnline ? (freshDriver.currentLocation as any)?.speed || 0 : 0,
+            heading: (freshDriver.currentLocation as any)?.heading || 0
+          };
+        } else {
+          // Keep existing location if no new data
+          const existing = driverLocations.find(d => d.id === driver.id);
+          if (existing) {
+            driverLocation = { 
+              ...freshDriver, 
+              lat: existing.lat, 
+              lng: existing.lng, 
+              lastUpdate: existing.lastUpdate,
+              speed: existing.speed,
+              heading: existing.heading
+            };
+          } else {
+            // Fallback to San Pedro area
+            const baseLocation = SAN_PEDRO_LOCATIONS[locations.length % SAN_PEDRO_LOCATIONS.length];
+            driverLocation = {
+              ...freshDriver,
+              lat: baseLocation.lat + (Math.random() - 0.5) * 0.01,
+              lng: baseLocation.lng + (Math.random() - 0.5) * 0.01,
+              lastUpdate: new Date(),
+              speed: 0,
+              heading: 0
+            };
+          }
+        }
+        
+        locations.push(driverLocation);
+      }
+      
+      setDriverLocations(locations);
+    } catch (error) {
+      console.error('Error refreshing driver locations:', error);
+    } finally {
       setIsRefreshing(false);
-    }, 1000);
+    }
   };
 
   const onlineDrivers = driverLocations.filter(d => d.isOnline);

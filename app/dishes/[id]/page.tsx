@@ -78,7 +78,7 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
         const dishWithDetails: DishWithCookDetails = {
           ...dishData,
           images: [dishData.image, dishData.image, dishData.image], // Use dish image for now
-          distance: `${(Math.random() * 3 + 0.5).toFixed(1)} km`, // Mock distance for now
+          distance: cook?.distance || 'Nearby', // Real distance from cook profile or default
           reviews: reviewsData,
           cookerBio: cookData?.bio || 'Passionate home cook sharing delicious meals'
         };
@@ -86,7 +86,18 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
         setDish(dishWithDetails);
         setCook(cookData);
         setReviews(reviewsData);
-        setIsFavorite(false); // TODO: Check user's favorites
+        // Check if dish is in user's favorites
+        if (user) {
+          try {
+            const userFavorites = await DishesService.getUserFavorites(user.uid);
+            setIsFavorite(userFavorites.includes(dishId));
+          } catch (error) {
+            console.warn('Could not load user favorites:', error);
+            setIsFavorite(false);
+          }
+        } else {
+          setIsFavorite(false);
+        }
         
       } catch (error) {
         console.error('Error fetching dish data:', error);

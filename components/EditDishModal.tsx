@@ -218,16 +218,20 @@ const EditDishModal: React.FC<EditDishModalProps> = ({ dish, isOpen, onClose, on
                         onChange={(e) => handleInputChange('category', e.target.value)}
                         className="w-full mt-1 px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
                       >
-                        <option value="">Select category</option>
-                        <option value="Italian">Italian</option>
-                        <option value="Indian">Indian</option>
-                        <option value="Mexican">Mexican</option>
-                        <option value="Japanese">Japanese</option>
-                        <option value="American">American</option>
-                        <option value="Healthy">Healthy</option>
-                        <option value="Dessert">Dessert</option>
-                        <option value="Drink">Drink</option>
-                        <option value="Side">Side</option>
+                        <option value="">Selecciona categoría</option>
+                        <option value="Italiana">Italiana</option>
+                        <option value="Mexicana">Mexicana</option>
+                        <option value="Japonesa">Japonesa</option>
+                        <option value="India">India</option>
+                        <option value="Americana">Americana</option>
+                        <option value="Francesa">Francesa</option>
+                        <option value="China">China</option>
+                        <option value="Tailandesa">Tailandesa</option>
+                        <option value="Mediterránea">Mediterránea</option>
+                        <option value="Vegana">Vegana</option>
+                        <option value="Saludable">Saludable</option>
+                        <option value="Acompañamientos">Acompañamientos</option>
+                        <option value="Para Tomar">Para Tomar</option>
                       </select>
                     </div>
                     <div>

@@ -28,9 +28,13 @@ import {
   Award,
   Truck,
   Calendar,
-  DollarSign
+  DollarSign,
+  Store,
+  User,
+  Shield
 } from 'lucide-react';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp, setDoc, doc } from 'firebase/firestore';
+import { db } from '@/lib/firebase/client';
 
 interface CookerOnboardingProps {
   onComplete: () => void;
@@ -41,13 +45,11 @@ interface OnboardingData {
   displayName: string;
   phone: string;
   bio: string;
+  businessType: 'restaurant' | 'particular';
   
   // Step 2: Kitchen Location
   location: {
     street: string;
-    city: string;
-    state: string;
-    zipCode: string;
     coordinates?: {
       latitude: number;
       longitude: number;
@@ -55,10 +57,8 @@ interface OnboardingData {
   };
   
   // Step 3: Business Profile  
-  yearsExperience: number;
   specialties: string[];
-  cookingStyle: string;
-  languages: string[];
+  customSpecialty: string;
   
   // Step 4: Working Hours & Settings
   workingHours: {
@@ -66,16 +66,23 @@ interface OnboardingData {
     end: string;
   };
   workingDays: string[];
-  maxOrdersPerDay: number;
-  deliveryRadius: number;
   selfDelivery: boolean;
+  
+  // Step 5: Banking Information
+  bankInfo: {
+    accountHolderName: string;
+    bankName: string;
+    accountNumber: string;
+    routingNumber: string; // RUT for Chile
+  };
 }
 
 const STEPS = [
   { id: 1, title: 'Información Personal', description: 'Cuéntanos sobre ti' },
   { id: 2, title: 'Ubicación de Cocina', description: 'Dónde preparas tus platos' },
-  { id: 3, title: 'Perfil Culinario', description: 'Tu experiencia y especialidades' },
-  { id: 4, title: 'Configuración', description: 'Horarios y preferencias' }
+  { id: 3, title: 'Especialidades', description: 'Tus especialidades culinarias' },
+  { id: 4, title: 'Configuración', description: 'Horarios y preferencias' },
+  { id: 5, title: 'Información de Pago', description: 'Para recibir tus ganancias' }
 ];
 
 const SPECIALTIES = [
@@ -99,32 +106,38 @@ const WORKING_DAYS = [
   { id: 'sunday', label: 'Domingo' }
 ];
 
+const BANKS = [
+  'Banco de Chile', 'BancoEstado', 'Santander', 'BCI', 'Scotiabank',
+  'Banco Falabella', 'Banco Ripley', 'Itaú', 'BBVA', 'Banco Security'
+];
+
 export default function CookerOnboarding({ onComplete }: CookerOnboardingProps) {
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showCustomSpecialty, setShowCustomSpecialty] = useState(false);
   const [data, setData] = useState<OnboardingData>({
     displayName: user?.displayName || '',
     phone: '',
     bio: '',
+    businessType: 'particular',
     location: {
       street: '',
-      city: '',
-      state: '',
-      zipCode: '',
     },
-    yearsExperience: 1,
     specialties: [],
-    cookingStyle: '',
-    languages: ['Español'],
+    customSpecialty: '',
     workingHours: {
       start: '08:00',
       end: '20:00'
     },
     workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
-    maxOrdersPerDay: 10,
-    deliveryRadius: 5,
-    selfDelivery: false
+    selfDelivery: false,
+    bankInfo: {
+      accountHolderName: user?.displayName || '',
+      bankName: '',
+      accountNumber: '',
+      routingNumber: ''
+    }
   });
 
   const updateData = (field: string, value: any) => {
@@ -151,6 +164,18 @@ export default function CookerOnboarding({ onComplete }: CookerOnboardingProps) 
         ? prev.specialties.filter(s => s !== specialty)
         : [...prev.specialties, specialty]
     }));
+  };
+
+  const addCustomSpecialty = () => {
+    if (data.customSpecialty.trim() && !data.specialties.includes(data.customSpecialty.trim())) {
+      setData(prev => ({
+        ...prev,
+        specialties: [...prev.specialties, prev.customSpecialty.trim()],
+        customSpecialty: ''
+      }));
+      setShowCustomSpecialty(false);
+      toast.success('Especialidad agregada exitosamente');
+    }
   };
 
   const toggleLanguage = (language: string) => {
@@ -194,13 +219,15 @@ export default function CookerOnboarding({ onComplete }: CookerOnboardingProps) 
   const validateStep = (step: number): boolean => {
     switch (step) {
       case 1:
-        return !!(data.displayName && data.phone && data.bio);
+        return !!(data.displayName && data.phone && data.bio && data.businessType);
       case 2:
-        return !!(data.location.street && data.location.city && data.location.state);
+        return !!(data.location.street);
       case 3:
-        return !!(data.specialties.length > 0 && data.cookingStyle);
+        return !!(data.specialties.length > 0);
       case 4:
         return !!(data.workingDays.length > 0);
+      case 5:
+        return !!(data.bankInfo.accountHolderName && data.bankInfo.bankName && data.bankInfo.accountNumber && data.bankInfo.routingNumber);
       default:
         return true;
     }
@@ -245,30 +272,36 @@ export default function CookerOnboarding({ onComplete }: CookerOnboardingProps) 
           },
           address: {
             street: data.location.street,
-            city: data.location.city,
-            state: data.location.state,
-            zipCode: data.location.zipCode,
+            city: '',
+            state: '',
+            zipCode: '',
             country: 'Chile',
-            fullAddress: `${data.location.street}, ${data.location.city}, ${data.location.state}`
+            fullAddress: data.location.street
           },
           isActive: true,
           lastUpdated: now
         },
-        deliveryRadius: data.deliveryRadius,
+        deliveryRadius: 10, // Default 10km radius
         rating: 5.0,
         reviewCount: 0,
         totalOrders: 0,
-        yearsExperience: data.yearsExperience,
+        yearsExperience: 1,
         joinedDate: new Date().toISOString().split('T')[0],
         specialties: data.specialties,
         certifications: [],
-        languages: data.languages,
-        cookingStyle: data.cookingStyle,
+        languages: ['Español'],
+        cookingStyle: 'Casera',
         favoriteIngredients: [],
         achievements: [],
+        bankInfo: {
+          accountHolderName: data.bankInfo.accountHolderName,
+          bankName: data.bankInfo.bankName,
+          accountNumber: data.bankInfo.accountNumber,
+          routingNumber: data.bankInfo.routingNumber
+        },
         settings: {
           autoAcceptOrders: false,
-          maxOrdersPerDay: data.maxOrdersPerDay,
+          maxOrdersPerDay: 20,
           workingHours: data.workingHours,
           workingDays: data.workingDays,
           currency: 'CLP',
@@ -282,14 +315,21 @@ export default function CookerOnboarding({ onComplete }: CookerOnboardingProps) 
       // Create cook profile with specific user ID
       await CooksService.createCookProfileWithId(user.uid, cookProfile);
       
-      // Update user role to Cooker
-      await fetch('/api/auth/update-role', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: 'Cooker' })
-      });
-
-      toast.success('¡Perfil de cocinero creado exitosamente!');
+      // Update user role to Cooker in Firestore directly
+      try {
+        await setDoc(doc(db, 'users', user.uid), { 
+          role: 'Cooker',
+          email: user.email,
+          displayName: user.displayName || data.displayName,
+          photoURL: user.photoURL
+        }, { merge: true });
+        
+        toast.success('¡Perfil de cocinero creado exitosamente! Bienvenido a tu dashboard.');
+      } catch (roleError) {
+        console.error('Role update error:', roleError);
+        toast.success('¡Perfil de cocinero creado exitosamente!');
+      }
+      
       onComplete();
       
     } catch (error) {
@@ -376,6 +416,68 @@ export default function CookerOnboarding({ onComplete }: CookerOnboardingProps) 
                 </div>
               </div>
               
+              {/* Business Type Selection */}
+              <div>
+                <Label className="text-base font-medium mb-4 block">Tipo de cocina *</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Card 
+                    className={`cursor-pointer transition-all duration-200 ${
+                      data.businessType === 'particular' 
+                        ? 'ring-2 ring-moai-orange bg-orange-50 border-moai-orange' 
+                        : 'hover:shadow-md border-gray-200'
+                    }`}
+                    onClick={() => updateData('businessType', 'particular')}
+                  >
+                    <CardContent className="p-6 text-center">
+                      <User className={`h-12 w-12 mx-auto mb-4 ${
+                        data.businessType === 'particular' ? 'text-moai-orange' : 'text-gray-500'
+                      }`} />
+                      <h3 className={`font-bold text-lg mb-2 ${
+                        data.businessType === 'particular' ? 'text-moai-orange' : 'text-gray-800'
+                      }`}>
+                        Cocinero Particular
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        Cocino desde mi hogar para compartir recetas familiares y caseras
+                      </p>
+                      {data.businessType === 'particular' && (
+                        <div className="mt-3">
+                          <CheckCircle className="h-6 w-6 text-moai-orange mx-auto" />
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                  
+                  <Card 
+                    className={`cursor-pointer transition-all duration-200 ${
+                      data.businessType === 'restaurant' 
+                        ? 'ring-2 ring-moai-orange bg-orange-50 border-moai-orange' 
+                        : 'hover:shadow-md border-gray-200'
+                    }`}
+                    onClick={() => updateData('businessType', 'restaurant')}
+                  >
+                    <CardContent className="p-6 text-center">
+                      <Store className={`h-12 w-12 mx-auto mb-4 ${
+                        data.businessType === 'restaurant' ? 'text-moai-orange' : 'text-gray-500'
+                      }`} />
+                      <h3 className={`font-bold text-lg mb-2 ${
+                        data.businessType === 'restaurant' ? 'text-moai-orange' : 'text-gray-800'
+                      }`}>
+                        Restaurante
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        Represento un restaurante o negocio gastronómico establecido
+                      </p>
+                      {data.businessType === 'restaurant' && (
+                        <div className="mt-3">
+                          <CheckCircle className="h-6 w-6 text-moai-orange mx-auto" />
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+              
               <div>
                 <Label htmlFor="bio">Cuéntanos sobre ti *</Label>
                 <Textarea
@@ -416,64 +518,17 @@ export default function CookerOnboarding({ onComplete }: CookerOnboardingProps) 
                 </CardContent>
               </Card>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="md:col-span-2">
-                  <Label htmlFor="street">Dirección de la cocina *</Label>
-                  <Input
-                    id="street"
-                    value={data.location.street}
-                    onChange={(e) => updateNestedData('location', 'street', e.target.value)}
-                    placeholder="Calle, número, departamento"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="city">Ciudad *</Label>
-                  <Input
-                    id="city"
-                    value={data.location.city}
-                    onChange={(e) => updateNestedData('location', 'city', e.target.value)}
-                    placeholder="Santiago"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="state">Región *</Label>
-                  <Select onValueChange={(value) => updateNestedData('location', 'state', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona una región" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Metropolitana">Región Metropolitana</SelectItem>
-                      <SelectItem value="Valparaíso">Valparaíso</SelectItem>
-                      <SelectItem value="Biobío">Biobío</SelectItem>
-                      <SelectItem value="La Araucanía">La Araucanía</SelectItem>
-                      <SelectItem value="Los Lagos">Los Lagos</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <Label htmlFor="zipCode">Código postal</Label>
-                  <Input
-                    id="zipCode"
-                    value={data.location.zipCode}
-                    onChange={(e) => updateNestedData('location', 'zipCode', e.target.value)}
-                    placeholder="1234567"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="deliveryRadius">Radio de entrega (km)</Label>
-                  <Input
-                    id="deliveryRadius"
-                    type="number"
-                    min="1"
-                    max="50"
-                    value={data.deliveryRadius}
-                    onChange={(e) => updateData('deliveryRadius', parseInt(e.target.value))}
-                  />
-                </div>
+              <div>
+                <Label htmlFor="street">Dirección de la cocina *</Label>
+                <Input
+                  id="street"
+                  value={data.location.street}
+                  onChange={(e) => updateNestedData('location', 'street', e.target.value)}
+                  placeholder="Calle, número, departamento, ciudad, región"
+                />
+                <p className="text-sm text-gray-500 mt-2">
+                  Incluye todos los detalles de la dirección (calle, número, comuna, ciudad, región)
+                </p>
               </div>
             </div>
           )}
@@ -482,41 +537,14 @@ export default function CookerOnboarding({ onComplete }: CookerOnboardingProps) 
           {currentStep === 3 && (
             <div className="space-y-6">
               <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Tu Perfil Culinario</h2>
-                <p className="text-gray-600">Muéstranos tu experiencia y especialidades</p>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <Label>Años de experiencia</Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    max="50"
-                    value={data.yearsExperience}
-                    onChange={(e) => updateData('yearsExperience', parseInt(e.target.value))}
-                  />
-                </div>
-                
-                <div>
-                  <Label>Estilo de cocina</Label>
-                  <Select onValueChange={(value) => updateData('cookingStyle', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona tu estilo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {COOKING_STYLES.map(style => (
-                        <SelectItem key={style} value={style}>{style}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Especialidades Culinarias</h2>
+                <p className="text-gray-600">Selecciona tus especialidades gastronómicas</p>
               </div>
               
               <div>
                 <Label>Especialidades culinarias *</Label>
                 <p className="text-sm text-gray-500 mb-3">Selecciona todas las que apliquen</p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
                   {SPECIALTIES.map(specialty => (
                     <Badge
                       key={specialty}
@@ -531,27 +559,64 @@ export default function CookerOnboarding({ onComplete }: CookerOnboardingProps) 
                       {specialty}
                     </Badge>
                   ))}
-                </div>
-              </div>
-              
-              <div>
-                <Label>Idiomas que hablas</Label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
-                  {LANGUAGES.map(language => (
+                  
+                  {/* Custom specialties that were added */}
+                  {data.specialties.filter(specialty => !SPECIALTIES.includes(specialty)).map(specialty => (
                     <Badge
-                      key={language}
-                      variant={data.languages.includes(language) ? "default" : "outline"}
-                      className={`cursor-pointer text-center justify-center py-2 ${
-                        data.languages.includes(language) 
-                          ? 'bg-blue-500 hover:bg-blue-600' 
-                          : 'hover:bg-gray-100'
-                      }`}
-                      onClick={() => toggleLanguage(language)}
+                      key={specialty}
+                      variant="default"
+                      className="cursor-pointer text-center justify-center py-2 bg-green-500 hover:bg-green-600"
+                      onClick={() => toggleSpecialty(specialty)}
                     >
-                      {language}
+                      {specialty}
                     </Badge>
                   ))}
+                  
+                  {/* Otro button */}
+                  <Badge
+                    variant="outline"
+                    className="cursor-pointer text-center justify-center py-2 border-dashed border-2 hover:bg-gray-50"
+                    onClick={() => setShowCustomSpecialty(true)}
+                  >
+                    + Otro
+                  </Badge>
                 </div>
+                
+                {/* Custom specialty input */}
+                {showCustomSpecialty && (
+                  <Card className="p-4 bg-gray-50">
+                    <div className="space-y-3">
+                      <Label htmlFor="customSpecialty">Agregar especialidad personalizada</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="customSpecialty"
+                          value={data.customSpecialty}
+                          onChange={(e) => updateData('customSpecialty', e.target.value)}
+                          placeholder="Ej: Cocina Molecular, Cocina Nikkei..."
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              addCustomSpecialty();
+                            }
+                          }}
+                        />
+                        <Button onClick={addCustomSpecialty} size="sm">
+                          Agregar
+                        </Button>
+                        <Button 
+                          onClick={() => {
+                            setShowCustomSpecialty(false);
+                            updateData('customSpecialty', '');
+                          }} 
+                          variant="outline" 
+                          size="sm"
+                        >
+                          Cancelar
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                )}
               </div>
             </div>
           )}
@@ -604,31 +669,173 @@ export default function CookerOnboarding({ onComplete }: CookerOnboardingProps) 
                 </div>
               </div>
               
+              {/* Self Delivery Option */}
               <div>
-                <Label>Máximo de pedidos por día</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  max="100"
-                  value={data.maxOrdersPerDay}
-                  onChange={(e) => updateData('maxOrdersPerDay', parseInt(e.target.value))}
-                />
-              </div>
-              
-              <Card className="bg-yellow-50 border-yellow-200">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Truck className="h-5 w-5 text-yellow-600" />
-                      <div>
-                        <p className="text-sm font-medium text-yellow-800">¿Entregas tus propios pedidos?</p>
-                        <p className="text-xs text-yellow-600">Si tienes vehículo puedes entregar y ganar más</p>
+                <Label className="text-lg font-semibold mb-4 block">¿Entregas tus propios pedidos? 🚚</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Card 
+                    className={`cursor-pointer transition-all duration-200 ${
+                      !data.selfDelivery 
+                        ? 'ring-2 ring-orange-500 bg-orange-50 border-orange-500' 
+                        : 'hover:shadow-md border-gray-200'
+                    }`}
+                    onClick={() => updateData('selfDelivery', false)}
+                  >
+                    <CardContent className="p-6 text-center">
+                      <Truck className={`h-12 w-12 mx-auto mb-4 ${
+                        !data.selfDelivery ? 'text-orange-500' : 'text-gray-500'
+                      }`} />
+                      <h3 className={`font-bold text-lg mb-2 ${
+                        !data.selfDelivery ? 'text-orange-500' : 'text-gray-800'
+                      }`}>
+                        Solo Cocinar
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        Me enfoco en cocinar, otros conductores entregas mis pedidos
+                      </p>
+                      <div className="mt-3 text-xs text-gray-500">
+                        • Más tiempo para cocinar<br/>
+                        • Mayor volumen de pedidos<br/>
+                        • Sin preocupación por entregas
                       </div>
+                      {!data.selfDelivery && (
+                        <div className="mt-3">
+                          <CheckCircle className="h-6 w-6 text-orange-500 mx-auto" />
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                  
+                  <Card 
+                    className={`cursor-pointer transition-all duration-200 ${
+                      data.selfDelivery 
+                        ? 'ring-2 ring-green-500 bg-green-50 border-green-500' 
+                        : 'hover:shadow-md border-gray-200'
+                    }`}
+                    onClick={() => updateData('selfDelivery', true)}
+                  >
+                    <CardContent className="p-6 text-center">
+                      <div className="flex justify-center items-center mb-4">
+                        <ChefHat className={`h-8 w-8 mr-2 ${
+                          data.selfDelivery ? 'text-green-500' : 'text-gray-500'
+                        }`} />
+                        <Truck className={`h-8 w-8 ${
+                          data.selfDelivery ? 'text-green-500' : 'text-gray-500'
+                        }`} />
+                      </div>
+                      <h3 className={`font-bold text-lg mb-2 ${
+                        data.selfDelivery ? 'text-green-500' : 'text-gray-800'
+                      }`}>
+                        Cocinar y Entregar
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        Cocino y entrego mis propios pedidos para ganar más
+                      </p>
+                      <div className="mt-3 text-xs text-gray-500">
+                        • Ganancias adicionales por entrega<br/>
+                        • Control total del servicio<br/>
+                        • Contacto directo con clientes
+                      </div>
+                      {data.selfDelivery && (
+                        <div className="mt-3">
+                          <CheckCircle className="h-6 w-6 text-green-500 mx-auto" />
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+                
+                {data.selfDelivery && (
+                  <Card className="mt-4 bg-blue-50 border-blue-200">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <DollarSign className="h-5 w-5 text-blue-600" />
+                        <div>
+                          <p className="text-sm font-medium text-blue-800">¡Gana más dinero!</p>
+                          <p className="text-xs text-blue-600">Además del pago por cocinar, recibirás el valor de la entrega por cada pedido que lleves</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Step 5: Banking Information */}
+          {currentStep === 5 && (
+            <div className="space-y-6">
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Información de Pago</h2>
+                <p className="text-gray-600">Para depositar tus ganancias de forma segura</p>
+              </div>
+
+              <Card className="bg-green-50 border-green-200">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <DollarSign className="h-5 w-5 text-green-600" />
+                    <div>
+                      <p className="text-sm font-medium text-green-800">Pagos semanales</p>
+                      <p className="text-xs text-green-600">Recibe tus ganancias cada viernes directamente en tu cuenta</p>
                     </div>
-                    <Switch
-                      checked={data.selfDelivery}
-                      onCheckedChange={(checked) => updateData('selfDelivery', checked)}
-                    />
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Label htmlFor="accountHolderName">Nombre del titular *</Label>
+                  <Input
+                    id="accountHolderName"
+                    value={data.bankInfo.accountHolderName}
+                    onChange={(e) => updateNestedData('bankInfo', 'accountHolderName', e.target.value)}
+                    placeholder="Nombre completo como aparece en la cuenta"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="bankName">Banco *</Label>
+                  <Select onValueChange={(value) => updateNestedData('bankInfo', 'bankName', value)}>
+                    <SelectTrigger className="bg-white">
+                      <SelectValue placeholder="Selecciona tu banco" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border shadow-lg">
+                      {BANKS.map(bank => (
+                        <SelectItem key={bank} value={bank} className="bg-white hover:bg-gray-50 text-gray-900">{bank}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="accountNumber">Número de cuenta *</Label>
+                  <Input
+                    id="accountNumber"
+                    value={data.bankInfo.accountNumber}
+                    onChange={(e) => updateNestedData('bankInfo', 'accountNumber', e.target.value)}
+                    placeholder="Número de cuenta corriente"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="routingNumber">RUT *</Label>
+                  <Input
+                    id="routingNumber"
+                    value={data.bankInfo.routingNumber}
+                    onChange={(e) => updateNestedData('bankInfo', 'routingNumber', e.target.value)}
+                    placeholder="12.345.678-9"
+                  />
+                </div>
+              </div>
+
+              <Card className="bg-blue-50 border-blue-200">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <Shield className="h-5 w-5 text-blue-600" />
+                    <div>
+                      <p className="text-sm font-medium text-blue-800">Tu información está protegida</p>
+                      <p className="text-xs text-blue-600">Usamos encriptación bancaria para proteger tus datos financieros</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

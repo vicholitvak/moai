@@ -18,12 +18,14 @@ import {
   AlertCircle,
   Truck,
   Copy,
-  Shield
+  Shield,
+  Navigation
 } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { Separator } from '../../../components/ui/separator';
+import NotificationPermissionBanner from '../../../components/NotificationPermissionBanner';
 
 const ClientOrdersPage = () => {
   const router = useRouter();
@@ -145,6 +147,14 @@ const ClientOrdersPage = () => {
       </div>
 
       <div className="container mx-auto px-4 py-6">
+        {/* Notification Permission Banner */}
+        <NotificationPermissionBanner 
+          className="mb-6"
+          onPermissionGranted={() => {
+            // Could track analytics here
+            console.log('User granted notification permission');
+          }}
+        />
         {orders.length === 0 ? (
           <Card className="text-center py-12">
             <CardContent>
@@ -298,6 +308,42 @@ const ClientOrdersPage = () => {
                       </div>
                     </div>
                   )}
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
+                    {['pending', 'accepted', 'preparing', 'ready', 'delivering'].includes(order.status) && (
+                      <Button 
+                        onClick={() => router.push(`/orders/${order.id}/tracking`)}
+                        className="flex-1"
+                        variant="default"
+                      >
+                        <Navigation className="h-4 w-4 mr-2" />
+                        Ver Seguimiento
+                      </Button>
+                    )}
+                    
+                    {order.status === 'delivered' && (
+                      <Button 
+                        onClick={() => router.push(`/orders/${order.id}/tracking`)}
+                        className="flex-1"
+                        variant="outline"
+                      >
+                        <Navigation className="h-4 w-4 mr-2" />
+                        Ver Detalles
+                      </Button>
+                    )}
+                    
+                    {order.status === 'cancelled' && (
+                      <Button 
+                        disabled
+                        className="flex-1"
+                        variant="outline"
+                      >
+                        <XCircle className="h-4 w-4 mr-2" />
+                        Pedido Cancelado
+                      </Button>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             ))}

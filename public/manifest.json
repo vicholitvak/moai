@@ -1,0 +1,54 @@
+{
+  "name": "Moai - Comida Casera",
+  "short_name": "Moai",
+  "description": "Descubre deliciosa comida casera de cocineros locales",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#FF6600",
+  "orientation": "portrait-primary",
+  "categories": ["food", "lifestyle", "shopping"],
+  "icons": [
+    {
+      "src": "/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Mis Pedidos",
+      "short_name": "Pedidos",
+      "description": "Ver mis pedidos activos",
+      "url": "/client/orders",
+      "icons": [
+        {
+          "src": "/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Explorar Platos",
+      "short_name": "Platos",
+      "description": "Descubre nuevos platos",
+      "url": "/dishes",
+      "icons": [
+        {
+          "src": "/icon-96x96.png", 
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ]
+}

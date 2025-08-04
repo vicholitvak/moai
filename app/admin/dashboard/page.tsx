@@ -8,7 +8,6 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import type { Cook, Driver, Dish } from '@/lib/firebase/dataService';
 import DriverTrackingMap from '@/components/DriverTrackingMap';
-import OnboardingFormManager from '@/components/admin/OnboardingFormManager';
 import { toast } from 'sonner';
 import { formatPrice } from '@/lib/utils';
 import { 
@@ -69,16 +68,15 @@ export default function AdminDashboard() {
   const [serviceCommissionRate, setServiceCommissionRate] = useState(12);
   const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
   
-  // Mock admin stats
   const [stats, setStats] = useState<AdminStats>({
-    totalUsers: 1247,
-    totalCooks: 89,
-    totalDrivers: 156,
-    totalClients: 1002,
-    totalOrders: 3456,
-    totalDishes: 567,
-    todayRevenue: 2450000,
-    activeOrders: 23
+    totalUsers: 0,
+    totalCooks: 0,
+    totalDrivers: 0,
+    totalClients: 0,
+    totalOrders: 0,
+    totalDishes: 0,
+    todayRevenue: 0,
+    activeOrders: 0
   });
 
   // Check if user is admin (you can modify this logic)
@@ -143,14 +141,41 @@ export default function AdminDashboard() {
       setDrivers(drivers);
       setDishes(dishes);
       
+      // Try to get additional statistics
+      let totalOrders = 0;
+      let activeOrders = 0;
+      let todayRevenue = 0;
+      let totalClients = 0;
+      
+      try {
+        // Get order statistics if OrdersService is available
+        const ordersStats = await AdminService.getOrdersStatistics();
+        totalOrders = ordersStats.totalOrders || 0;
+        activeOrders = ordersStats.activeOrders || 0;
+        todayRevenue = ordersStats.todayRevenue || 0;
+      } catch (error) {
+        console.warn('Order statistics not available:', error);
+      }
+      
+      try {
+        // Get user count if UserService is available
+        const usersStats = await AdminService.getUsersStatistics();
+        totalClients = usersStats.totalClients || 0;
+      } catch (error) {
+        console.warn('User statistics not available:', error);
+      }
+      
       // Update stats with real data
-      setStats(prev => ({
-        ...prev,
+      setStats({
         totalCooks: cooks.length,
         totalDrivers: drivers.length,
         totalDishes: dishes.length,
-        totalUsers: cooks.length + drivers.length + prev.totalClients
-      }));
+        totalUsers: cooks.length + drivers.length + totalClients,
+        totalOrders,
+        activeOrders,
+        todayRevenue,
+        totalClients
+      });
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Failed to load data');
@@ -472,8 +497,7 @@ export default function AdminDashboard() {
             { id: 'data-management', label: 'Gestión de Datos' },
             { id: 'driver-tracking', label: 'Seguimiento de Conductores' },
             { id: 'analytics', label: 'Analytics' },
-            { id: 'management', label: 'Configuración' },
-            { id: 'onboarding', label: 'Formularios' }
+            { id: 'management', label: 'Configuración' }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -1587,10 +1611,6 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* Onboarding Forms Management Tab */}
-        {activeTab === 'onboarding' && (
-          <OnboardingFormManager />
-        )}
       </div>
     </div>
   );
