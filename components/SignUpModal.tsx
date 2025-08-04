@@ -211,7 +211,7 @@ const SignUpModal = ({ isOpen, onOpenChange }: SignUpModalProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md max-w-[95vw] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md max-w-[95vw] max-h-[90vh] overflow-y-auto m-2 sm:m-0">
         <DialogHeader className="text-center space-y-2">
           <DialogTitle className="text-2xl font-bold text-foreground">Join Moai</DialogTitle>
           <DialogDescription className="text-muted-foreground">
@@ -219,11 +219,11 @@ const SignUpModal = ({ isOpen, onOpenChange }: SignUpModalProps) => {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 mt-6">
+        <div className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
           {/* Google Sign Up Button */}
           <Button 
             variant="outline" 
-            className="w-full h-11 font-medium border-2 hover:bg-gray-50 transition-colors" 
+            className="w-full h-12 sm:h-11 font-medium border-2 hover:bg-gray-50 transition-colors text-sm sm:text-base" 
             onClick={handleGoogleSignIn} 
             disabled={isLoading || isGoogleLoading}
           >
@@ -262,9 +262,9 @@ const SignUpModal = ({ isOpen, onOpenChange }: SignUpModalProps) => {
                 className="grid grid-cols-3 gap-2 w-full" 
                 variant="outline"
               >
-                <ToggleGroupItem value="Client" className="text-sm py-2 px-3 flex-1 text-center">Cliente</ToggleGroupItem>
-                <ToggleGroupItem value="Cooker" className="text-sm py-2 px-3 flex-1 text-center">Cocinero</ToggleGroupItem>
-                <ToggleGroupItem value="Driver" className="text-sm py-2 px-3 flex-1 text-center">Conductor</ToggleGroupItem>
+                <ToggleGroupItem value="Client" className="text-xs sm:text-sm py-3 px-2 sm:px-3 flex-1 text-center min-h-[44px]">Cliente</ToggleGroupItem>
+                <ToggleGroupItem value="Cooker" className="text-xs sm:text-sm py-3 px-2 sm:px-3 flex-1 text-center min-h-[44px]">Cocinero</ToggleGroupItem>
+                <ToggleGroupItem value="Driver" className="text-xs sm:text-sm py-3 px-2 sm:px-3 flex-1 text-center min-h-[44px]">Conductor</ToggleGroupItem>
               </ToggleGroup>
               <p className="text-xs text-muted-foreground text-center">
                 {role === 'Client' && 'Ordena deliciosa comida casera de cocineros locales'}
@@ -396,7 +396,7 @@ const SignUpModal = ({ isOpen, onOpenChange }: SignUpModalProps) => {
             {/* Submit Button */}
             <Button 
               type="submit" 
-              className="w-full h-11 font-semibold" 
+              className="w-full h-12 sm:h-11 font-semibold text-sm sm:text-base" 
               disabled={isLoading || isGoogleLoading || !email || !password || !acceptTerms}
             >
               {isLoading ? (
