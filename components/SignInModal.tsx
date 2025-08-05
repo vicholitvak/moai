@@ -165,10 +165,10 @@ const SignInModal = ({ isOpen, onOpenChange }: SignInModalProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md max-w-[95vw] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md max-w-[95vw] max-h-[90vh] overflow-y-auto border-2 border-atacama-beige/20 shadow-2xl bg-white/95 backdrop-blur-sm">
         <DialogHeader className="text-center space-y-2">
-          <DialogTitle className="text-2xl font-bold text-foreground">Bienvenido de Vuelta</DialogTitle>
-          <DialogDescription className="text-muted-foreground">
+          <DialogTitle className="text-2xl font-bold text-atacama-brown">Bienvenido de Vuelta</DialogTitle>
+          <DialogDescription className="text-atacama-brown/70">
             Inicia sesión en tu cuenta para continuar tu viaje culinario.
           </DialogDescription>
         </DialogHeader>
@@ -177,14 +177,14 @@ const SignInModal = ({ isOpen, onOpenChange }: SignInModalProps) => {
           {/* Google Sign In Button */}
           <Button 
             variant="outline" 
-            className="w-full h-11 font-medium border-2 hover:bg-gray-50 transition-colors" 
+            className="w-full h-11 font-medium border-2 border-atacama-beige/30 hover:bg-atacama-beige/10 hover:border-atacama-orange/30 transition-colors" 
             onClick={handleGoogleSignIn} 
             disabled={isLoading || isGoogleLoading}
           >
             {isGoogleLoading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
-              <div className="mr-2 w-4 h-4 bg-gradient-to-r from-blue-500 via-red-500 to-yellow-500 rounded-sm flex items-center justify-center text-white text-xs font-bold">
+              <div className="mr-2 w-4 h-4 bg-gradient-to-r from-atacama-orange via-atacama-brown to-atacama-beige rounded-sm flex items-center justify-center text-white text-xs font-bold">
                 G
               </div>
             )}
@@ -205,18 +205,18 @@ const SignInModal = ({ isOpen, onOpenChange }: SignInModalProps) => {
           <form onSubmit={handleSignIn} className="space-y-4">
             {/* Email Field */}
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium text-foreground">
+              <Label htmlFor="email" className="text-sm font-medium text-atacama-brown">
                 Dirección de Email
               </Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-atacama-brown/60" />
                 <Input
                   id="email"
                   type="email"
                   value={email}
                   onChange={handleEmailChange}
                   placeholder="name@example.com"
-                  className={`pl-10 h-11 ${emailError ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                  className={`pl-10 h-11 border-atacama-beige/40 focus-visible:ring-atacama-orange focus-visible:border-atacama-orange ${emailError ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                   autoComplete="email"
                   disabled={isLoading || isGoogleLoading}
                 />
@@ -232,33 +232,33 @@ const SignInModal = ({ isOpen, onOpenChange }: SignInModalProps) => {
             {/* Password Field */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-sm font-medium text-foreground">
+                <Label htmlFor="password" className="text-sm font-medium text-atacama-brown">
                   Contraseña
                 </Label>
                 <button
                   type="button"
-                  className="text-sm text-primary hover:text-primary/80 font-medium transition-colors"
+                  className="text-sm text-atacama-orange hover:text-atacama-orange/80 font-medium transition-colors"
                   onClick={() => toast.info('La función de restablecimiento de contraseña está en desarrollo!')}
                 >
                   ¿Olvidaste tu contraseña?
                 </button>
               </div>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-atacama-brown/60" />
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={handlePasswordChange}
                   placeholder="Ingresa tu contraseña"
-                  className={`pl-10 pr-10 h-11 ${passwordError ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                  className={`pl-10 pr-10 h-11 border-atacama-beige/40 focus-visible:ring-atacama-orange focus-visible:border-atacama-orange ${passwordError ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                   autoComplete="current-password"
                   disabled={isLoading || isGoogleLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-atacama-brown/60 hover:text-atacama-brown transition-colors"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   disabled={isLoading || isGoogleLoading}
                 >
@@ -280,10 +280,10 @@ const SignInModal = ({ isOpen, onOpenChange }: SignInModalProps) => {
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2"
+                className="w-4 h-4 text-atacama-orange bg-background border-atacama-beige/40 rounded focus:ring-atacama-orange focus:ring-2"
                 disabled={isLoading || isGoogleLoading}
               />
-              <Label htmlFor="remember" className="text-sm text-muted-foreground cursor-pointer">
+              <Label htmlFor="remember" className="text-sm text-atacama-brown/70 cursor-pointer">
                 Recordarme por 30 días
               </Label>
             </div>
@@ -298,7 +298,7 @@ const SignInModal = ({ isOpen, onOpenChange }: SignInModalProps) => {
             {/* Submit Button */}
             <Button 
               type="submit" 
-              className="w-full h-11 font-semibold" 
+              className="w-full h-11 font-semibold bg-atacama-orange hover:bg-atacama-orange/90 text-white" 
               disabled={isLoading || isGoogleLoading || !email || !password}
             >
               {isLoading ? (

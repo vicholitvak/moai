@@ -7,7 +7,7 @@ The "Missing or insufficient permissions" error occurs because Firestore securit
 ### Step 1: Deploy Firestore Security Rules
 
 1. **Open Firebase Console**: Go to [Firebase Console](https://console.firebase.google.com)
-2. **Select your project**: Click on your Moai app project
+2. **Select your project**: Click on your LicanÑam app project
 3. **Navigate to Firestore**: Click "Firestore Database" in the left sidebar
 4. **Go to Rules tab**: Click on the "Rules" tab
 5. **Replace the rules**: Copy the content from `firestore.rules` file and paste it into the Firebase Console

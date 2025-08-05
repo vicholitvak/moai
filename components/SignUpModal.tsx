@@ -28,40 +28,40 @@ interface SignUpModalProps {
 const getFirebaseErrorMessage = (error: AuthError): string => {
   switch (error.code) {
     case 'auth/email-already-in-use':
-      return 'An account with this email already exists. Please sign in instead.';
+      return 'Ya existe una cuenta con este correo. Por favor, inicia sesión.';
     case 'auth/invalid-email':
-      return 'Please enter a valid email address.';
+      return 'Por favor, ingresa un correo electrónico válido.';
     case 'auth/operation-not-allowed':
       return 'Email/password accounts are not enabled. Please contact support.';
     case 'auth/weak-password':
-      return 'Password should be at least 6 characters long.';
+      return 'La contraseña debe tener al menos 6 caracteres.';
     case 'auth/network-request-failed':
-      return 'Network error. Please check your connection and try again.';
+      return 'Error de red. Por favor, verifica tu conexión e intenta de nuevo.';
     case 'auth/popup-closed-by-user':
-      return 'Sign-up was cancelled.';
+      return 'El registro fue cancelado.';
     case 'auth/popup-blocked':
-      return 'Pop-up was blocked. Please allow pop-ups and try again.';
+      return 'La ventana emergente fue bloqueada. Por favor, permite las ventanas emergentes e intenta de nuevo.';
     case 'auth/account-exists-with-different-credential':
       return 'An account already exists with this email using a different sign-in method.';
     default:
-      return 'An error occurred during sign-up. Please try again.';
+      return 'Ocurrió un error durante el registro. Por favor, intenta de nuevo.';
   }
 };
 
 // Form validation
 const validateEmail = (email: string): string | null => {
-  if (!email) return 'Email is required';
+  if (!email) return 'El correo electrónico es requerido';
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) return 'Please enter a valid email address';
+  if (!emailRegex.test(email)) return 'Por favor, ingresa un correo electrónico válido';
   return null;
 };
 
 const validatePassword = (password: string): string | null => {
-  if (!password) return 'Password is required';
-  if (password.length < 6) return 'Password must be at least 6 characters';
-  if (!/(?=.*[a-z])/.test(password)) return 'Password must contain at least one lowercase letter';
-  if (!/(?=.*[A-Z])/.test(password)) return 'Password must contain at least one uppercase letter';
-  if (!/(?=.*\d)/.test(password)) return 'Password must contain at least one number';
+  if (!password) return 'La contraseña es requerida';
+  if (password.length < 6) return 'La contraseña debe tener al menos 6 caracteres';
+  if (!/(?=.*[a-z])/.test(password)) return 'La contraseña debe contener al menos una letra minúscula';
+  if (!/(?=.*[A-Z])/.test(password)) return 'La contraseña debe contener al menos una letra mayúscula';
+  if (!/(?=.*\d)/.test(password)) return 'La contraseña debe contener al menos un número';
   return null;
 };
 
@@ -74,9 +74,9 @@ const getPasswordStrength = (password: string): { strength: number; label: strin
   if (/(?=.*\d)/.test(password)) strength++;
   if (/(?=.*[!@#$%^&*])/.test(password)) strength++;
   
-  if (strength <= 2) return { strength, label: 'Weak', color: 'bg-red-500' };
-  if (strength <= 4) return { strength, label: 'Medium', color: 'bg-yellow-500' };
-  return { strength, label: 'Strong', color: 'bg-green-500' };
+  if (strength <= 2) return { strength, label: 'Débil', color: 'bg-red-500' };
+  if (strength <= 4) return { strength, label: 'Media', color: 'bg-yellow-500' };
+  return { strength, label: 'Fuerte', color: 'bg-green-500' };
 };
 
 const SignUpModal = ({ isOpen, onOpenChange }: SignUpModalProps) => {
@@ -123,7 +123,7 @@ const SignUpModal = ({ isOpen, onOpenChange }: SignUpModalProps) => {
         createdAt: new Date().toISOString(),
         displayName: userCredential.user.displayName || email.split('@')[0]
       });
-      toast.success(`Welcome to Moai! Your ${role.toLowerCase()} account has been created successfully.`);
+      toast.success(`Welcome to LicanÑam! Your ${role.toLowerCase()} account has been created successfully.`);
       onOpenChange(false);
     } catch (err: any) {
       const errorMessage = err?.code 
@@ -159,7 +159,7 @@ const SignUpModal = ({ isOpen, onOpenChange }: SignUpModalProps) => {
         displayName: userCredential.user.displayName || userCredential.user.email?.split('@')[0] || 'User',
         photoURL: userCredential.user.photoURL
       });
-      toast.success(`Welcome to Moai! Your ${role.toLowerCase()} account has been created successfully.`);
+      toast.success(`Welcome to LicanÑam! Your ${role.toLowerCase()} account has been created successfully.`);
       onOpenChange(false);
     } catch (err: any) {
       const errorMessage = err?.code 
@@ -201,26 +201,26 @@ const SignUpModal = ({ isOpen, onOpenChange }: SignUpModalProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md max-w-[95vw] max-h-[90vh] overflow-y-auto m-2 sm:m-0">
+      <DialogContent className="sm:max-w-md max-w-[95vw] max-h-[90vh] overflow-y-auto border-2 border-atacama-beige/20 shadow-2xl bg-white/95 backdrop-blur-sm">
         <DialogHeader className="text-center space-y-2">
-          <DialogTitle className="text-2xl font-bold text-foreground">Join Moai</DialogTitle>
-          <DialogDescription className="text-muted-foreground">
-            Create your account to start your culinary adventure.
+          <DialogTitle className="text-2xl font-bold text-atacama-brown">Únete a LicanÑam</DialogTitle>
+          <DialogDescription className="text-atacama-brown/70">
+            Crea tu cuenta para comenzar tu aventura culinaria.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
+        <div className="space-y-6 mt-6">
           {/* Google Sign Up Button */}
           <Button 
             variant="outline" 
-            className="w-full h-12 sm:h-11 font-medium border-2 hover:bg-gray-50 transition-colors text-sm sm:text-base" 
+            className="w-full h-11 font-medium border-2 border-atacama-beige/30 hover:bg-atacama-beige/10 hover:border-atacama-orange/30 transition-colors" 
             onClick={handleGoogleSignIn} 
             disabled={isLoading || isGoogleLoading}
           >
             {isGoogleLoading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
-              <div className="mr-2 w-4 h-4 bg-gradient-to-r from-blue-500 via-red-500 to-yellow-500 rounded-sm flex items-center justify-center text-white text-xs font-bold">
+              <div className="mr-2 w-4 h-4 bg-gradient-to-r from-atacama-orange via-atacama-brown to-atacama-beige rounded-sm flex items-center justify-center text-white text-xs font-bold">
                 G
               </div>
             )}
@@ -233,7 +233,7 @@ const SignUpModal = ({ isOpen, onOpenChange }: SignUpModalProps) => {
               <span className="w-full border-t border-border" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-3 text-muted-foreground font-medium">O crea con email</span>
+              <span className="bg-background px-3 text-muted-foreground font-medium">O regístrate con email</span>
             </div>
           </div>
 
@@ -241,8 +241,8 @@ const SignUpModal = ({ isOpen, onOpenChange }: SignUpModalProps) => {
           <form onSubmit={handleSignUp} className="space-y-4">
             {/* Role Selection */}
             <div className="space-y-3">
-              <Label className="text-sm font-medium text-foreground flex items-center gap-2">
-                <User className="h-4 w-4" />
+              <Label className="text-sm font-medium text-atacama-brown flex items-center gap-2">
+                <User className="h-4 w-4 text-atacama-orange" />
                 Quiero unirme como...
               </Label>
               <ToggleGroup 
@@ -252,11 +252,11 @@ const SignUpModal = ({ isOpen, onOpenChange }: SignUpModalProps) => {
                 className="grid grid-cols-3 gap-2 w-full" 
                 variant="outline"
               >
-                <ToggleGroupItem value="Client" className="text-xs sm:text-sm py-3 px-2 sm:px-3 flex-1 text-center min-h-[44px]">Cliente</ToggleGroupItem>
-                <ToggleGroupItem value="Cooker" className="text-xs sm:text-sm py-3 px-2 sm:px-3 flex-1 text-center min-h-[44px]">Cocinero</ToggleGroupItem>
-                <ToggleGroupItem value="Driver" className="text-xs sm:text-sm py-3 px-2 sm:px-3 flex-1 text-center min-h-[44px]">Conductor</ToggleGroupItem>
+                <ToggleGroupItem value="Client" className="text-sm py-2.5 px-3 flex-1 text-center border-atacama-beige/40 data-[state=on]:bg-atacama-orange data-[state=on]:text-white data-[state=on]:hover:bg-atacama-orange/90 hover:bg-atacama-beige/10 hover:text-atacama-brown transition-colors">Cliente</ToggleGroupItem>
+                <ToggleGroupItem value="Cooker" className="text-sm py-2.5 px-3 flex-1 text-center border-atacama-beige/40 data-[state=on]:bg-atacama-orange data-[state=on]:text-white data-[state=on]:hover:bg-atacama-orange/90 hover:bg-atacama-beige/10 hover:text-atacama-brown transition-colors">Cocinero</ToggleGroupItem>
+                <ToggleGroupItem value="Driver" className="text-sm py-2.5 px-3 flex-1 text-center border-atacama-beige/40 data-[state=on]:bg-atacama-orange data-[state=on]:text-white data-[state=on]:hover:bg-atacama-orange/90 hover:bg-atacama-beige/10 hover:text-atacama-brown transition-colors">Conductor</ToggleGroupItem>
               </ToggleGroup>
-              <p className="text-xs text-muted-foreground text-center">
+              <p className="text-xs text-atacama-brown/70 text-center">
                 {role === 'Client' && 'Ordena deliciosa comida casera de cocineros locales'}
                 {role === 'Cooker' && 'Comparte tus habilidades culinarias y gana dinero'}
                 {role === 'Driver' && 'Entrega comida y gana ingresos flexibles'}
@@ -265,18 +265,18 @@ const SignUpModal = ({ isOpen, onOpenChange }: SignUpModalProps) => {
 
             {/* Email Field */}
             <div className="space-y-2">
-              <Label htmlFor="email-signup" className="text-sm font-medium text-foreground">
+              <Label htmlFor="email-signup" className="text-sm font-medium text-atacama-brown">
                 Dirección de Email
               </Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-atacama-brown/60" />
                 <Input
                   id="email-signup"
                   type="email"
                   value={email}
                   onChange={handleEmailChange}
                   placeholder="name@example.com"
-                  className={`pl-10 h-11 ${emailError ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                  className={`pl-10 h-11 border-atacama-beige/40 focus-visible:ring-atacama-orange focus-visible:border-atacama-orange ${emailError ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                   autoComplete="email"
                   disabled={isLoading || isGoogleLoading}
                 />
@@ -291,25 +291,25 @@ const SignUpModal = ({ isOpen, onOpenChange }: SignUpModalProps) => {
 
             {/* Password Field */}
             <div className="space-y-2">
-              <Label htmlFor="password-signup" className="text-sm font-medium text-foreground">
+              <Label htmlFor="password-signup" className="text-sm font-medium text-atacama-brown">
                 Contraseña
               </Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-atacama-brown/60" />
                 <Input
                   id="password-signup"
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={handlePasswordChange}
                   placeholder="Ingresa tu contraseña segura"
-                  className={`pl-10 pr-10 h-11 ${passwordError ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                  className={`pl-10 pr-10 h-11 border-atacama-beige/40 focus-visible:ring-atacama-orange focus-visible:border-atacama-orange ${passwordError ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                   autoComplete="new-password"
                   disabled={isLoading || isGoogleLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-atacama-brown/60 hover:text-atacama-brown transition-colors"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                   disabled={isLoading || isGoogleLoading}
                 >
@@ -321,10 +321,10 @@ const SignUpModal = ({ isOpen, onOpenChange }: SignUpModalProps) => {
               {password && (
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">Password strength:</span>
+                    <span className="text-muted-foreground">Fortaleza de la contraseña:</span>
                     <span className={`font-medium ${
-                      passwordStrength.label === 'Weak' ? 'text-red-500' :
-                      passwordStrength.label === 'Medium' ? 'text-yellow-500' : 'text-green-500'
+                      passwordStrength.label === 'Débil' ? 'text-red-500' :
+                      passwordStrength.label === 'Media' ? 'text-yellow-500' : 'text-green-500'
                     }`}>
                       {passwordStrength.label}
                     </span>
@@ -357,16 +357,16 @@ const SignUpModal = ({ isOpen, onOpenChange }: SignUpModalProps) => {
             {/* Submit Button */}
             <Button 
               type="submit" 
-              className="w-full h-12 sm:h-11 font-semibold text-sm sm:text-base" 
+              className="w-full h-11 font-semibold bg-atacama-orange hover:bg-atacama-orange/90 text-white" 
               disabled={isLoading || isGoogleLoading || !email || !password}
             >
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating account...
+                  Creando cuenta...
                 </>
               ) : (
-                `Create ${role} Account`
+                'Crear Cuenta'
               )}
             </Button>
           </form>

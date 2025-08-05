@@ -100,4 +100,52 @@
       transition-duration: 0.01ms !important;
     }
   }
+
+  /* Hide scrollbar for mobile-friendly horizontal scrolling */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
+
+  /* LicanÑam Atacama Desert Color Palette */
+  .bg-atacama-orange {
+    background-color: #F57C00 !important;
+  }
+  
+  .hover\:bg-atacama-orange\/90:hover {
+    background-color: rgba(245, 124, 0, 0.9) !important;
+  }
+  
+  .text-atacama-orange {
+    color: #F57C00 !important;
+  }
+  
+  .text-atacama-brown {
+    color: #8D6E63 !important;
+  }
+  
+  .border-atacama-orange {
+    border-color: #F57C00 !important;
+  }
+  
+  .border-atacama-beige\/40 {
+    border-color: rgba(215, 204, 200, 0.4) !important;
+  }
+  
+  .ring-atacama-orange {
+    --tw-ring-color: #F57C00 !important;
+  }
+  
+  .focus-visible\:ring-atacama-orange:focus-visible {
+    --tw-ring-color: #F57C00 !important;
+  }
+  
+  .focus-visible\:border-atacama-orange:focus-visible {
+    border-color: #F57C00 !important;
+  }
+
 }

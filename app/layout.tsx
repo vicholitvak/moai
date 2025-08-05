@@ -11,11 +11,11 @@ import NotificationInitializer from '../components/NotificationInitializer';
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Moai",
+  title: "LicanÑam",
   description: "Descubre deliciosa comida casera de cocineros locales",
   icons: {
-    icon: '/favicon.ico',
-    apple: '/icon-192x192.png',
+    icon: '/llama-icon.jpg',
+    apple: '/llama-icon.jpg',
   },
   manifest: '/manifest.json',
 };

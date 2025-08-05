@@ -1,6 +1,6 @@
 # Mercado Pago Setup Guide
 
-This guide explains how to configure Mercado Pago for the Moai app.
+This guide explains how to configure Mercado Pago for the LicanÑam app.
 
 ## 1. Create Mercado Pago Developer Account
 

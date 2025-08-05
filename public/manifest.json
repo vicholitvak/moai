@@ -1,28 +1,28 @@
 {
-  "name": "Moai - Comida Casera",
-  "short_name": "Moai",
+  "name": "LicanÑam - Comida Casera",
+  "short_name": "LicanÑam",
   "description": "Descubre deliciosa comida casera de cocineros locales",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#FF6600",
+  "theme_color": "#F57C00",
   "orientation": "portrait-primary",
   "categories": ["food", "lifestyle", "shopping"],
   "icons": [
     {
-      "src": "/icon-96x96.png",
+      "src": "/llama-icon.jpg",
       "sizes": "96x96",
-      "type": "image/png"
+      "type": "image/jpeg"
     },
     {
-      "src": "/icon-192x192.png",
+      "src": "/llama-icon.jpg",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/jpeg"
     },
     {
-      "src": "/icon-192x192.png",
+      "src": "/llama-icon.jpg", 
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/jpeg"
     }
   ],
   "shortcuts": [
@@ -33,7 +33,7 @@
       "url": "/client/orders",
       "icons": [
         {
-          "src": "/icon-96x96.png",
+          "src": "/llama-icon.jpg",
           "sizes": "96x96"
         }
       ]
@@ -45,7 +45,7 @@
       "url": "/dishes",
       "icons": [
         {
-          "src": "/icon-96x96.png", 
+          "src": "/llama-icon.jpg", 
           "sizes": "96x96"
         }
       ]

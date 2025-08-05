@@ -1,12 +1,17 @@
 {
-  "name": "moai-app",
+  "name": "licannam-app",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "build": "npm run lint && npm run type-check && next build",
+    "build:unsafe": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "type-check": "tsc --noEmit",
+    "validate": "npm run lint && npm run type-check",
+    "prebuild": "npm run validate"
   },
   "dependencies": {
     "@mercadopago/sdk-react": "^1.0.3",
@@ -22,6 +27,7 @@
     "@radix-ui/react-toggle-group": "^1.1.10",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
     "dotenv": "^17.2.1",
     "firebase": "^12.0.0",
     "firebase-admin": "^13.4.0",
@@ -37,7 +43,8 @@
     "sonner": "^2.0.6",
     "swiper": "^11.2.10",
     "tailwind-merge": "^3.3.1",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "zod": "^4.0.14"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

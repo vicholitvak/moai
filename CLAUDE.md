@@ -20,7 +20,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Framework**: Next.js 15.4.5 with App Router (React 19)
 - **Database**: Firebase Firestore with real-time capabilities
 - **Authentication**: Firebase Auth with role-based access (cooker/customer/driver/admin)
-- **Styling**: Tailwind CSS 4 with CSS variables and custom Moai brand colors
+- **Styling**: Tailwind CSS 4 with CSS variables and custom LicanÑam brand colors
 - **UI Components**: Shadcn/ui with Radix UI primitives and Lucide icons
 - **Animations**: Framer Motion and Tailwind Animate
 - **Image Handling**: Next.js Image with Unsplash domains configured
@@ -53,7 +53,7 @@ The application uses Next.js App Router with role-based routing:
 **Component Organization**:
 - `components/ui/` - Reusable Shadcn/ui components
 - Custom components follow Tailwind + CSS variables pattern
-- Brand colors: `moai-orange` (#FF6600) and `moai-beige` (#F5F5DC)
+- Brand colors: `atacama-orange` (#F57C00) and `atacama-beige` (#D7CCC8)
 
 **Data Models**:
 - Users have roles: customer, cooker, driver, admin
@@ -85,3 +85,19 @@ The application uses Next.js App Router with role-based routing:
 - Image optimization configured for Unsplash domains
 - CSS variables enable theme consistency across components
 - Real-time subscriptions should be properly cleaned up in useEffect
+
+### Color Theme Implementation
+
+**Safe Color Usage Pattern**:
+The app uses a dual color system for stability:
+- Atacama Desert palette (with `atacama-` prefix): 
+  - `atacama-orange`: #F57C00 (sunset orange)
+  - `atacama-brown`: #8D6E63 (earth brown)
+  - `atacama-beige`: #D7CCC8 (sand beige)
+  - `atacama-olive`: #556B2F (olive green)
+
+**Important**: When adding new theme colors:
+1. Always use different prefixes to avoid conflicts
+2. Test incrementally - apply to one component at a time
+3. Keep original colors as fallback
+4. Avoid massive simultaneous font and color changes (causes Turbopack errors)
