@@ -235,6 +235,7 @@ export default function CookerDashboard() {
     
     try {
       const dishId = await DishesService.createDish(dishData);
+      
       if (dishId) {
         console.log('Dish added successfully with ID:', dishId);
         

@@ -112,45 +112,13 @@ const ClientDishesPage = () => {
         setLoading(true);
       }
       
-      console.log(`Fetching dishes page ${page} from Firebase with optimized service...`);
+      console.log(`Fetching dishes page ${page}...`);
       
-      // Temporarily remove isAvailable filter to see all dishes
-      // Use optimized service with caching and pagination
+      // Use optimized service (now with fallback to direct query)
       const dishesResult = await OptimizedDishesService.getDishes({
-        // isAvailable: true, // Temporarily commented out to see all dishes
         pageSize,
         useCache: !isRefresh // Skip cache on manual refresh
       });
-      
-      // Debug: Also try without availability filter to see all dishes
-      console.log('Trying to fetch ALL dishes (including unavailable) for debugging...');
-      try {
-        const allDishesResult = await OptimizedDishesService.getDishes({
-          // Remove isAvailable filter
-          pageSize,
-          useCache: false // Always fresh for debugging
-        });
-        console.log('ALL dishes found (including unavailable):', allDishesResult.data.length);
-        console.log('Sample dishes:', allDishesResult.data.slice(0, 3).map(d => ({ 
-          name: d.name, 
-          isAvailable: d.isAvailable,
-          cookerId: d.cookerId
-        })));
-      } catch (debugError) {
-        console.log('Debug query also failed:', debugError);
-      }
-      
-      console.log('Raw dishes result:', dishesResult);
-      console.log('Number of dishes found:', dishesResult.data.length);
-      console.log('Has more dishes:', dishesResult.hasMore);
-      
-      // Debug: Show availability status of found dishes
-      if (dishesResult.data.length > 0) {
-        console.log('Dish availability status:');
-        dishesResult.data.forEach((dish, index) => {
-          console.log(`${index + 1}. ${dish.name} - isAvailable: ${dish.isAvailable} (${typeof dish.isAvailable})`);
-        });
-      }
       
       // Get cooks data (this could also be optimized)
       const cooksData = await CooksService.getAllCooks();

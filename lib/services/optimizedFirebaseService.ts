@@ -69,28 +69,60 @@ export class OptimizedDishesService {
       // Build optimized query
       const baseQuery = this.buildDishesQuery({ cookId, category, isAvailable });
       
-      // Create pagination instance
-      const pagination = new FirebasePagination<Dish>(baseQuery, {
-        pageSize,
-        orderByField: 'createdAt',
-        orderDirection: 'desc'
-      });
+      // Try pagination first, with fallback to direct query
+      try {
+        const pagination = new FirebasePagination<Dish>(baseQuery, {
+          pageSize,
+          orderByField: 'createdAt',
+          orderDirection: 'desc'
+        });
 
-      // Get first page
-      const result = await pagination.getFirstPage();
+        const result = await pagination.getFirstPage();
+        
+        if (!result.error && result.data.length > 0) {
+          // Pagination worked
+          if (useCache) {
+            dishCache.set(cacheKey, {
+              data: result.data,
+              hasMore: result.hasNextPage
+            }, this.CACHE_TTL);
+          }
+
+          return {
+            data: result.data,
+            hasMore: result.hasNextPage,
+            pagination
+          };
+        }
+      } catch (paginationError) {
+        console.warn('Pagination failed, falling back to direct query:', paginationError);
+      }
+      
+      // Fallback: Use direct query without pagination
+      const { getDocs, orderBy: fbOrderBy, limit: fbLimit } = await import('firebase/firestore');
+      const { query } = await import('firebase/firestore');
+      
+      // Add ordering and limit to base query
+      const fallbackQuery = query(baseQuery, fbOrderBy('createdAt', 'desc'), fbLimit(pageSize));
+      const directSnapshot = await getDocs(fallbackQuery);
+      
+      const directDishes = directSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Dish[];
       
       // Cache the result
-      if (useCache && !result.error) {
+      if (useCache) {
         dishCache.set(cacheKey, {
-          data: result.data,
-          hasMore: result.hasNextPage
+          data: directDishes,
+          hasMore: directSnapshot.docs.length === pageSize
         }, this.CACHE_TTL);
       }
 
       return {
-        data: result.data,
-        hasMore: result.hasNextPage,
-        pagination
+        data: directDishes,
+        hasMore: directSnapshot.docs.length === pageSize,
+        pagination: new FirebasePagination<Dish>(baseQuery, { pageSize })
       };
     } catch (error) {
       console.error('Error fetching dishes:', error);
