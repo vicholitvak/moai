@@ -48,10 +48,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             
             setRole(userRole);
           } else {
-            // New user - check if admin or assign default Client role
-            const defaultRole = isAdminUser ? 'Admin' : 'Client';
-            await setDoc(docRef, { role: defaultRole }, { merge: true });
-            setRole(defaultRole);
+            // For new users or users without a document
+            if (isAdminUser) {
+              // Admin users always get Admin role
+              await setDoc(docRef, { role: 'Admin' }, { merge: true });
+              setRole('Admin');
+            } else {
+              // Don't automatically create a document for non-admin users
+              // The SignUpModal will handle creating the document with the correct role
+              // For now, don't set a role - this will prevent incorrect redirections
+              setRole(null);
+              console.log('User document not found in Firestore. User may need to complete registration.');
+            }
           }
         } else {
           setUser(null);
@@ -63,7 +71,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (user) {
           setUser(user);
           const isAdminUser = user.email === 'admin@moai.com' || user.uid === 'admin' || (user.email && user.email.includes('admin'));
-          setRole(isAdminUser ? 'Admin' : 'Client'); // Default role if Firestore fails
+          // Don't assign a default role - let the user complete registration if needed
+          setRole(isAdminUser ? 'Admin' : null);
         } else {
           setUser(null);
           setRole(null);

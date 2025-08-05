@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, AuthError } from 'firebase/auth';
-import { setDoc, doc } from 'firebase/firestore';
+import { setDoc, doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase/client';
 import { toast } from 'sonner';
 import { Eye, EyeOff, Loader2, Mail, Lock, User } from 'lucide-react';
@@ -117,13 +117,21 @@ const SignUpModal = ({ isOpen, onOpenChange }: SignUpModalProps) => {
     
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      await setDoc(doc(db, 'users', userCredential.user.uid), { 
+      
+      // Ensure the user document is created with the selected role
+      const userDocRef = doc(db, 'users', userCredential.user.uid);
+      await setDoc(userDocRef, { 
         role,
         email: userCredential.user.email,
         createdAt: new Date().toISOString(),
-        displayName: userCredential.user.displayName || email.split('@')[0]
+        displayName: userCredential.user.displayName || email.split('@')[0],
+        uid: userCredential.user.uid
       });
-      toast.success(`Welcome to LicanÑam! Your ${role.toLowerCase()} account has been created successfully.`);
+      
+      // Wait a moment to ensure Firestore has processed the write
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      toast.success(`¡Bienvenido a LicanÑam! Tu cuenta de ${role.toLowerCase() === 'client' ? 'cliente' : role.toLowerCase() === 'cooker' ? 'cocinero' : 'conductor'} ha sido creada exitosamente.`);
       onOpenChange(false);
     } catch (err: any) {
       const errorMessage = err?.code 
@@ -151,15 +159,33 @@ const SignUpModal = ({ isOpen, onOpenChange }: SignUpModalProps) => {
       });
       
       const userCredential = await signInWithPopup(auth, provider);
-      // Save the selected role and additional user info to Firestore
-      await setDoc(doc(db, 'users', userCredential.user.uid), { 
+      
+      // Check if user already exists in Firestore
+      const userDocRef = doc(db, 'users', userCredential.user.uid);
+      const userDoc = await getDoc(userDocRef);
+      
+      if (userDoc.exists()) {
+        // Existing user - they should use sign in instead
+        toast.error('Ya tienes una cuenta. Por favor, usa el botón de iniciar sesión.');
+        await auth.signOut();
+        onOpenChange(false);
+        return;
+      }
+      
+      // New user - create their document with selected role
+      await setDoc(userDocRef, { 
         role,
         email: userCredential.user.email,
         createdAt: new Date().toISOString(),
         displayName: userCredential.user.displayName || userCredential.user.email?.split('@')[0] || 'User',
-        photoURL: userCredential.user.photoURL
+        photoURL: userCredential.user.photoURL,
+        uid: userCredential.user.uid
       });
-      toast.success(`Welcome to LicanÑam! Your ${role.toLowerCase()} account has been created successfully.`);
+      
+      // Wait a moment to ensure Firestore has processed the write
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      toast.success(`¡Bienvenido a LicanÑam! Tu cuenta de ${role.toLowerCase() === 'client' ? 'cliente' : role.toLowerCase() === 'cooker' ? 'cocinero' : 'conductor'} ha sido creada exitosamente.`);
       onOpenChange(false);
     } catch (err: any) {
       const errorMessage = err?.code 

@@ -52,9 +52,13 @@ const AuthHandler = ({ children }: { children: React.ReactNode }) => {
         return;
       }
       
-      // If user is authenticated but has no role, assign default Client role
-      if (user && !role) {
-        // Default new users to Client role - they can change later if needed
+      // If user is authenticated but has no role, redirect to home to complete registration
+      if (user && !role && !isAdmin) {
+        // User needs to complete registration
+        if (pathname !== '/' && pathname !== '/login') {
+          console.log('User authenticated but no role found. Redirecting to home to complete registration.');
+          router.push('/');
+        }
         return;
       }
       
