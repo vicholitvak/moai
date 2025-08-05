@@ -37,6 +37,7 @@ import { AddDishModal } from '@/components/AddDishModal';
 import CookerOnboarding from '@/components/CookerOnboarding';
 // import LocationSetup from '@/components/LocationSetup'; // Unused import
 import { DishesService, OrdersService, CooksService, AnalyticsService, type Dish, type Order, type Cook } from '@/lib/firebase/dataService';
+import { OptimizedDishesService } from '@/lib/services/optimizedFirebaseService';
 
 export default function CookerDashboard() {
   const { user, logout } = useAuth();
@@ -223,6 +224,10 @@ export default function CookerDashboard() {
       const dishId = await DishesService.createDish(dishData);
       if (dishId) {
         console.log('Dish added successfully with ID:', dishId);
+        
+        // Invalidate cache so clients can see the new dish immediately
+        OptimizedDishesService.invalidateCache(dishId, user.uid);
+        console.log('Cache invalidated for new dish');
         
         // Use fallback method directly to avoid index issues when adding dishes
         console.log('Refreshing dishes list after adding new dish...');

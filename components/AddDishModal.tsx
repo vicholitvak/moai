@@ -210,8 +210,19 @@ export function AddDishModal({
                     type="number"
                     required
                     min="0"
+                    step="1"
                     value={data.price || ''}
-                    onChange={(e) => handleInputChange('price', parseInt(e.target.value) || 0)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Handle empty string
+                      if (value === '') {
+                        handleInputChange('price', 0);
+                        return;
+                      }
+                      // Parse as float to handle decimals, then round to nearest integer for CLP
+                      const numValue = Math.round(parseFloat(value) || 0);
+                      handleInputChange('price', numValue);
+                    }}
                     className={hasFieldError('price') ? 'border-red-500' : ''}
                     placeholder="10990"
                   />
