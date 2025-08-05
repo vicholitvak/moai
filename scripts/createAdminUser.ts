@@ -1,6 +1,6 @@
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
-import admin from '../lib/firebase/admin';
+import { admin } from '../lib/firebase/admin';
 
 interface CreateAdminOptions {
   email: string;

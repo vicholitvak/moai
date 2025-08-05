@@ -1,6 +1,6 @@
 'use client';
 
-import { DishesService, CooksService, type Dish, type Cook } from '@/lib/firebase/dataService';
+import { DishesService, CooksService, type Dish } from '@/lib/firebase/dataService';
 import { LocationService, type Coordinates } from '@/lib/services/locationService';
 
 interface DishWithTrendScore extends Dish {

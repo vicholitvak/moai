@@ -14,12 +14,6 @@ export default function AdminVerifyPage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [currentData, setCurrentData] = useState<Record<string, unknown> | null>(null);
 
-  useEffect(() => {
-    if (user) {
-      loadUserData();
-    }
-  }, [user, loadUserData]);
-
   const loadUserData = useCallback(async () => {
     if (!user) return;
     
@@ -34,6 +28,12 @@ export default function AdminVerifyPage() {
       console.error('Error loading user data:', error);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      loadUserData();
+    }
+  }, [user, loadUserData]);
 
   const setAdminRole = async () => {
     if (!user) return;

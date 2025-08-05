@@ -13,9 +13,9 @@ import {
   DocumentData
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
-import { dishCache, cookCache, orderCache, searchCache } from './cacheService';
-import { FirebasePagination, PaginationOptions } from '@/lib/utils/pagination';
-import type { Dish, Cook, Order } from '@/lib/firebase/dataService';
+import { dishCache, cookCache, searchCache } from './cacheService';
+import { FirebasePagination } from '@/lib/utils/pagination';
+import type { Dish, Cook } from '@/lib/firebase/dataService';
 
 // Optimized Dishes Service
 export class OptimizedDishesService {

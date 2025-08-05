@@ -71,7 +71,7 @@ const CartPage = () => {
         if (!acc[item.cookerId]) {
           acc[item.cookerId] = [];
         }
-        acc[item.cookerId].push(item);
+        acc[item.cookerId]?.push(item);
         return acc;
       }, {} as Record<string, typeof cartItems>);
 

@@ -7,7 +7,8 @@ import {
   getDocs,
   orderBy,
   where,
-  WhereFilterOp
+  WhereFilterOp,
+  query
 } from 'firebase/firestore';
 
 export interface PaginationOptions {
@@ -359,23 +360,21 @@ export const queryOptimizer = {
 
   // Optimize query for pagination
   addPaginationOptimizations(
-    query: Query,
+    baseQuery: Query,
     options: {
       orderBy: string;
       direction?: 'asc' | 'desc';
       pageSize?: number;
     }
   ): Query {
-    let optimizedQuery = query;
+    const constraints = [
+      orderBy(options.orderBy, options.direction || 'desc')
+    ];
     
-    // Add ordering for consistent pagination
-    optimizedQuery = orderBy(optimizedQuery, options.orderBy, options.direction || 'desc');
-    
-    // Add limit to control page size
     if (options.pageSize) {
-      optimizedQuery = limit(optimizedQuery, options.pageSize);
+      constraints.push(limit(options.pageSize));
     }
     
-    return optimizedQuery;
+    return query(baseQuery, ...constraints);
   }
 };

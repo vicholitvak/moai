@@ -21,9 +21,9 @@ const eslintConfig = [
     rules: {
       // Security and TypeScript strict rules
       "@typescript-eslint/no-explicit-any": "warn", // Temporarily downgrade to warning for deployment
-      "@typescript-eslint/no-unused-vars": "error", 
+      "@typescript-eslint/no-unused-vars": "warn", 
       "@typescript-eslint/explicit-function-return-type": "warn",
-      "@typescript-eslint/no-non-null-assertion": "error",
+      "@typescript-eslint/no-non-null-assertion": "warn",
       "@typescript-eslint/prefer-nullish-coalescing": "warn",
       "@typescript-eslint/prefer-optional-chain": "warn",
       

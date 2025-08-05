@@ -478,10 +478,7 @@ export default function AdminDashboard() {
       const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : 
                       (order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt || 0));
       const dateKey = orderDate.toISOString().split('T')[0];
-      if (!acc[dateKey]) {
-        acc[dateKey] = 0;
-      }
-      acc[dateKey] += order.total;
+      acc[dateKey] = (acc[dateKey] || 0) + order.total;
       return acc;
     }, {} as Record<string, number>);
 
