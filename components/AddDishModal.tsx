@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { type Dish } from '@/lib/firebase/dataService';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { addDishSchema, type AddDishFormData } from '@/lib/schemas/dishSchema';
@@ -169,15 +171,13 @@ export function AddDishModal({
             <div className="space-y-6">
               <div>
                 <Label htmlFor="name">Nombre del Plato *</Label>
-                <input
+                <Input
                   id="name"
                   type="text"
                   required
                   value={data.name || ''}
                   onChange={(e) => handleInputChange('name', e.target.value)}
-                  className={`w-full mt-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    hasFieldError('name') ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={hasFieldError('name') ? 'border-red-500' : ''}
                   placeholder="Ej: Spaghetti Carbonara"
                 />
                 <FieldError field="name" />
@@ -205,16 +205,14 @@ export function AddDishModal({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="price">Precio (CLP) *</Label>
-                  <input
+                  <Input
                     id="price"
                     type="number"
                     required
                     min="0"
                     value={data.price || ''}
                     onChange={(e) => handleInputChange('price', parseInt(e.target.value) || 0)}
-                    className={`w-full mt-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      hasFieldError('price') ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className={hasFieldError('price') ? 'border-red-500' : ''}
                     placeholder="10990"
                   />
                   <FieldError field="price" />
@@ -222,15 +220,13 @@ export function AddDishModal({
 
                 <div>
                   <Label htmlFor="prepTime">Tiempo de Preparación *</Label>
-                  <input
+                  <Input
                     id="prepTime"
                     type="text"
                     required
                     value={data.prepTime || ''}
                     onChange={(e) => handleInputChange('prepTime', e.target.value)}
-                    className={`w-full mt-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      hasFieldError('prepTime') ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className={hasFieldError('prepTime') ? 'border-red-500' : ''}
                     placeholder="25 mins"
                   />
                   <FieldError field="prepTime" />
@@ -239,21 +235,21 @@ export function AddDishModal({
 
               <div>
                 <Label htmlFor="category">Categoría *</Label>
-                <select
-                  id="category"
-                  required
+                <Select
                   value={data.category || 'Platos principales'}
-                  onChange={(e) => handleInputChange('category', e.target.value)}
-                  className={`w-full mt-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    hasFieldError('category') ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  onValueChange={(value) => handleInputChange('category', value)}
                 >
-                  {categories.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className={hasFieldError('category') ? 'border-red-500' : ''}>
+                    <SelectValue placeholder="Selecciona una categoría" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FieldError field="category" />
               </div>
 
@@ -263,13 +259,11 @@ export function AddDishModal({
                 <div className="space-y-2 mt-2">
                   {(data.ingredients || ['']).map((ingredient, index) => (
                     <div key={index} className="flex gap-2">
-                      <input
+                      <Input
                         type="text"
                         value={ingredient}
                         onChange={(e) => handleArrayChange('ingredients', index, e.target.value)}
-                        className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          hasFieldError('ingredients') ? 'border-red-500' : 'border-gray-300'
-                        }`}
+                        className={`flex-1 ${hasFieldError('ingredients') ? 'border-red-500' : ''}`}
                         placeholder="Ej: Pasta fresca, tomates, queso parmesano"
                         required={index === 0}
                       />
