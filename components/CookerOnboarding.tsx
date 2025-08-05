@@ -86,8 +86,8 @@ const STEPS = [
 ];
 
 const SPECIALTIES = [
-  'Italiana', 'Mexicana', 'China', 'Japonesa', 'Peruana', 'Argentina', 'Vegetariana', 
-  'Vegana', 'Panadería', 'Repostería', 'Mariscos', 'Carnes', 'Mediterránea', 'Fusión'
+  'Italiana', 'Mexicana', 'China', 'Sushi', 'Peruana', 'Argentina', 'Vegetariana', 
+  'Vegana', 'Panadería', 'Repostería', 'Burgers', 'Carnes', 'Mediterránea', 'Fusión'
 ];
 
 const COOKING_STYLES = [
@@ -396,7 +396,7 @@ export default function CookerOnboarding({ onComplete }: CookerOnboardingProps) 
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <Label htmlFor="displayName">Nombre completo *</Label>
+                  <Label htmlFor="displayName">Tu nombre o el de tu restaurante *</Label>
                   <Input
                     id="displayName"
                     value={data.displayName}

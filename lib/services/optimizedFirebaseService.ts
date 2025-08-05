@@ -22,7 +22,7 @@ export class OptimizedDishesService {
   private static readonly CACHE_TTL = 10 * 60 * 1000; // 10 minutes
   private static readonly DEFAULT_PAGE_SIZE = 20;
 
-  // Get dishes with caching and pagination
+  // Get dishes with caching (simplified - no pagination)
   static async getDishes(options: {
     cookId?: string;
     category?: string;
@@ -32,18 +32,16 @@ export class OptimizedDishesService {
   } = {}): Promise<{
     data: Dish[];
     hasMore: boolean;
-    pagination: FirebasePagination<Dish>;
   }> {
     const {
       cookId,
       category,
-      isAvailable = true,
       pageSize = this.DEFAULT_PAGE_SIZE,
       useCache = true
     } = options;
 
-    // Generate cache key
-    const cacheKey = `dishes_${cookId || 'all'}_${category || 'all'}_${isAvailable}_${pageSize}`;
+    // Generate cache key (remove isAvailable since we're not filtering by it)
+    const cacheKey = `dishes_${cookId || 'all'}_${category || 'all'}_${pageSize}`;
     
     // Check cache first
     if (useCache) {
@@ -53,65 +51,21 @@ export class OptimizedDishesService {
       }>(cacheKey);
       
       if (cached) {
-        // Return cached data but still create pagination for future use
-        const baseQuery = this.buildDishesQuery({ cookId, category, isAvailable });
-        const pagination = new FirebasePagination<Dish>(baseQuery, { pageSize });
-        
         return {
           data: cached.data,
-          hasMore: cached.hasMore,
-          pagination
+          hasMore: cached.hasMore
         };
       }
     }
 
     try {
-      // Build optimized query
-      const baseQuery = this.buildDishesQuery({ cookId, category, isAvailable });
+      // Use simple query - just get dishes with limit, no complex filters or ordering
+      const { getDocs, limit: fbLimit, collection, query } = await import('firebase/firestore');
       
-      // Try pagination first, with fallback to direct query
-      try {
-        const pagination = new FirebasePagination<Dish>(baseQuery, {
-          pageSize,
-          orderByField: 'createdAt',
-          orderDirection: 'desc'
-        });
-
-        const result = await pagination.getFirstPage();
-        
-        if (result.error) {
-          console.warn('Pagination returned error:', result.error);
-          throw new Error('Pagination failed');
-        }
-        
-        if (result.data.length > 0) {
-          // Pagination worked
-          if (useCache) {
-            dishCache.set(cacheKey, {
-              data: result.data,
-              hasMore: result.hasNextPage
-            }, this.CACHE_TTL);
-          }
-
-          return {
-            data: result.data,
-            hasMore: result.hasNextPage,
-            pagination
-          };
-        }
-      } catch (paginationError) {
-        console.warn('Pagination failed, falling back to direct query:', paginationError);
-      }
-      
-      // Fallback: Use simplest possible query to avoid any index requirements
-      const { getDocs, limit: fbLimit, collection } = await import('firebase/firestore');
-      const { query } = await import('firebase/firestore');
-      
-      // Ultra-simple query - just get dishes with limit, no filters or ordering
       const simpleQuery = query(collection(db, 'dishes'), fbLimit(pageSize));
-      const directSnapshot = await getDocs(simpleQuery);
+      const snapshot = await getDocs(simpleQuery);
       
-      const directDishes = directSnapshot.docs.map(doc => ({
+      const dishes = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as Dish[];
@@ -119,25 +73,20 @@ export class OptimizedDishesService {
       // Cache the result
       if (useCache) {
         dishCache.set(cacheKey, {
-          data: directDishes,
-          hasMore: directSnapshot.docs.length === pageSize
+          data: dishes,
+          hasMore: snapshot.docs.length === pageSize
         }, this.CACHE_TTL);
       }
 
       return {
-        data: directDishes,
-        hasMore: directSnapshot.docs.length === pageSize,
-        pagination: new FirebasePagination<Dish>(baseQuery, { pageSize })
+        data: dishes,
+        hasMore: snapshot.docs.length === pageSize
       };
     } catch (error) {
       console.error('Error fetching dishes:', error);
-      const baseQuery = this.buildDishesQuery({ cookId, category, isAvailable });
-      const pagination = new FirebasePagination<Dish>(baseQuery, { pageSize });
-      
       return {
         data: [],
-        hasMore: false,
-        pagination
+        hasMore: false
       };
     }
   }

@@ -7,8 +7,6 @@ import { useCart } from '../../context/CartContext';
 import { DishesService, CooksService } from '@/lib/firebase/dataService';
 import { OptimizedDishesService } from '@/lib/services/optimizedFirebaseService';
 import { LazyImage } from '@/components/ui/lazy-wrapper';
-import { usePagination } from '@/lib/utils/pagination';
-import { Pagination, LoadMoreButton } from '@/components/ui/pagination';
 import { Dish, Cook } from '@/lib/firebase/dataService';
 import { 
   Search, 
@@ -67,10 +65,8 @@ const ClientDishesPage = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [hasMoreDishes, setHasMoreDishes] = useState(true);
-  const [totalDishes, setTotalDishes] = useState(0);
+  // Simple pagination state
+  const [hasMoreDishes, setHasMoreDishes] = useState(false);
   const pageSize = 20;
 
   // Filter and search logic
@@ -104,7 +100,7 @@ const ClientDishesPage = () => {
     };
   }, [loading]);
 
-  const fetchDishes = async (isRefresh = false, page = 1) => {
+  const fetchDishes = async (isRefresh = false) => {
     try {
       if (isRefresh) {
         setRefreshing(true);
@@ -112,9 +108,9 @@ const ClientDishesPage = () => {
         setLoading(true);
       }
       
-      console.log(`Fetching dishes page ${page}...`);
+      console.log('Fetching dishes...');
       
-      // Use optimized service (now with fallback to direct query)
+      // Use optimized service (simplified without pagination)
       const dishesResult = await OptimizedDishesService.getDishes({
         pageSize,
         useCache: !isRefresh // Skip cache on manual refresh
@@ -141,18 +137,12 @@ const ClientDishesPage = () => {
           };
         });
       
-      if (page === 1) {
-        // First page - replace all dishes
-        setDishes(dishesWithCookInfo);
-      } else {
-        // Additional page - append to existing dishes
-        setDishes(prev => [...prev, ...dishesWithCookInfo]);
-      }
+      setDishes(dishesWithCookInfo);
       
       setHasMoreDishes(dishesResult.hasMore);
       setLastUpdated(new Date());
       
-      console.log(`Loaded ${dishesWithCookInfo.length} dishes for page ${page}`);
+      console.log(`Loaded ${dishesWithCookInfo.length} dishes`);
     } catch (error) {
       console.error('Error fetching dishes:', error);
       
@@ -165,11 +155,7 @@ const ClientDishesPage = () => {
         
         console.log('Fallback dishes found:', fallbackDishes.length);
         
-        // Filter available dishes manually
-        const availableDishes = fallbackDishes.filter(dish => dish.isAvailable === true);
-        console.log('Available dishes after filtering:', availableDishes.length);
-        
-        const dishesWithCookInfo: DishWithCook[] = availableDishes
+        const dishesWithCookInfo: DishWithCook[] = fallbackDishes
           .map(dish => {
             const cook = cooksMap.get(dish.cookerId);
             return {
@@ -183,11 +169,7 @@ const ClientDishesPage = () => {
             };
           });
         
-        if (page === 1) {
-          setDishes(dishesWithCookInfo);
-        } else {
-          setDishes(prev => [...prev, ...dishesWithCookInfo]);
-        }
+        setDishes(dishesWithCookInfo);
         
         setHasMoreDishes(false); // No pagination for fallback
         setLastUpdated(new Date());
@@ -202,13 +184,13 @@ const ClientDishesPage = () => {
     }
   };
 
-  // Load more dishes for pagination
+  // Load more dishes (simplified)
   const loadMoreDishes = async () => {
     if (!hasMoreDishes || loading) return;
     
-    const nextPage = currentPage + 1;
-    setCurrentPage(nextPage);
-    await fetchDishes(false, nextPage);
+    // For now, just refresh to get more dishes
+    // In a real app, you'd implement cursor-based pagination here
+    await fetchDishes(true);
   };
 
   const handleRefresh = () => {
@@ -618,16 +600,17 @@ const ClientDishesPage = () => {
                 ))}
               </div>
               
-              {/* Load More Button */}
-              {filteredDishes.length > 0 && (
-                <LoadMoreButton
-                  hasMore={hasMoreDishes}
-                  loading={loading}
-                  onLoadMore={loadMoreDishes}
-                  className="mt-8"
-                >
-                  Cargar más platos
-                </LoadMoreButton>
+              {/* Refresh Button - simplified without complex pagination */}
+              {filteredDishes.length > 0 && hasMoreDishes && (
+                <div className="mt-8 text-center">
+                  <Button 
+                    onClick={loadMoreDishes}
+                    disabled={loading || refreshing}
+                    variant="outline"
+                  >
+                    {refreshing ? 'Actualizando...' : 'Actualizar platos'}
+                  </Button>
+                </div>
               )}
             </>
           ) : (
