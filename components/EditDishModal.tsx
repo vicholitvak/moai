@@ -9,10 +9,10 @@ import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 
 interface EditDishModalProps {
-  dish: any;
+  dish: { id: string; name: string; description: string; price: number; images: string[]; category: string; preparationTime: number; servingSize: number; dietaryRestrictions: string[]; nutrition: Record<string, number>; availability: boolean; };
   isOpen: boolean;
   onClose: () => void;
-  onSave: (updatedDish: any) => void;
+  onSave: (updatedDish: { id: string; name: string; description: string; price: number; images: string[]; category: string; preparationTime: number; servingSize: number; dietaryRestrictions: string[]; nutrition: Record<string, number>; availability: boolean; }) => void;
 }
 
 const EditDishModal: React.FC<EditDishModalProps> = ({ dish, isOpen, onClose, onSave }) => {
@@ -60,14 +60,14 @@ const EditDishModal: React.FC<EditDishModalProps> = ({ dish, isOpen, onClose, on
     }
   }, [dish, isOpen]);
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = (field: string, value: string | number | boolean | string[]) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
   };
 
-  const handleNutritionChange = (field: string, value: any) => {
+  const handleNutritionChange = (field: string, value: number) => {
     setFormData(prev => ({
       ...prev,
       nutritionInfo: {

@@ -5,6 +5,10 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { DishesService, CooksService } from '@/lib/firebase/dataService';
+import { OptimizedDishesService } from '@/lib/services/optimizedFirebaseService';
+import { LazyImage } from '@/components/ui/lazy-wrapper';
+import { usePagination } from '@/lib/utils/pagination';
+import { Pagination, LoadMoreButton } from '@/components/ui/pagination';
 import { Dish, Cook } from '@/lib/firebase/dataService';
 import { 
   Search, 
@@ -62,6 +66,12 @@ const ClientDishesPage = () => {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMoreDishes, setHasMoreDishes] = useState(true);
+  const [totalDishes, setTotalDishes] = useState(0);
+  const pageSize = 20;
 
   // Filter and search logic
   useEffect(() => {
@@ -94,7 +104,7 @@ const ClientDishesPage = () => {
     };
   }, [loading]);
 
-  const fetchDishes = async (isRefresh = false) => {
+  const fetchDishes = async (isRefresh = false, page = 1) => {
     try {
       if (isRefresh) {
         setRefreshing(true);
@@ -102,24 +112,21 @@ const ClientDishesPage = () => {
         setLoading(true);
       }
       
-      console.log('Fetching dishes from Firebase...');
-      const timestamp = Date.now();
-      console.log(`Fetch timestamp: ${timestamp}`);
+      console.log(`Fetching dishes page ${page} from Firebase with optimized service...`);
       
-      const [dishesData, cooksData] = await Promise.all([
-        DishesService.getAllDishes(),
-        CooksService.getAllCooks()
-      ]);
+      // Use optimized service with caching and pagination
+      const dishesResult = await OptimizedDishesService.getDishes({
+        isAvailable: true,
+        pageSize,
+        useCache: !isRefresh // Skip cache on manual refresh
+      });
       
-      console.log(`Fetched ${dishesData.length} dishes from Firebase at ${timestamp}`);
-      console.log('Dish IDs:', dishesData.map(d => d.id));
-      
-      // Create a map of cooks for quick lookup
+      // Get cooks data (this could also be optimized)
+      const cooksData = await CooksService.getAllCooks();
       const cooksMap = new Map(cooksData.map(cook => [cook.id, cook]));
       
-      // Combine dish data with cook information and filter out any deleted dishes
-      const dishesWithCookInfo: DishWithCook[] = dishesData
-        .filter(dish => dish.isAvailable !== undefined) // Filter out any malformed dishes
+      // Combine dish data with cook information
+      const dishesWithCookInfo: DishWithCook[] = dishesResult.data
         .map(dish => {
           const cook = cooksMap.get(dish.cookerId);
           return {
@@ -127,21 +134,39 @@ const ClientDishesPage = () => {
             cookerName: cook?.displayName || 'Cocinero Desconocido',
             cookerAvatar: cook?.avatar || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNSAxNUMzMC41MjI5IDE1IDM1IDEwLjUyMjkgMzUgNUMzNSAyLjc5MDg2IDMzLjIwOTEgMSAzMSAxSDIwQzE3LjI5MDkgMSAxNS40NjA5IDIuNzkwODYgMTUgNUMxNSAxMC41MjI5IDE5LjQ3NzEgMTUgMjUgMTVaIiBmaWxsPSIjOUI5QkEzIi8+CjxwYXRoIGQ9Ik0xMCAzNUMxMCAyNi43MTU3IDE2LjcxNTcgMjAgMjUgMjBDMzMuMjg0MyAyMCA0MCAyNi43MTU3IDQwIDM1VjQ1SDBWMzVaIiBmaWxsPSIjOUI5QkEzIi8+Cjwvc3ZnPgo=',
             cookerRating: cook?.rating || 4.0,
-            distance: cook?.distance || 'Nearby', // Real distance from cook profile or default
+            distance: cook?.distance || 'Nearby',
             cookerSelfDelivery: cook?.settings?.selfDelivery || false,
             isFavorite: favorites.includes(dish.id)
           };
         });
       
-      console.log(`Processed ${dishesWithCookInfo.length} dishes for display`);
-      setDishes(dishesWithCookInfo);
+      if (page === 1) {
+        // First page - replace all dishes
+        setDishes(dishesWithCookInfo);
+      } else {
+        // Additional page - append to existing dishes
+        setDishes(prev => [...prev, ...dishesWithCookInfo]);
+      }
+      
+      setHasMoreDishes(dishesResult.hasMore);
       setLastUpdated(new Date());
+      
+      console.log(`Loaded ${dishesWithCookInfo.length} dishes for page ${page}`);
     } catch (error) {
       console.error('Error fetching dishes:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
+  };
+
+  // Load more dishes for pagination
+  const loadMoreDishes = async () => {
+    if (!hasMoreDishes || loading) return;
+    
+    const nextPage = currentPage + 1;
+    setCurrentPage(nextPage);
+    await fetchDishes(false, nextPage);
   };
 
   const handleRefresh = () => {
@@ -190,17 +215,19 @@ const ClientDishesPage = () => {
 
   // Remove the old addToCart function as we're using the context now
 
-  const DishCard = ({ dish, isListView = false }: { dish: any; isListView?: boolean }) => (
+  const DishCard = ({ dish, isListView = false }: { dish: Dish; isListView?: boolean }) => (
     <Card className={`overflow-hidden hover:shadow-lg transition-shadow cursor-pointer ${!dish.isAvailable ? 'opacity-60' : ''} ${isListView ? 'flex' : ''}`}
           onClick={() => router.push(`/dishes/${dish.id}`)}>
       <div className={`relative ${isListView ? 'w-48 flex-shrink-0' : 'aspect-[4/3]'}`}>
-        <img 
+        <LazyImage
           src={dish.image} 
           alt={dish.name}
           className="w-full h-full object-cover"
-          onError={(e) => {
-            e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjNGNEY2Ci8+CjxwYXRoIGQ9Ik0xNzUgMTI1SDE3NVYxNzVIMTc1VjEyNVoiIGZpbGw9IiM5QjlCQTMiLz4KPC9zdmc+';
-          }}
+          fallback={
+            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+              <span className="text-gray-500 text-sm">Error al cargar imagen</span>
+            </div>
+          }
         />
         <div className="absolute top-2 right-2 flex gap-2">
           <Button
@@ -453,15 +480,29 @@ const ClientDishesPage = () => {
         ) : (
           /* Dishes Grid/List */
           filteredDishes.length > 0 ? (
-            <div className={
-              viewMode === 'grid' 
-                ? 'grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-                : 'space-y-4'
-            }>
-              {filteredDishes.map((dish) => (
-                <DishCard key={dish.id} dish={dish} isListView={viewMode === 'list'} />
-              ))}
-            </div>
+            <>
+              <div className={
+                viewMode === 'grid' 
+                  ? 'grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+                  : 'space-y-4'
+              }>
+                {filteredDishes.map((dish) => (
+                  <DishCard key={dish.id} dish={dish} isListView={viewMode === 'list'} />
+                ))}
+              </div>
+              
+              {/* Load More Button */}
+              {filteredDishes.length > 0 && (
+                <LoadMoreButton
+                  hasMore={hasMoreDishes}
+                  loading={loading}
+                  onLoadMore={loadMoreDishes}
+                  className="mt-8"
+                >
+                  Cargar más platos
+                </LoadMoreButton>
+              )}
+            </>
           ) : (
             <div className="text-center py-12">
               <Utensils className="h-12 w-12 mx-auto text-muted-foreground mb-4" />

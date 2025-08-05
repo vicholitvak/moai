@@ -27,7 +27,7 @@ export interface PerformanceMetric {
   userId?: string;
   sessionId: string;
   userAgent: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 }
 
 export interface WebVitals {
@@ -116,7 +116,7 @@ export class PerformanceService {
   }
 
   // Track page load performance
-  static async trackPageLoad(pageName: string, loadTime: number, metadata?: any): Promise<void> {
+  static async trackPageLoad(pageName: string, loadTime: number, metadata?: Record<string, unknown>): Promise<void> {
     try {
       const metric: PerformanceMetric = {
         type: 'page_load',
@@ -212,7 +212,7 @@ export class PerformanceService {
   }
 
   // Track user interaction performance
-  static async trackInteraction(actionName: string, duration: number, metadata?: any): Promise<void> {
+  static async trackInteraction(actionName: string, duration: number, metadata?: Record<string, unknown>): Promise<void> {
     try {
       const metric: PerformanceMetric = {
         type: 'interaction',
@@ -437,7 +437,7 @@ export class PerformanceService {
       };
 
       // Group page performance
-      const pagePerformance: { [page: string]: any } = {};
+      const pagePerformance: { [page: string]: { avgLoadTime: number; count: number; } } = {};
       pageLoadMetrics.forEach(metric => {
         if (!pagePerformance[metric.name]) {
           pagePerformance[metric.name] = {
@@ -449,7 +449,7 @@ export class PerformanceService {
       });
 
       // Group API performance
-      const apiPerformance: { [endpoint: string]: any } = {};
+      const apiPerformance: { [endpoint: string]: { avgDuration: number; count: number; } } = {};
       apiMetrics.forEach(metric => {
         if (!apiPerformance[metric.name]) {
           apiPerformance[metric.name] = {
@@ -490,13 +490,13 @@ export class PerformanceService {
   }
 
   // Calculate average from metrics
-  private static calculateAverage(metrics: any[], field: string): number {
+  private static calculateAverage(metrics: Array<Record<string, unknown>>, field: string): number {
     if (metrics.length === 0) return 0;
     return metrics.reduce((sum, m) => sum + (m[field] || 0), 0) / metrics.length;
   }
 
   // Calculate Web Vitals metrics
-  private static calculateWebVitalsMetrics(vitals: any[]) {
+  private static calculateWebVitalsMetrics(vitals: Array<Record<string, unknown>>) {
     const cls = vitals.filter(v => v.cls !== undefined).map(v => v.cls);
     const fid = vitals.filter(v => v.fid !== undefined).map(v => v.fid);
     const lcp = vitals.filter(v => v.lcp !== undefined).map(v => v.lcp);
@@ -523,7 +523,7 @@ export class PerformanceService {
   }
 
   // Calculate performance trends
-  private static calculateTrends(aggregates: any[], days: number) {
+  private static calculateTrends(aggregates: Array<Record<string, unknown>>, days: number) {
     const trends: { [date: string]: { pageLoad: number; apiResponse: number; errors: number } } = {};
 
     // Initialize all dates

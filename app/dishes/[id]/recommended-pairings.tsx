@@ -11,7 +11,7 @@ import type { Dish } from '@/lib/firebase/dataService';
 
 interface RecommendedPairingsProps {
   cookId: string;
-  onAddToCart: (item: any) => void;
+  onAddToCart: (item: Dish) => void;
 }
 
 const RecommendedPairings: React.FC<RecommendedPairingsProps> = ({ cookId, onAddToCart }) => {

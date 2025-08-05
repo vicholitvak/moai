@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
@@ -12,15 +12,15 @@ import { toast } from 'sonner';
 export default function AdminVerifyPage() {
   const { user, role, loading } = useAuth();
   const [isUpdating, setIsUpdating] = useState(false);
-  const [currentData, setCurrentData] = useState<any>(null);
+  const [currentData, setCurrentData] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
     if (user) {
       loadUserData();
     }
-  }, [user]);
+  }, [user, loadUserData]);
 
-  const loadUserData = async () => {
+  const loadUserData = useCallback(async () => {
     if (!user) return;
     
     try {
@@ -33,7 +33,7 @@ export default function AdminVerifyPage() {
     } catch (error) {
       console.error('Error loading user data:', error);
     }
-  };
+  }, [user]);
 
   const setAdminRole = async () => {
     if (!user) return;
@@ -165,7 +165,7 @@ export default function AdminVerifyPage() {
             {isAdminEmail && role !== 'Admin' && (
               <div className="bg-yellow-50 border border-yellow-200 p-3 rounded">
                 <p className="text-yellow-800 text-sm">
-                  ⚠️ You have an admin email but your role is not set to Admin. Click "Set Admin Role" above.
+                  ⚠️ You have an admin email but your role is not set to Admin. Click &quot;Set Admin Role&quot; above.
                 </p>
               </div>
             )}

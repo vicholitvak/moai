@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { AdminService, DriversService, CooksService, DishesService } from '@/lib/firebase/dataService';
+import { AdminService, DishesService, OrdersService } from '@/lib/firebase/dataService';
+import AuthService from '@/lib/services/authService';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
-import type { Cook, Driver, Dish } from '@/lib/firebase/dataService';
-import DriverTrackingMap from '@/components/DriverTrackingMap';
+import type { Cook, Driver, Dish, Order } from '@/lib/firebase/dataService';
+import { LazyDriverTrackingMap } from '@/components/lazy/LazyDriverTrackingMap';
+import { LazyAnalyticsDashboard } from '@/components/lazy/LazyAnalyticsDashboard';
 import { toast } from 'sonner';
 import { formatPrice } from '@/lib/utils';
 import { 
@@ -31,9 +33,21 @@ import {
   MapPin,
   ToggleLeft,
   ToggleRight,
-  X
+  X,
+  Clock,
+  CheckCircle,
+  Truck,
+  DollarSign,
+  Search,
+  Calendar,
+  Download,
+  PieChart,
+  TrendingUp,
+  Bell,
+  Menu
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -59,8 +73,22 @@ export default function AdminDashboard() {
   const [cooks, setCooks] = useState<Cook[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [dishes, setDishes] = useState<Dish[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [ordersFilter, setOrdersFilter] = useState<'all' | 'pending' | 'active' | 'completed'>('all');
+  const [ordersSearch, setOrdersSearch] = useState('');
+  const [reportsPeriod, setReportsPeriod] = useState<'today' | 'week' | 'month' | 'year'>('month');
+  const [notifications, setNotifications] = useState<Array<{
+    id: string;
+    type: 'order' | 'user' | 'system';
+    title: string;
+    message: string;
+    time: Date;
+    read: boolean;
+  }>>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   
   // Administrative settings state
   const [deliveryFeeEnabled, setDeliveryFeeEnabled] = useState(false);
@@ -79,17 +107,40 @@ export default function AdminDashboard() {
     activeOrders: 0
   });
 
-  // Check if user is admin (you can modify this logic)
-  const isAdmin = user?.email === 'admin@moai.com' || user?.uid === 'admin' || user?.email?.includes('admin');
+  // Check if user is admin using secure AuthService
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [adminCheckLoading, setAdminCheckLoading] = useState(true);
   
-  console.log('Admin check:', {
-    userEmail: user?.email,
-    userUID: user?.uid,
-    isAdmin,
-    adminEmail: user?.email === 'admin@moai.com',
-    adminUID: user?.uid === 'admin',
-    emailIncludesAdmin: user?.email?.includes('admin')
-  });
+  // Check admin status when user changes
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!user) {
+        setIsAdmin(false);
+        setAdminCheckLoading(false);
+        return;
+      }
+
+      try {
+        const adminStatus = await AuthService.checkAdminStatus(user);
+        setIsAdmin(adminStatus);
+        
+        // Bootstrap admin for super admin emails if not already admin
+        if (!adminStatus && user.email && ['admin@moai.com', 'superadmin@moai.com'].includes(user.email)) {
+          const bootstrapped = await AuthService.bootstrapAdmin(user);
+          if (bootstrapped) {
+            setIsAdmin(true);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+        setIsAdmin(false);
+      } finally {
+        setAdminCheckLoading(false);
+      }
+    };
+
+    checkAdminStatus();
+  }, [user]);
 
   const switchRole = async (newRole: string) => {
     if (!user) return;
@@ -126,12 +177,12 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    if (!user || !isAdmin) {
+    if (!adminCheckLoading && (!user || !isAdmin)) {
       router.push('/');
-    } else {
+    } else if (!adminCheckLoading && user && isAdmin) {
       loadData();
     }
-  }, [user, isAdmin, router]);
+  }, [user, isAdmin, adminCheckLoading, router]);
 
   const loadData = async () => {
     setLoading(true);
@@ -140,6 +191,15 @@ export default function AdminDashboard() {
       setCooks(cooks);
       setDrivers(drivers);
       setDishes(dishes);
+      
+      // Load all orders for order management
+      try {
+        const allOrders = await OrdersService.getAllOrders();
+        setOrders(allOrders);
+      } catch (error) {
+        console.warn('Could not load orders:', error);
+        setOrders([]);
+      }
       
       // Try to get additional statistics
       let totalOrders = 0;
@@ -191,7 +251,7 @@ export default function AdminDashboard() {
 
     setDeletingId(cookId);
     try {
-      const success = await AdminService.deleteCook(cookId, user!.uid);
+      const success = await AdminService.deleteCook(cookId, user?.uid || '');
       if (success) {
         setCooks(prev => prev.filter(cook => cook.id !== cookId));
         setDishes(prev => prev.filter(dish => dish.cookerId !== cookId));
@@ -214,7 +274,7 @@ export default function AdminDashboard() {
 
     setDeletingId(driverId);
     try {
-      const success = await AdminService.deleteDriver(driverId, user!.uid);
+      const success = await AdminService.deleteDriver(driverId, user?.uid || '');
       if (success) {
         setDrivers(prev => prev.filter(driver => driver.id !== driverId));
         toast.success(`Conductor "${driverName}" eliminado exitosamente`);
@@ -237,14 +297,14 @@ export default function AdminDashboard() {
     console.log('Attempting to delete dish:', {
       dishId,
       dishName,
-      adminUserId: user!.uid,
-      adminEmail: user!.email,
+      adminUserId: user?.uid || '',
+      adminEmail: user?.email || '',
       isAdmin
     });
 
     setDeletingId(dishId);
     try {
-      const success = await AdminService.deleteDish(dishId, user!.uid);
+      const success = await AdminService.deleteDish(dishId, user?.uid || '');
       if (success) {
         setDishes(prev => prev.filter(dish => dish.id !== dishId));
         toast.success(`Plato "${dishName}" eliminado exitosamente`);
@@ -256,12 +316,12 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error deleting dish:', error);
       console.error('Error details:', {
-        code: (error as any).code,
-        message: (error as any).message,
+        code: error instanceof Error && 'code' in error ? (error as Error & { code: string }).code : 'unknown',
+        message: error instanceof Error ? error.message : String(error),
         dishId,
-        adminId: user!.uid
+        adminId: user?.uid
       });
-      toast.error(`Error al eliminar el plato: ${(error as any).message || 'Unknown error'}`);
+      toast.error(`Error al eliminar el plato: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setDeletingId(null);
     }
@@ -290,18 +350,22 @@ export default function AdminDashboard() {
   };
 
   const handleRoleSwitch = (role: 'client' | 'cooker' | 'driver') => {
-    // Navigate to the respective dashboard
-    switch (role) {
-      case 'client':
-        router.push('/dishes');
-        break;
-      case 'cooker':
-        router.push('/cooker/dashboard');
-        break;
-      case 'driver':
-        router.push('/driver/dashboard');
-        break;
-    }
+    // For now, we'll comment out direct navigation to prevent admin profile creation
+    // Instead, we should implement proper admin views for each entity type
+    toast.info(`Funcionalidad de prueba de rol será implementada próximamente. Por ahora, gestiona ${role}s desde esta misma página.`);
+    
+    // TODO: Implement proper admin preview mode without role switching
+    // switch (role) {
+    //   case 'client':
+    //     router.push('/dishes?admin_preview=true');
+    //     break;
+    //   case 'cooker':
+    //     router.push('/cooker/dashboard?admin_preview=true');
+    //     break;
+    //   case 'driver':
+    //     router.push('/driver/dashboard?admin_preview=true');
+    //     break;
+    // }
   };
 
   const handleUpdateDeliveryFee = async () => {
@@ -363,7 +427,155 @@ export default function AdminDashboard() {
     }
   };
 
-  const StatCard = ({ title, value, icon: Icon, trend, description, color = "text-primary" }: any) => (
+  // Financial report calculations
+  const getFilteredOrdersByPeriod = (period: string) => {
+    const now = new Date();
+    const startOfPeriod = new Date();
+    
+    switch (period) {
+      case 'today':
+        startOfPeriod.setHours(0, 0, 0, 0);
+        break;
+      case 'week':
+        startOfPeriod.setDate(now.getDate() - 7);
+        break;
+      case 'month':
+        startOfPeriod.setMonth(now.getMonth() - 1);
+        break;
+      case 'year':
+        startOfPeriod.setFullYear(now.getFullYear() - 1);
+        break;
+    }
+
+    return orders.filter(order => {
+      const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : 
+                      (order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt || 0));
+      return orderDate >= startOfPeriod && order.status === 'delivered';
+    });
+  };
+
+  const calculateFinancialMetrics = (period: string) => {
+    const filteredOrders = getFilteredOrdersByPeriod(period);
+    const totalRevenue = filteredOrders.reduce((sum, order) => sum + order.total, 0);
+    const totalCommission = totalRevenue * (serviceCommissionRate / 100);
+    const netRevenue = totalRevenue - totalCommission;
+    const averageOrderValue = filteredOrders.length > 0 ? totalRevenue / filteredOrders.length : 0;
+
+    // Calculate revenue by cook
+    const cookRevenue = filteredOrders.reduce((acc, order) => {
+      const cookId = order.cookerId;
+      const cookName = cooks.find(c => c.id === cookId)?.displayName || cookId;
+      if (!acc[cookName]) {
+        acc[cookName] = { revenue: 0, orders: 0 };
+      }
+      acc[cookName].revenue += order.total;
+      acc[cookName].orders += 1;
+      return acc;
+    }, {} as Record<string, { revenue: number; orders: number }>);
+
+    // Calculate daily revenue for the period
+    const dailyRevenue = filteredOrders.reduce((acc, order) => {
+      const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : 
+                      (order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt || 0));
+      const dateKey = orderDate.toISOString().split('T')[0];
+      if (!acc[dateKey]) {
+        acc[dateKey] = 0;
+      }
+      acc[dateKey] += order.total;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return {
+      totalRevenue,
+      totalCommission,
+      netRevenue,
+      averageOrderValue,
+      totalOrders: filteredOrders.length,
+      cookRevenue: Object.entries(cookRevenue)
+        .sort(([,a], [,b]) => b.revenue - a.revenue)
+        .slice(0, 10),
+      dailyRevenue
+    };
+  };
+
+  // Generate notifications based on current data
+  const generateNotifications = useCallback(() => {
+    const newNotifications = [];
+    const now = new Date();
+
+    // Check for pending orders
+    const pendingOrders = orders.filter(order => order.status === 'pending');
+    if (pendingOrders.length > 0) {
+      newNotifications.push({
+        id: 'pending-orders',
+        type: 'order' as const,
+        title: 'Órdenes Pendientes',
+        message: `${pendingOrders.length} orden${pendingOrders.length > 1 ? 'es' : ''} esperando aceptación`,
+        time: now,
+        read: false
+      });
+    }
+
+    // Check for orders taking too long
+    const oldOrders = orders.filter(order => {
+      const orderTime = order.createdAt?.toDate ? order.createdAt.toDate() : 
+                      (order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt || 0));
+      const hoursSinceOrder = (now.getTime() - orderTime.getTime()) / (1000 * 60 * 60);
+      return ['accepted', 'preparing'].includes(order.status) && hoursSinceOrder > 2;
+    });
+    
+    if (oldOrders.length > 0) {
+      newNotifications.push({
+        id: 'delayed-orders',
+        type: 'order' as const,
+        title: 'Órdenes Demoradas',
+        message: `${oldOrders.length} orden${oldOrders.length > 1 ? 'es' : ''} llevan más de 2 horas en preparación`,
+        time: now,
+        read: false
+      });
+    }
+
+    // Check for new registrations today
+    const newCooksToday = cooks.filter(cook => {
+      const cookDate = cook.createdAt?.toDate ? cook.createdAt.toDate() : 
+                     (cook.createdAt instanceof Date ? cook.createdAt : new Date(cook.createdAt || 0));
+      return cookDate.toDateString() === now.toDateString();
+    });
+
+    if (newCooksToday.length > 0) {
+      newNotifications.push({
+        id: 'new-cooks',
+        type: 'user' as const,
+        title: 'Nuevos Cocineros',
+        message: `${newCooksToday.length} cocinero${newCooksToday.length > 1 ? 's' : ''} se ha${newCooksToday.length > 1 ? 'n' : ''} registrado hoy`,
+        time: now,
+        read: false
+      });
+    }
+
+    return newNotifications;
+  }, [orders, cooks]);
+
+  // Update notifications when data changes
+  useEffect(() => {
+    if (orders.length > 0 || cooks.length > 0) {
+      const newNotifications = generateNotifications();
+      setNotifications(prev => {
+        const existingIds = prev.map(n => n.id);
+        const uniqueNew = newNotifications.filter(n => !existingIds.includes(n.id));
+        return [...prev, ...uniqueNew];
+      });
+    }
+  }, [orders, cooks, generateNotifications]);
+
+  const StatCard = ({ title, value, icon: Icon, trend, description, color = "text-primary" }: {
+    title: string;
+    value: string | number;
+    icon: React.ElementType;
+    trend?: string;
+    description?: string;
+    color?: string;
+  }) => (
     <Card>
       <CardContent className="p-6">
         <div className="flex items-center justify-between space-y-0 pb-2">
@@ -392,7 +604,7 @@ export default function AdminDashboard() {
   }: {
     title: string;
     description: string;
-    icon: any;
+    icon: React.ElementType;
     role: 'client' | 'cooker' | 'driver';
     features: string[];
     color: string;
@@ -435,6 +647,24 @@ export default function AdminDashboard() {
     </Card>
   );
 
+  // Show loading state while checking admin status
+  if (adminCheckLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <h2 className="text-xl font-bold mb-2">Verificando Acceso</h2>
+            <p className="text-muted-foreground">
+              Comprobando permisos de administrador...
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show access denied if not admin
   if (!user || !isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -456,20 +686,107 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 py-4">
+      {/* Enhanced Mobile-Responsive Header */}
+      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40">
+        <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg">
-                <Crown className="h-8 w-8 text-white" />
+            {/* Logo and Title - Responsive */}
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="p-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg flex-shrink-0">
+                <Crown className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
               </div>
-              <div>
-                <h1 className="text-2xl font-bold">Panel de Administrador</h1>
-                <p className="text-muted-foreground">¡Hola, {user.displayName || user.email}!</p>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-lg sm:text-2xl font-bold truncate">Panel de Administrador</h1>
+                <p className="text-xs sm:text-sm text-muted-foreground truncate hidden sm:block">
+                  ¡Hola, {user.displayName || user.email}!
+                </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+
+            {/* Desktop Menu - Hidden on Mobile */}
+            <div className="hidden lg:flex items-center gap-2">
+              {/* Notifications */}
+              <div className="relative">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="relative"
+                >
+                  <Bell className="h-4 w-4" />
+                  {notifications.filter(n => !n.read).length > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      {notifications.filter(n => !n.read).length}
+                    </span>
+                  )}
+                </Button>
+                
+                {/* Notifications Dropdown */}
+                {showNotifications && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white border rounded-lg shadow-lg z-50">
+                    <div className="p-4 border-b">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold">Notificaciones</h3>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowNotifications(false)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <div className="p-4 text-center text-muted-foreground">
+                          <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                          <p>No hay notificaciones</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          {notifications.slice(0, 10).map((notification) => (
+                            <div
+                              key={notification.id}
+                              className={`p-3 hover:bg-gray-50 border-b last:border-b-0 ${
+                                !notification.read ? 'bg-blue-50' : ''
+                              }`}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className={`w-2 h-2 rounded-full mt-2 ${
+                                  notification.type === 'order' ? 'bg-orange-500' :
+                                  notification.type === 'user' ? 'bg-blue-500' : 'bg-gray-500'
+                                }`} />
+                                <div className="flex-1">
+                                  <p className="font-medium text-sm">{notification.title}</p>
+                                  <p className="text-xs text-muted-foreground">{notification.message}</p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {notification.time.toLocaleTimeString()}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {notifications.length > 0 && (
+                      <div className="p-3 border-t">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => {
+                            setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                          }}
+                        >
+                          Marcar todas como leídas
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              
               <Button variant="outline" size="sm">
                 <Settings className="h-4 w-4 mr-2" />
                 Configuración
@@ -484,33 +801,196 @@ export default function AdminDashboard() {
                 Logout
               </Button>
             </div>
+
+            {/* Mobile Menu Button - Visible on Mobile */}
+            <div className="lg:hidden">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowMobileMenu(!showMobileMenu)}
+                className="p-2"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
+
+          {/* Mobile Dropdown Menu */}
+          {showMobileMenu && (
+            <div className="lg:hidden mt-4 pb-2 border-t pt-4">
+              <div className="space-y-2">
+                {/* Mobile User Info */}
+                <div className="px-3 py-2 bg-muted/50 rounded-lg">
+                  <p className="text-sm font-medium truncate">{user.displayName || user.email}</p>
+                  <p className="text-xs text-muted-foreground">Administrador</p>
+                </div>
+
+                {/* Mobile Notifications */}
+                <div className="relative">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => {
+                      setShowNotifications(!showNotifications);
+                      setShowMobileMenu(false);
+                    }}
+                    className="w-full justify-start relative"
+                  >
+                    <Bell className="h-4 w-4 mr-3" />
+                    Notificaciones
+                    {notifications.filter(n => !n.read).length > 0 && (
+                      <span className="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
+                        {notifications.filter(n => !n.read).length}
+                      </span>
+                    )}
+                  </Button>
+
+                  {/* Mobile Notifications Dropdown */}
+                  {showNotifications && (
+                    <div className="mt-2 w-full bg-white border rounded-lg shadow-lg">
+                      <div className="p-3 border-b">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-semibold text-sm">Notificaciones</h3>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setShowNotifications(false)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="max-h-48 overflow-y-auto">
+                        {notifications.length === 0 ? (
+                          <div className="p-4 text-center text-muted-foreground">
+                            <Bell className="h-6 w-6 mx-auto mb-2 opacity-50" />
+                            <p className="text-sm">No hay notificaciones</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            {notifications.slice(0, 5).map((notification) => (
+                              <div
+                                key={notification.id}
+                                className={`p-3 hover:bg-gray-50 border-b last:border-b-0 ${
+                                  !notification.read ? 'bg-blue-50' : ''
+                                }`}
+                              >
+                                <div className="flex items-start gap-2">
+                                  <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
+                                    notification.type === 'order' ? 'bg-orange-500' :
+                                    notification.type === 'user' ? 'bg-blue-500' : 'bg-gray-500'
+                                  }`} />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-xs truncate">{notification.title}</p>
+                                    <p className="text-xs text-muted-foreground truncate">{notification.message}</p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      {notification.time.toLocaleTimeString()}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      {notifications.length > 0 && (
+                        <div className="p-2 border-t">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full text-xs"
+                            onClick={() => {
+                              setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                            }}
+                          >
+                            Marcar todas como leídas
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Mobile Settings */}
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowMobileMenu(false)}
+                  className="w-full justify-start"
+                >
+                  <Settings className="h-4 w-4 mr-3" />
+                  Configuración
+                </Button>
+
+                {/* Mobile Logout */}
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => {
+                    setShowMobileMenu(false);
+                    logout();
+                  }}
+                  className="w-full justify-start text-muted-foreground hover:text-destructive"
+                >
+                  <LogOut className="h-4 w-4 mr-3" />
+                  Cerrar Sesión
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       <div className="container mx-auto px-4 py-6">
-        {/* Navigation Tabs */}
-        <div className="flex space-x-1 mb-6 bg-muted p-1 rounded-lg w-fit">
-          {[
-            { id: 'overview', label: 'Overview' },
-            { id: 'role-testing', label: 'Prueba de Roles' },
-            { id: 'data-management', label: 'Gestión de Datos' },
-            { id: 'driver-tracking', label: 'Seguimiento de Conductores' },
-            { id: 'analytics', label: 'Analytics' },
-            { id: 'management', label: 'Configuración' }
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                activeTab === tab.id
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
+        {/* Enhanced Mobile-Responsive Navigation Tabs */}
+        <div className="mb-6">
+          {/* Mobile Tab Selector (Dropdown) */}
+          <div className="sm:hidden">
+            <select
+              value={activeTab}
+              onChange={(e) => setActiveTab(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-lg bg-background text-foreground focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             >
-              {tab.label}
-            </button>
-          ))}
+              <option value="overview">📊 Overview</option>
+              <option value="orders">📦 Gestión de Órdenes</option>
+              <option value="reports">💰 Reportes Financieros</option>
+              <option value="role-testing">🎭 Prueba de Roles</option>
+              <option value="data-management">🗄️ Gestión de Datos</option>
+              <option value="driver-tracking">🚗 Seguimiento de Conductores</option>
+              <option value="analytics">📈 Analytics</option>
+              <option value="management">⚙️ Configuración</option>
+            </select>
+          </div>
+
+          {/* Desktop/Tablet Scrollable Tabs */}
+          <div className="hidden sm:block">
+            <div className="flex space-x-1 bg-muted p-1 rounded-lg overflow-x-auto scrollbar-hide">
+              {[
+                { id: 'overview', label: 'Overview', icon: '📊' },
+                { id: 'orders', label: 'Órdenes', icon: '📦' },
+                { id: 'reports', label: 'Reportes', icon: '💰' },
+                { id: 'role-testing', label: 'Roles', icon: '🎭' },
+                { id: 'data-management', label: 'Datos', icon: '🗄️' },
+                { id: 'driver-tracking', label: 'Conductores', icon: '🚗' },
+                { id: 'analytics', label: 'Analytics', icon: '📈' },
+                { id: 'management', label: 'Config', icon: '⚙️' }
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-3 lg:px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${
+                    activeTab === tab.id
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <span className="text-xs">{tab.icon}</span>
+                  <span className="hidden md:inline">{tab.label}</span>
+                  <span className="md:hidden text-xs">{tab.label.split(' ')[0]}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Overview Tab */}
@@ -658,6 +1138,476 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* Order Management Tab */}
+        {activeTab === 'orders' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">Gestión de Órdenes</h2>
+                <p className="text-muted-foreground">Monitorear y gestionar todas las órdenes en tiempo real</p>
+              </div>
+              <Button onClick={loadData} disabled={loading}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Actualizar
+              </Button>
+            </div>
+
+            {/* Order Stats */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Órdenes</CardTitle>
+                    <ShoppingBag className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <div className="text-2xl font-bold">{orders.length}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Órdenes Activas</CardTitle>
+                    <Clock className="h-4 w-4 text-orange-600" />
+                  </div>
+                  <div className="text-2xl font-bold">
+                    {orders.filter(order => ['pending', 'accepted', 'preparing', 'ready', 'delivering'].includes(order.status)).length}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Completadas Hoy</CardTitle>
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  </div>
+                  <div className="text-2xl font-bold">
+                    {orders.filter(order => {
+                      const today = new Date();
+                      const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : (order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt || 0));
+                      return order.status === 'delivered' && orderDate.toDateString() === today.toDateString();
+                    }).length}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Ingresos Hoy</CardTitle>
+                    <DollarSign className="h-4 w-4 text-green-600" />
+                  </div>
+                  <div className="text-2xl font-bold">
+                    {formatPrice(orders.filter(order => {
+                      const today = new Date();
+                      const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : (order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt || 0));
+                      return order.status === 'delivered' && orderDate.toDateString() === today.toDateString();
+                    }).reduce((sum, order) => sum + order.total, 0))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Filters and Search */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex gap-2">
+                <Button
+                  variant={ordersFilter === 'all' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setOrdersFilter('all')}
+                >
+                  Todas
+                </Button>
+                <Button
+                  variant={ordersFilter === 'pending' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setOrdersFilter('pending')}
+                >
+                  Pendientes
+                </Button>
+                <Button
+                  variant={ordersFilter === 'active' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setOrdersFilter('active')}
+                >
+                  Activas
+                </Button>
+                <Button
+                  variant={ordersFilter === 'completed' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setOrdersFilter('completed')}
+                >
+                  Completadas
+                </Button>
+              </div>
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por ID, cliente, o cocinero..."
+                  value={ordersSearch}
+                  onChange={(e) => setOrdersSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            {/* Orders List */}
+            <div className="space-y-4">
+              {orders
+                .filter(order => {
+                  // Filter by status
+                  if (ordersFilter === 'pending') return order.status === 'pending';
+                  if (ordersFilter === 'active') return ['accepted', 'preparing', 'ready', 'delivering'].includes(order.status);
+                  if (ordersFilter === 'completed') return ['delivered', 'cancelled'].includes(order.status);
+                  return true;
+                })
+                .filter(order => {
+                  // Filter by search
+                  if (!ordersSearch) return true;
+                  const searchLower = ordersSearch.toLowerCase();
+                  return (
+                    order.id.toLowerCase().includes(searchLower) ||
+                    order.customerName?.toLowerCase().includes(searchLower) ||
+                    order.cookerId?.toLowerCase().includes(searchLower)
+                  );
+                })
+                .slice(0, 50) // Limit to 50 orders for performance
+                .map((order) => (
+                  <Card key={order.id}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-semibold">#{order.id.slice(-8)}</h3>
+                              <Badge variant={
+                                order.status === 'delivered' ? 'default' :
+                                order.status === 'cancelled' ? 'destructive' :
+                                ['preparing', 'ready', 'delivering'].includes(order.status) ? 'secondary' :
+                                'outline'
+                              }>
+                                {order.status === 'pending' && 'Pendiente'}
+                                {order.status === 'accepted' && 'Aceptada'}
+                                {order.status === 'preparing' && 'Preparando'}
+                                {order.status === 'ready' && 'Lista'}
+                                {order.status === 'delivering' && 'En camino'}
+                                {order.status === 'delivered' && 'Entregada'}
+                                {order.status === 'cancelled' && 'Cancelada'}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              Cliente: {order.customerName} | Cocinero: {cooks.find(c => c.id === order.cookerId)?.displayName || order.cookerId}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {order.createdAt?.toDate ? order.createdAt.toDate().toLocaleString() : 
+                               (order.createdAt instanceof Date ? order.createdAt.toLocaleString() : new Date(order.createdAt || 0).toLocaleString())}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-right">
+                            <p className="font-semibold">{formatPrice(order.total)}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {order.dishes?.length || 0} item{(order.dishes?.length || 0) !== 1 ? 's' : ''}
+                            </p>
+                          </div>
+                          <div className="flex gap-1">
+                            {order.status === 'pending' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  // Update order status logic here
+                                  console.log('Force accept order:', order.id);
+                                }}
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {['accepted', 'preparing', 'ready'].includes(order.status) && order.driverId && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  // Track delivery logic here
+                                  console.log('Track delivery:', order.id);
+                                }}
+                              >
+                                <Truck className="h-4 w-4" />
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                // View order details logic here
+                                console.log('View order details:', order.id);
+                              }}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+            </div>
+
+            {orders.length === 0 && !loading && (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <ShoppingBag className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No hay órdenes</h3>
+                  <p className="text-muted-foreground">Las órdenes aparecerán aquí cuando los clientes empiecen a hacer pedidos.</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
+
+        {/* Financial Reports Tab */}
+        {activeTab === 'reports' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">Reportes Financieros</h2>
+                <p className="text-muted-foreground">Análisis detallado de ingresos, comisiones y métricas financieras</p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar CSV
+                </Button>
+                <Button onClick={loadData} disabled={loading}>
+                  <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                  Actualizar
+                </Button>
+              </div>
+            </div>
+
+            {/* Period Selector */}
+            <div className="flex gap-2">
+              <Button
+                variant={reportsPeriod === 'today' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setReportsPeriod('today')}
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                Hoy
+              </Button>
+              <Button
+                variant={reportsPeriod === 'week' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setReportsPeriod('week')}
+              >
+                Últimos 7 días
+              </Button>
+              <Button
+                variant={reportsPeriod === 'month' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setReportsPeriod('month')}
+              >
+                Último mes
+              </Button>
+              <Button
+                variant={reportsPeriod === 'year' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setReportsPeriod('year')}
+              >
+                Último año
+              </Button>
+            </div>
+
+            {(() => {
+              const metrics = calculateFinancialMetrics(reportsPeriod);
+              
+              return (
+                <>
+                  {/* Financial Metrics */}
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between space-y-0 pb-2">
+                          <CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle>
+                          <DollarSign className="h-4 w-4 text-green-600" />
+                        </div>
+                        <div className="text-2xl font-bold">{formatPrice(metrics.totalRevenue)}</div>
+                        <p className="text-xs text-muted-foreground">
+                          {metrics.totalOrders} órdenes completadas
+                        </p>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between space-y-0 pb-2">
+                          <CardTitle className="text-sm font-medium">Comisiones Generadas</CardTitle>
+                          <PieChart className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div className="text-2xl font-bold">{formatPrice(metrics.totalCommission)}</div>
+                        <p className="text-xs text-muted-foreground">
+                          {serviceCommissionRate}% de comisión
+                        </p>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between space-y-0 pb-2">
+                          <CardTitle className="text-sm font-medium">Ingreso Neto Cocineros</CardTitle>
+                          <ChefHat className="h-4 w-4 text-orange-600" />
+                        </div>
+                        <div className="text-2xl font-bold">{formatPrice(metrics.netRevenue)}</div>
+                        <p className="text-xs text-muted-foreground">
+                          Después de comisiones
+                        </p>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between space-y-0 pb-2">
+                          <CardTitle className="text-sm font-medium">Valor Promedio Orden</CardTitle>
+                          <BarChart3 className="h-4 w-4 text-purple-600" />
+                        </div>
+                        <div className="text-2xl font-bold">{formatPrice(metrics.averageOrderValue)}</div>
+                        <p className="text-xs text-muted-foreground">
+                          Por orden completada
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Top Performing Cooks */}
+                  <div className="grid gap-6 lg:grid-cols-2">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <ChefHat className="h-5 w-5" />
+                          Top Cocineros por Ingresos
+                        </CardTitle>
+                        <CardDescription>
+                          Ranking de cocineros en el período seleccionado
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {metrics.cookRevenue.slice(0, 5).map(([cookName, data], index) => (
+                            <div key={cookName} className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary font-semibold text-sm">
+                                  {index + 1}
+                                </div>
+                                <div>
+                                  <p className="font-medium">{cookName}</p>
+                                  <p className="text-sm text-muted-foreground">{data.orders} órdenes</p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-semibold">{formatPrice(data.revenue)}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {formatPrice(data.revenue * (serviceCommissionRate / 100))} comisión
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Revenue Breakdown */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <PieChart className="h-5 w-5" />
+                          Desglose de Ingresos
+                        </CardTitle>
+                        <CardDescription>
+                          Distribución de ingresos por categoría
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium">Ingresos Brutos</span>
+                            <span className="font-semibold">{formatPrice(metrics.totalRevenue)}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium text-blue-600">Comisiones de Moai</span>
+                            <span className="font-semibold text-blue-600">-{formatPrice(metrics.totalCommission)}</span>
+                          </div>
+                          <div className="flex justify-between items-center border-t pt-2">
+                            <span className="text-sm font-medium">Ingresos Netos Cocineros</span>
+                            <span className="font-semibold text-green-600">{formatPrice(metrics.netRevenue)}</span>
+                          </div>
+                          
+                          <div className="mt-4 space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span>Tasa de comisión actual</span>
+                              <span className="font-medium">{serviceCommissionRate}%</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span>Órdenes completadas</span>
+                              <span className="font-medium">{metrics.totalOrders}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span>Valor promedio por orden</span>
+                              <span className="font-medium">{formatPrice(metrics.averageOrderValue)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Daily Revenue Chart (Simple representation) */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <TrendingUp className="h-5 w-5" />
+                        Ingresos Diarios
+                      </CardTitle>
+                      <CardDescription>
+                        Evolución de ingresos en el período seleccionado
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {Object.entries(metrics.dailyRevenue)
+                          .sort(([a], [b]) => a.localeCompare(b))
+                          .slice(-7) // Show last 7 days
+                          .map(([date, revenue]) => (
+                            <div key={date} className="flex items-center justify-between py-2 border-b last:border-b-0">
+                              <span className="text-sm font-medium">
+                                {new Date(date).toLocaleDateString('es-CL', { 
+                                  weekday: 'short', 
+                                  month: 'short', 
+                                  day: 'numeric' 
+                                })}
+                              </span>
+                              <div className="flex items-center gap-3">
+                                <div className="w-20 bg-muted rounded-full h-2">
+                                  <div 
+                                    className="bg-primary h-2 rounded-full" 
+                                    style={{ 
+                                      width: `${Math.max(10, (revenue / Math.max(...Object.values(metrics.dailyRevenue))) * 100)}%` 
+                                    }}
+                                  />
+                                </div>
+                                <span className="font-semibold text-sm w-20 text-right">
+                                  {formatPrice(revenue)}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              );
+            })()}
+          </div>
+        )}
+
         {/* Role Testing Tab */}
         {activeTab === 'role-testing' && (
           <div className="space-y-6">
@@ -735,7 +1685,7 @@ export default function AdminDashboard() {
                   <div>
                     <h4 className="font-semibold mb-2">Como probar:</h4>
                     <ul className="space-y-1 text-sm text-muted-foreground">
-                      <li>• Haz clic en "Probar como [Rol]" para navegar al dashboard correspondiente</li>
+                      <li>• Haz clic en &quot;Probar como [Rol]&quot; para navegar al dashboard correspondiente</li>
                       <li>• Todas las funcionalidades están disponibles con datos de prueba</li>
                       <li>• Puedes volver al panel admin en cualquier momento</li>
                       <li>• Los cambios se reflejan en tiempo real</li>
@@ -920,12 +1870,14 @@ export default function AdminDashboard() {
                       return (
                         <div key={dish.id} className="flex items-center justify-between p-3 border rounded-lg">
                           <div className="flex items-center gap-3">
-                            <img 
+                            <Image 
                               src={dish.image} 
                               alt={dish.name}
+                              width={48}
+                              height={48}
                               className="w-12 h-12 rounded-lg object-cover"
                               onError={(e) => {
-                                e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAyMEgyOFYyOEgyMFYyMFoiIGZpbGw9IiM5QjlCQTMiLz4KPC9zdmc+';
+                                (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAyMEgyOFYyOEgyMFYyMFoiIGZpbGw9IiM5QjlCQTMiLz4KPC9zdmc+';
                               }}
                             />
                             <div>
@@ -1006,7 +1958,7 @@ export default function AdminDashboard() {
               <p className="text-muted-foreground">Monitor en tiempo real la ubicación y estado de todos los conductores</p>
             </div>
             
-            <DriverTrackingMap drivers={drivers} />
+            <LazyDriverTrackingMap drivers={drivers} />
           </div>
         )}
 
@@ -1018,13 +1970,7 @@ export default function AdminDashboard() {
               <p className="text-muted-foreground">Métricas y estadísticas del sistema</p>
             </div>
             
-            <div className="text-center py-12">
-              <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Analytics Avanzados</h3>
-              <p className="text-muted-foreground">
-                Gráficos detallados y métricas avanzadas estarán disponibles próximamente
-              </p>
-            </div>
+            <LazyAnalyticsDashboard />
           </div>
         )}
 
@@ -1537,7 +2483,7 @@ export default function AdminDashboard() {
                     <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
                     <div className="flex-1">
                       <p className="text-sm font-medium">Plato reportado por contenido</p>
-                      <p className="text-xs text-muted-foreground">"Empanadas Caseras" requiere revisión - Hace 4 horas</p>
+                      <p className="text-xs text-muted-foreground">&quot;Empanadas Caseras&quot; requiere revisión - Hace 4 horas</p>
                     </div>
                     <Badge variant="destructive">Urgente</Badge>
                   </div>

@@ -166,14 +166,14 @@ export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) 
     }
   });
 
-  const updateData = (field: string, value: any) => {
+  const updateData = (field: string, value: unknown) => {
     setData(prev => ({
       ...prev,
       [field]: value
     }));
   };
 
-  const updateNestedData = (parent: string, field: string, value: any) => {
+  const updateNestedData = (parent: string, field: string, value: unknown) => {
     setData(prev => ({
       ...prev,
       [parent]: {
@@ -300,36 +300,7 @@ export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) 
         throw new Error('Failed to create driver profile');
       }
       
-      // Update user role to Driver in Firestore directly
-      try {
-        await setDoc(doc(db, 'users', user.uid), { 
-          role: 'Driver',
-          email: user.email,
-          displayName: user.displayName || data.displayName,
-          photoURL: user.photoURL
-        }, { merge: true });
-        
-        toast.success('¡Perfil de conductor creado exitosamente! Bienvenido a tu dashboard.');
-      } catch (roleError) {
-        console.error('Role update error:', roleError);
-        // Try the API as fallback
-        try {
-          const roleResponse = await fetch('/api/auth/update-role', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ role: 'Driver' })
-          });
-          
-          if (roleResponse.ok) {
-            toast.success('¡Perfil de conductor creado exitosamente! Bienvenido a tu dashboard.');
-          } else {
-            toast.warning('Perfil creado exitosamente. La actualización del rol se completará automáticamente.');
-          }
-        } catch (apiError) {
-          console.error('API fallback failed:', apiError);
-          toast.warning('Perfil creado exitosamente. La actualización del rol se completará automáticamente.');
-        }
-      }
+      toast.success('¡Perfil de conductor creado exitosamente! Bienvenido a tu dashboard.');
 
       // Complete onboarding regardless of role update status
       onComplete();

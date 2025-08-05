@@ -1,13 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Upload, Plus, Minus } from 'lucide-react';
+import { X, Upload, Plus, Minus, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { type Dish } from '@/lib/firebase/dataService';
+import { useFormValidation } from '@/hooks/useFormValidation';
+import { addDishSchema, type AddDishFormData } from '@/lib/schemas/dishSchema';
 
 interface AddDishModalProps {
   isOpen: boolean;
@@ -28,85 +30,39 @@ export function AddDishModal({
   cookerAvatar, 
   cookerRating 
 }: AddDishModalProps) {
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    price: '',
-    category: 'Platos principales',
-    prepTime: '',
-    ingredients: ['']
-  });
-  const [imagePreview, setImagePreview] = useState<string>('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xNzUgMTI1SDE5NVYxNDVIMjE1VjE2NUgxOTVWMTg1SDE3NVYxNjVIMTU1VjE0NUgxNzVWMTI1WiIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const categories = [
-    'Platos principales',
-    'Acompañamientos', 
-    'Bebidas'
-  ];
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleArrayChange = (field: 'ingredients', index: number, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: prev[field].map((item, i) => i === index ? value : item)
-    }));
-  };
-
-  const addArrayItem = (field: 'ingredients') => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: [...prev[field], '']
-    }));
-  };
-
-  const removeArrayItem = (field: 'ingredients', index: number) => {
-    if (formData[field].length > 1) {
-      setFormData(prev => ({
-        ...prev,
-        [field]: prev[field].filter((_, i) => i !== index)
-      }));
-    }
-  };
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    try {
+  const [imagePreview, setImagePreview] = useState<string>('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjNGNEY2Ci8+CjxwYXRoIGQ9Ik0xNzUgMTI1SDE5NVYxNDVIMjE1VjE2NUgxOTVWMTg1SDE3NVYxNjVIMTU1VjE0NUgxNzVWMTI1WiIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K');
+  
+  const {
+    data,
+    errors,
+    isSubmitting,
+    setValue,
+    getFieldError,
+    hasFieldError,
+    handleSubmit,
+    reset
+  } = useFormValidation<AddDishFormData>({
+    schema: addDishSchema,
+    initialData: {
+      name: '',
+      description: '',
+      price: 0,
+      category: 'Platos principales' as const,
+      prepTime: '',
+      ingredients: [''],
+      image: imagePreview
+    },
+    onSubmit: async (validatedData) => {
       const dishData: Omit<Dish, 'id' | 'createdAt' | 'updatedAt'> = {
-        name: formData.name,
-        description: formData.description,
-        price: parseInt(formData.price),
-        image: imagePreview,
+        ...validatedData,
         cookerId,
         cookerName,
         cookerAvatar,
         cookerRating,
-        category: formData.category,
-        tags: [formData.category.toLowerCase(), 'nuevo'],
+        tags: [validatedData.category.toLowerCase(), 'nuevo'],
         rating: 0,
         reviewCount: 0,
-        prepTime: formData.prepTime,
         isAvailable: true,
-        ingredients: formData.ingredients.filter(ingredient => ingredient.trim() !== ''),
         allergens: [],
         nutritionInfo: {
           calories: 0,
@@ -115,27 +71,84 @@ export function AddDishModal({
           fat: '0g'
         }
       };
-
+      
       await onSave(dishData);
       handleClose();
-    } catch (error) {
-      console.error('Error adding dish:', error);
-    } finally {
-      setIsSubmitting(false);
+    }
+  });
+
+  const categories = [
+    'Platos principales',
+    'Acompañamientos', 
+    'Bebidas'
+  ];
+
+  const handleInputChange = (field: keyof AddDishFormData, value: any) => {
+    setValue(field, value);
+  };
+
+  const handleArrayChange = (field: 'ingredients', index: number, value: string) => {
+    const currentIngredients = data.ingredients || [''];
+    const newIngredients = currentIngredients.map((item, i) => i === index ? value : item);
+    setValue(field, newIngredients);
+  };
+
+  const addArrayItem = (field: 'ingredients') => {
+    const currentIngredients = data.ingredients || [''];
+    setValue(field, [...currentIngredients, '']);
+  };
+
+  const removeArrayItem = (field: 'ingredients', index: number) => {
+    const currentIngredients = data.ingredients || [''];
+    if (currentIngredients.length > 1) {
+      setValue(field, currentIngredients.filter((_, i) => i !== index));
     }
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        // You could use toast here or set a specific error
+        console.error('Image too large');
+        return;
+      }
+      
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        console.error('Invalid file type');
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const imageData = e.target?.result as string;
+        setImagePreview(imageData);
+        setValue('image', imageData);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+
   const handleClose = () => {
-    setFormData({
-      name: '',
-      description: '',
-      price: '',
-      category: 'Platos principales',
-      prepTime: '',
-      ingredients: ['']
-    });
+    reset();
     setImagePreview('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjNGNEY2Ci8+CjxwYXRoIGQ9Ik0xNzUgMTI1SDE5NVYxNDFIMjE1VjE2NUgxOTVWMTg1SDE3NVYxNjVIMTU1VjE0NUgxNzVWMTI1WiIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K');
     onClose();
+  };
+
+  // Helper component for displaying field errors
+  const FieldError = ({ field }: { field: keyof AddDishFormData }) => {
+    const error = getFieldError(field);
+    if (!error) return null;
+    
+    return (
+      <div className="flex items-center gap-1 text-red-500 text-xs mt-1">
+        <AlertCircle className="h-3 w-3" />
+        <span>{error}</span>
+      </div>
+    );
   };
 
   if (!isOpen) return null;
@@ -160,11 +173,14 @@ export function AddDishModal({
                   id="name"
                   type="text"
                   required
-                  value={formData.name}
+                  value={data.name || ''}
                   onChange={(e) => handleInputChange('name', e.target.value)}
-                  className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full mt-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    hasFieldError('name') ? 'border-red-500' : 'border-gray-300'
+                  }`}
                   placeholder="Ej: Spaghetti Carbonara"
                 />
+                <FieldError field="name" />
               </div>
 
               <div>
@@ -172,12 +188,15 @@ export function AddDishModal({
                 <Textarea
                   id="description"
                   required
-                  value={formData.description}
+                  value={data.description || ''}
                   onChange={(e) => handleInputChange('description', e.target.value)}
-                  className="w-full mt-1"
+                  className={`w-full mt-1 ${
+                    hasFieldError('description') ? 'border-red-500' : ''
+                  }`}
                   placeholder="Describe tu plato de manera atractiva. Incluye sabores, ingredientes especiales, técnica de preparación y qué lo hace único..."
                   rows={5}
                 />
+                <FieldError field="description" />
                 <p className="text-xs text-muted-foreground mt-1">
                   Tip: Una buena descripción aumenta las ventas. Destaca lo que hace especial a tu plato.
                 </p>
@@ -191,11 +210,14 @@ export function AddDishModal({
                     type="number"
                     required
                     min="0"
-                    value={formData.price}
-                    onChange={(e) => handleInputChange('price', e.target.value)}
-                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={data.price || ''}
+                    onChange={(e) => handleInputChange('price', parseInt(e.target.value) || 0)}
+                    className={`w-full mt-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      hasFieldError('price') ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="10990"
                   />
+                  <FieldError field="price" />
                 </div>
 
                 <div>
@@ -204,11 +226,14 @@ export function AddDishModal({
                     id="prepTime"
                     type="text"
                     required
-                    value={formData.prepTime}
+                    value={data.prepTime || ''}
                     onChange={(e) => handleInputChange('prepTime', e.target.value)}
-                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={`w-full mt-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      hasFieldError('prepTime') ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="25 mins"
                   />
+                  <FieldError field="prepTime" />
                 </div>
               </div>
 
@@ -217,9 +242,11 @@ export function AddDishModal({
                 <select
                   id="category"
                   required
-                  value={formData.category}
+                  value={data.category || 'Platos principales'}
                   onChange={(e) => handleInputChange('category', e.target.value)}
-                  className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full mt-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    hasFieldError('category') ? 'border-red-500' : 'border-gray-300'
+                  }`}
                 >
                   {categories.map((category) => (
                     <option key={category} value={category}>
@@ -227,23 +254,26 @@ export function AddDishModal({
                     </option>
                   ))}
                 </select>
+                <FieldError field="category" />
               </div>
 
               {/* Ingredients */}
               <div>
                 <Label>Ingredientes *</Label>
                 <div className="space-y-2 mt-2">
-                  {formData.ingredients.map((ingredient, index) => (
+                  {(data.ingredients || ['']).map((ingredient, index) => (
                     <div key={index} className="flex gap-2">
                       <input
                         type="text"
                         value={ingredient}
                         onChange={(e) => handleArrayChange('ingredients', index, e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          hasFieldError('ingredients') ? 'border-red-500' : 'border-gray-300'
+                        }`}
                         placeholder="Ej: Pasta fresca, tomates, queso parmesano"
                         required={index === 0}
                       />
-                      {formData.ingredients.length > 1 && (
+                      {(data.ingredients || ['']).length > 1 && (
                         <Button
                           type="button"
                           variant="outline"
@@ -266,6 +296,7 @@ export function AddDishModal({
                     Agregar Ingrediente
                   </Button>
                 </div>
+                <FieldError field="ingredients" />
                 <p className="text-xs text-muted-foreground mt-1">
                   Lista los ingredientes principales que hacen especial a tu plato.
                 </p>

@@ -14,6 +14,7 @@ const AuthHandler = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     if (!loading) {
+      console.log(`AuthHandler: user=${user?.email}, role=${role}, pathname=${pathname}, loading=${loading}`);
 
       // Admin access - allow admins to access admin pages
       if (user && isAdmin) {
@@ -72,6 +73,7 @@ const AuthHandler = ({ children }: { children: React.ReactNode }) => {
       if (user && role && !isAdmin) {
         // Redirect from home page to appropriate dashboard after sign-in
         if (pathname === '/') {
+          console.log(`AuthHandler: Redirecting user with role ${role} from homepage`);
           switch (role) {
             case 'Client':
               router.push('/dishes');
@@ -84,6 +86,7 @@ const AuthHandler = ({ children }: { children: React.ReactNode }) => {
               break;
             default:
               // Fallback for unknown roles - default to Client dashboard
+              console.log(`AuthHandler: Unknown role ${role}, defaulting to dishes`);
               router.push('/dishes');
           }
           return;

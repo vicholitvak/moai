@@ -26,8 +26,8 @@ async function checkIndexStatus() {
     console.log('✅ Dishes index is ready!');
     console.log(`   Query executed in ${endTime - startTime}ms`);
     
-  } catch (error: any) {
-    if (error.code === 'failed-precondition' && error.message.includes('index')) {
+  } catch (error) {
+    if ((error as any).code === 'failed-precondition' && (error as any).message.includes('index')) {
       console.log('⏳ Dishes index is still building...');
       console.log('   This is normal and can take several minutes.');
       console.log('   The app will use fallback methods until the index is ready.');

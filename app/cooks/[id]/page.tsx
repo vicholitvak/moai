@@ -121,7 +121,7 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
     fetchCookData();
   }, [cookId]);
 
-  const handleAddToCart = (item: any) => {
+  const handleAddToCart = (item: Dish) => {
     const cartItem = {
       dishId: item.id,
       name: item.name,
@@ -339,7 +339,7 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <h2 className="text-2xl font-bold">Menu Items</h2>
               <div className="text-sm text-muted-foreground">
-                {getFilteredItems().filter((item: any) => item.isAvailable).length} of {getFilteredItems().length} available
+                {getFilteredItems().filter((item: Dish) => item.isAvailable).length} of {getFilteredItems().length} available
               </div>
             </div>
             
@@ -376,7 +376,7 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
             </div>
             
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {getFilteredItems().map((item: any) => (
+              {getFilteredItems().map((item: Dish) => (
                 <Card key={item.id} className={`overflow-hidden hover:shadow-lg transition-shadow cursor-pointer ${!item.isAvailable ? 'opacity-60' : ''}`}
                       onClick={() => {
                         if (item.category === 'Main Dish') {
@@ -522,7 +522,7 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
               </CardHeader>
               <CardContent>
                 <div className="grid md:grid-cols-2 gap-4">
-                  {cook.achievements.map((achievement: any, index: number) => (
+                  {cook.achievements.map((achievement: { title: string; description: string; icon: string }, index: number) => (
                     <div key={index} className="flex items-start gap-3 p-3 bg-muted rounded-lg">
                       <div className="text-2xl">{achievement.icon}</div>
                       <div>
@@ -568,7 +568,7 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
             </div>
             
             <div className="space-y-4">
-              {cook.reviews.map((review: any) => (
+              {cook.reviews.map((review: Review) => (
                 <Card key={review.id}>
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">

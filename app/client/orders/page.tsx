@@ -102,7 +102,7 @@ const ClientOrdersPage = () => {
     try {
       await navigator.clipboard.writeText(code);
       toast.success('Código copiado al portapapeles');
-    } catch (err) {
+    } catch {
       toast.error('Error al copiar código');
     }
   };

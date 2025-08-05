@@ -13,6 +13,19 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
+    
+    // Enhanced strict settings for security
+    "noImplicitAny": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": false,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+    
     "plugins": [
       {
         "name": "next"

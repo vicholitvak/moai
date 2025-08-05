@@ -139,10 +139,10 @@ const SignUpModal = ({ isOpen, onOpenChange }: SignUpModalProps) => {
       // Redirect based on role immediately
       onOpenChange(false);
       window.location.reload(); // Force a full reload to ensure AuthContext picks up the new role
-    } catch (err: any) {
-      const errorMessage = err?.code 
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error && 'code' in err
         ? getFirebaseErrorMessage(err as AuthError)
-        : 'An unexpected error occurred. Please try again.';
+        : 'Ocurrió un error inesperado. Por favor, intenta de nuevo.';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -199,10 +199,10 @@ const SignUpModal = ({ isOpen, onOpenChange }: SignUpModalProps) => {
       // Redirect based on role immediately
       onOpenChange(false);
       window.location.reload(); // Force a full reload to ensure AuthContext picks up the new role
-    } catch (err: any) {
-      const errorMessage = err?.code 
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error && 'code' in err
         ? getFirebaseErrorMessage(err as AuthError)
-        : 'An unexpected error occurred. Please try again.';
+        : 'Ocurrió un error inesperado. Por favor, intenta de nuevo.';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {

@@ -10,7 +10,7 @@ import { useAuth } from '@/context/AuthContext';
 
 interface DriverLocationTrackerProps {
   isOnline: boolean;
-  onLocationUpdate?: (location: any) => void;
+  onLocationUpdate?: (location: { lat: number; lng: number; address?: string }) => void;
   onStatusChange?: (isTracking: boolean) => void;
 }
 
@@ -21,10 +21,10 @@ export default function DriverLocationTracker({
 }: DriverLocationTrackerProps) {
   const { user } = useAuth();
   const [isTracking, setIsTracking] = useState(false);
-  const [currentLocation, setCurrentLocation] = useState<any>(null);
+  const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number; address?: { fullAddress?: string; city?: string }; speed?: number; heading?: number; lastUpdated?: any; coordinates?: { accuracy?: number } } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [locationHistory, setLocationHistory] = useState<any[]>([]);
+  const [locationHistory, setLocationHistory] = useState<Array<{ address?: { city?: string }; speed?: number; heading?: number; lastUpdated?: any }>>([]);
   const unsubscribeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
@@ -98,8 +98,8 @@ export default function DriverLocationTracker({
         setError('No se pudo iniciar el seguimiento de ubicación');
       }
 
-    } catch (err: any) {
-      setError(err.message || 'Error al iniciar el seguimiento');
+    } catch (err: unknown) {
+      setError((err as Error).message || 'Error al iniciar el seguimiento');
     }
   };
 
@@ -119,8 +119,8 @@ export default function DriverLocationTracker({
         unsubscribeRef.current = null;
       }
 
-    } catch (err: any) {
-      setError(err.message || 'Error al detener el seguimiento');
+    } catch (err: unknown) {
+      setError((err as Error).message || 'Error al detener el seguimiento');
     }
   };
 
@@ -137,7 +137,7 @@ export default function DriverLocationTracker({
     return directions[index];
   };
 
-  const formatLastUpdated = (timestamp: any) => {
+  const formatLastUpdated = (timestamp: Date | null) => {
     if (!timestamp) return 'Nunca';
     
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);

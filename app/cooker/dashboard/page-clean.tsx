@@ -98,7 +98,7 @@ export default function CookerDashboard() {
       const success = await DishesService.updateDish(editingDish.id, updatedDish);
       if (success) {
         // Refresh dishes data
-        const dishesData = await DishesService.getDishesByCook(user!.uid);
+        const dishesData = await DishesService.getDishesByCook(user?.uid || '');
         setDishes(dishesData);
         console.log('Dish updated successfully');
       }
@@ -134,7 +134,13 @@ export default function CookerDashboard() {
     }
   };
 
-  const StatCard = ({ title, value, icon: Icon, trend, description }: any) => (
+  const StatCard = ({ title, value, icon: Icon, trend, description }: {
+    title: string;
+    value: string | number;
+    icon: React.ElementType;
+    trend?: string;
+    description?: string;
+  }) => (
     <Card>
       <CardContent className="p-6">
         <div className="flex items-center justify-between space-y-0 pb-2">
@@ -521,7 +527,7 @@ export default function CookerDashboard() {
       <CookerSettingsModal
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
-        onSave={(settings: any) => {
+        onSave={(settings: Record<string, unknown>) => {
           console.log('Settings saved:', settings);
           setIsSettingsModalOpen(false);
         }}

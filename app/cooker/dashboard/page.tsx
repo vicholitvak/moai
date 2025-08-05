@@ -20,7 +20,6 @@ import {
   AlertCircle,
   CheckCircle,
   ChevronDown,
-  Timer,
   MapPin,
   Phone,
   MessageCircle,
@@ -179,7 +178,7 @@ export default function CookerDashboard() {
       const success = await DishesService.updateDish(editingDish.id, updatedDish);
       if (success) {
         // Refresh dishes data
-        const dishesData = await DishesService.getDishesByCook(user!.uid);
+        const dishesData = await DishesService.getDishesByCook(user?.uid || '');
         setDishes(dishesData);
         console.log('Dish updated successfully');
       }
@@ -334,7 +333,13 @@ export default function CookerDashboard() {
     }
   };
 
-  const StatCard = ({ title, value, icon: Icon, trend, description }: any) => (
+  const StatCard = ({ title, value, icon: Icon, trend, description }: {
+    title: string;
+    value: string | number;
+    icon: React.ElementType;
+    trend?: string;
+    description?: string;
+  }) => (
     <Card>
       <CardContent className="p-6">
         <div className="flex items-center justify-between space-y-0 pb-2">
@@ -587,55 +592,6 @@ export default function CookerDashboard() {
     </Card>
   );
 
-  const OrderCard = ({ order }: { order: Order }) => (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex justify-between items-start mb-2">
-          <div>
-            <h3 className="font-semibold">{order.customerName}</h3>
-            <div className="text-sm text-muted-foreground">
-              {order.dishes.map((dish, index) => (
-                <div key={index}>{dish.dishName} x{dish.quantity}</div>
-              ))}
-            </div>
-            {order.isSelfDelivery && (
-              <div className="flex items-center gap-1 text-sm text-green-600 mt-1">
-                <Truck className="h-3 w-3" />
-                <span>Entregarás tú mismo</span>
-              </div>
-            )}
-          </div>
-          <Badge className={getStatusColor(order.status)}>
-            {order.status === 'pending' ? 'Pendiente' :
-             order.status === 'accepted' ? 'Aceptado' :
-             order.status === 'preparing' ? 'Preparando' :
-             order.status === 'ready' ? 'Listo' :
-             order.status === 'delivering' ? 'En camino' :
-             order.status === 'delivered' ? 'Entregado' :
-             order.status === 'cancelled' ? 'Cancelado' : order.status}
-          </Badge>
-        </div>
-        <div className="flex justify-between items-center mb-3">
-          <span className="text-lg font-bold">${order.total.toLocaleString('es-CL')}</span>
-          <div className="text-sm text-muted-foreground">
-            <div>Pedido: {order.orderTime?.toDate()?.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) || 'N/A'}</div>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="flex-1">
-            Ver detalles
-          </Button>
-          <Button 
-            size="sm" 
-            className="flex-1"
-            onClick={() => handleUpdateOrderStatus(order.id, 'accepted')}
-          >
-            Actualizar
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
 
   if (!user) {
     return <div>Por favor inicia sesión para acceder al panel de cocinero.</div>;
@@ -1103,7 +1059,7 @@ export default function CookerDashboard() {
       <CookerSettingsModal
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
-        onSave={async (settings: any) => {
+        onSave={async (settings: Record<string, unknown>) => {
           try {
             // Update cook profile with new settings
             await CooksService.updateCook(user?.uid || '', {

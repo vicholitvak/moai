@@ -100,10 +100,10 @@ const SignInModal = ({ isOpen, onOpenChange }: SignInModalProps) => {
       toast.success('Welcome back! You\'ve signed in successfully.');
       onOpenChange(false);
       // AuthHandler will handle role-based routing
-    } catch (err: any) {
-      const errorMessage = err?.code 
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error && 'code' in err
         ? getFirebaseErrorMessage(err as AuthError)
-        : 'An unexpected error occurred. Please try again.';
+        : 'Ocurrió un error inesperado. Por favor, intenta de nuevo.';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -127,10 +127,10 @@ const SignInModal = ({ isOpen, onOpenChange }: SignInModalProps) => {
       toast.success('Welcome back! You\'ve signed in with Google successfully.');
       onOpenChange(false);
       // AuthHandler will handle role-based routing
-    } catch (err: any) {
-      const errorMessage = err?.code 
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error && 'code' in err
         ? getFirebaseErrorMessage(err as AuthError)
-        : 'An unexpected error occurred. Please try again.';
+        : 'Ocurrió un error inesperado. Por favor, intenta de nuevo.';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {

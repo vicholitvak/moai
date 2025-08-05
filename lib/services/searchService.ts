@@ -3,6 +3,10 @@
 import { DishesService, CooksService, type Dish, type Cook } from '@/lib/firebase/dataService';
 import { LocationService, type Coordinates } from '@/lib/services/locationService';
 
+interface DishWithTrendScore extends Dish {
+  trendScore: number;
+}
+
 export interface SearchFilters {
   query?: string;
   category?: string;
@@ -418,7 +422,7 @@ export class SearchService {
   }
 
   // Generate price ranges
-  private static generatePriceRanges(dishes: Dish[], min: number, max: number) {
+  private static generatePriceRanges(dishes: Dish[]) {
     const ranges = [
       { range: 'Hasta $5.000', min: 0, max: 5000 },
       { range: '$5.000 - $10.000', min: 5000, max: 10000 },
@@ -637,7 +641,7 @@ export class SearchService {
           
           return { ...dish, trendScore };
         })
-        .sort((a, b) => (b as any).trendScore - (a as any).trendScore)
+        .sort((a, b) => (b as DishWithTrendScore).trendScore - (a as DishWithTrendScore).trendScore)
         .slice(0, limit);
     } catch (error) {
       console.error('Error getting trending dishes:', error);

@@ -20,7 +20,11 @@
       "Bash(taskkill:*)",
       "Bash(npx shadcn@latest add:*)",
       "Bash(mkdir:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(timeout 15 npm run dev)",
+      "Bash(npx tsc:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }

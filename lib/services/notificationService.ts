@@ -45,7 +45,7 @@ export interface NotificationMessage {
   type: 'order_update' | 'delivery_update' | 'promotion' | 'new_dish' | 'message' | 'review' | 'system';
   title: string;
   body: string;
-  data?: any;
+  data?: Record<string, unknown>;
   imageUrl?: string;
   actionUrl?: string;
   priority: 'low' | 'normal' | 'high';
@@ -64,7 +64,7 @@ export interface PushNotificationPayload {
   image?: string;
   badge?: string;
   tag?: string;
-  data?: any;
+  data?: Record<string, unknown>;
   actions?: Array<{
     action: string;
     title: string;

@@ -9,8 +9,15 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Colores originales (mantenidos para compatibilidad)
         "moai-orange": "#FF6600",
         "moai-beige": "#F5F5DC",
+        
+        // Nueva paleta Desierto de Atacama (solo colores adicionales)
+        "atacama-orange": "#F57C00",     // Naranja atardecer
+        "atacama-brown": "#8D6E63",      // Marrón tierra
+        "atacama-beige": "#D7CCC8",      // Beige arena
+        "atacama-olive": "#556B2F",      // Verde oliva
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     // Create preference - simplified to match working curl example
     const preference = {
-      items: items.map((item: any) => ({
+      items: items.map((item: { id: string; title: string; quantity: number; unit_price: number }) => ({
         id: item.id,
         title: item.title,
         quantity: item.quantity,

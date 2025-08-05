@@ -379,7 +379,7 @@ const handleToggleOnlineStatus = async () => {
     
     if (success) {
       setIsOnline(newStatus);
-      setDriverData((prev: any) => ({ ...prev, isOnline: newStatus, isAvailable: newStatus }));
+      setDriverData((prev) => ({ ...prev, isOnline: newStatus, isAvailable: newStatus }));
       
       if (newStatus) {
         toast.success('¡Estás en línea! Los pedidos comenzarán a aparecer.');
@@ -439,7 +439,7 @@ const getNextAction = (status: Order['status']) => {
   }
 };
 
-  const StatCard = ({ title, value, icon: Icon, trend, description, color = "text-primary" }: any) => (
+  const StatCard = ({ title, value, icon: Icon, trend, description, color = "text-primary" }: { title: string; value: string | number; icon: React.ComponentType<{ className?: string }>; trend?: string; description?: string; color?: string }) => (
     <Card>
       <CardContent className="p-6">
         <div className="flex items-center justify-between space-y-0 pb-2">
