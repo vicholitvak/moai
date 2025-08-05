@@ -33,12 +33,12 @@ async function checkIndexStatus() {
       console.log('   The app will use fallback methods until the index is ready.');
       
       // Extract the console link if available
-      const match = error.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
+      const match = (error as any).message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
       if (match) {
         console.log(`   Check status: ${match[0]}`);
       }
     } else {
-      console.log('❌ Error testing index:', error.message);
+      console.log('❌ Error testing index:', (error as any).message);
     }
   }
   

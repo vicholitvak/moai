@@ -59,22 +59,26 @@ export class FirebasePagination<T> {
     this.orderByField = options.orderByField || 'createdAt';
     this.orderDirection = options.orderDirection || 'desc';
 
-    // Apply filters to base query
+    // Apply filters and ordering to base query
+    const constraints = [];
+    
     if (options.filters) {
       options.filters.forEach(filter => {
-        this.baseQuery = where(this.baseQuery, filter.field, filter.operator, filter.value);
+        constraints.push(where(filter.field, filter.operator, filter.value));
       });
     }
 
     // Add ordering
-    this.baseQuery = orderBy(this.baseQuery, this.orderByField, this.orderDirection);
+    constraints.push(orderBy(this.orderByField, this.orderDirection));
+    
+    this.baseQuery = query(this.baseQuery, ...constraints);
   }
 
   // Get the first page
   async getFirstPage(): Promise<PaginatedResult<T>> {
     try {
-      const query = limit(this.baseQuery, this.pageSize);
-      const snapshot = await getDocs(query);
+      const paginatedQuery = query(this.baseQuery, limit(this.pageSize));
+      const snapshot = await getDocs(paginatedQuery);
       
       const data = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -116,12 +120,13 @@ export class FirebasePagination<T> {
 
     try {
       const lastCursor = this.cursors[this.cursors.length - 1];
-      const query = limit(
-        startAfter(this.baseQuery, lastCursor),
-        this.pageSize
+      const paginatedQuery = query(
+        this.baseQuery,
+        startAfter(lastCursor),
+        limit(this.pageSize)
       );
       
-      const snapshot = await getDocs(query);
+      const snapshot = await getDocs(paginatedQuery);
       
       const data = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -167,12 +172,13 @@ export class FirebasePagination<T> {
       this.cursors.pop();
       const previousCursor = this.cursors[this.cursors.length - 1];
       
-      const query = limit(
-        endBefore(this.baseQuery, previousCursor),
-        this.pageSize
+      const paginatedQuery = query(
+        this.baseQuery,
+        endBefore(previousCursor),
+        limit(this.pageSize)
       );
       
-      const snapshot = await getDocs(query);
+      const snapshot = await getDocs(paginatedQuery);
       
       const data = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -367,7 +373,7 @@ export const queryOptimizer = {
       pageSize?: number;
     }
   ): Query {
-    const constraints = [
+    const constraints: any[] = [
       orderBy(options.orderBy, options.direction || 'desc')
     ];
     

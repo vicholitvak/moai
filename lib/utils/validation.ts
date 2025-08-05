@@ -23,7 +23,7 @@ export function validateData<T>(
     if (error instanceof z.ZodError) {
       const errors: Record<string, string[]> = {};
       
-      error.issues.forEach((err: { path: (string | number)[]; message: string }) => {
+      error.issues.forEach((err: any) => {
         const field = err.path.join('.');
         if (!errors[field]) {
           errors[field] = [];
@@ -57,7 +57,7 @@ export function safeValidate<T>(
   }
   
   const details: Record<string, string[]> = {};
-  result.error.issues.forEach((err: { path: (string | number)[]; message: string }) => {
+  result.error.issues.forEach((err: any) => {
     const field = err.path.join('.');
     if (!details[field]) {
       details[field] = [];

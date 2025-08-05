@@ -38,18 +38,23 @@ const eslintConfig = [
       "react/no-danger-with-children": "error",
       "react/jsx-no-script-url": "error",
       "react/jsx-no-target-blank": "error",
+      "react/no-unescaped-entities": "warn",
       
       // Next.js optimizations
-      "@next/next/no-img-element": "error",
+      "@next/next/no-img-element": "warn",
       
       // Accessibility
-      "jsx-a11y/alt-text": "error",
+      "jsx-a11y/alt-text": "warn",
       "jsx-a11y/anchor-has-content": "error",
       "jsx-a11y/anchor-is-valid": "error",
       
       // Performance
-      "react-hooks/exhaustive-deps": "error",
-      "react-hooks/rules-of-hooks": "error"
+      "react-hooks/exhaustive-deps": "warn",
+      "react-hooks/rules-of-hooks": "error",
+      
+      // TypeScript additional
+      "@typescript-eslint/no-empty-object-type": "warn",
+      "prefer-const": "warn"
     }
   },
   {

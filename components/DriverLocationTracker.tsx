@@ -137,10 +137,10 @@ export default function DriverLocationTracker({
     return directions[index];
   };
 
-  const formatLastUpdated = (timestamp: Date | null) => {
+  const formatLastUpdated = (timestamp: any) => {
     if (!timestamp) return 'Nunca';
     
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    const date = timestamp.toDate ? timestamp.toDate() : (timestamp instanceof Date ? timestamp : new Date(timestamp));
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffSecs = Math.floor(diffMs / 1000);

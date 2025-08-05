@@ -449,13 +449,13 @@ export class PerformanceService {
       });
 
       // Group API performance
-      const apiPerformance: { [endpoint: string]: { avgDuration: number; count: number; } } = {};
+      const apiPerformance: { [endpoint: string]: { averageResponseTime: number; errorRate: number; requests: number; } } = {};
       apiMetrics.forEach(metric => {
         if (!apiPerformance[metric.name]) {
           apiPerformance[metric.name] = {
-            averageResponseTime: metric.averageDuration,
-            errorRate: metric.errorRate,
-            requests: metric.count
+            averageResponseTime: metric.averageDuration || 0,
+            errorRate: metric.errorRate || 0,
+            requests: metric.count || 0
           };
         }
       });
@@ -492,14 +492,14 @@ export class PerformanceService {
   // Calculate average from metrics
   private static calculateAverage(metrics: Array<Record<string, unknown>>, field: string): number {
     if (metrics.length === 0) return 0;
-    return metrics.reduce((sum, m) => sum + (m[field] || 0), 0) / metrics.length;
+    return metrics.reduce((sum, m) => sum + (Number(m[field]) || 0), 0) / metrics.length;
   }
 
   // Calculate Web Vitals metrics
   private static calculateWebVitalsMetrics(vitals: Array<Record<string, unknown>>) {
-    const cls = vitals.filter(v => v.cls !== undefined).map(v => v.cls);
-    const fid = vitals.filter(v => v.fid !== undefined).map(v => v.fid);
-    const lcp = vitals.filter(v => v.lcp !== undefined).map(v => v.lcp);
+    const cls = vitals.filter(v => v.cls !== undefined).map(v => Number(v.cls));
+    const fid = vitals.filter(v => v.fid !== undefined).map(v => Number(v.fid));
+    const lcp = vitals.filter(v => v.lcp !== undefined).map(v => Number(v.lcp));
 
     return {
       cls: this.calculateVitalDistribution(cls, [0.1, 0.25]),
@@ -536,12 +536,13 @@ export class PerformanceService {
 
     // Aggregate by date
     aggregates.forEach(metric => {
-      if (trends[metric.date]) {
+      const dateKey = String(metric.date);
+      if (trends[dateKey]) {
         if (metric.type === 'page_load') {
-          trends[metric.date].pageLoad = metric.averageDuration;
+          trends[dateKey].pageLoad = Number(metric.averageDuration) || 0;
         } else if (metric.type === 'api_call') {
-          trends[metric.date].apiResponse = metric.averageDuration;
-          trends[metric.date].errors += metric.errors;
+          trends[dateKey].apiResponse = Number(metric.averageDuration) || 0;
+          trends[dateKey].errors += Number(metric.errors) || 0;
         }
       }
     });

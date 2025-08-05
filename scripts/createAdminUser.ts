@@ -59,7 +59,7 @@ async function createAdminUser(options: CreateAdminOptions) {
     console.log('🆔 UID:', userRecord.uid);
     console.log('\nYou can now log in to the admin panel at /admin/dashboard');
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Error creating admin user:', error);
     if (error.code === 'auth/email-already-exists') {
       console.log('Email already exists. If you need to make this user an admin, run the promote script instead.');

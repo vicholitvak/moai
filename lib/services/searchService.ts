@@ -328,7 +328,7 @@ export class SearchService {
   }
 
   // Apply sorting
-  private static applySorting(dishes: Dish[], sortBy: string): Dish[] {
+  private static applySorting(dishes: any[], sortBy: string): any[] {
     switch (sortBy) {
       case 'price_low':
         return dishes.sort((a, b) => a.price - b.price);
@@ -358,7 +358,7 @@ export class SearchService {
     const prices = dishes.map(dish => dish.price);
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
-    const priceRanges = this.generatePriceRanges(dishes, minPrice, maxPrice);
+    const priceRanges = this.generatePriceRanges(dishes);
 
     // Ratings
     const ratingCount: { [key: number]: number } = {};

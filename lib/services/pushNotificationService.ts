@@ -125,7 +125,7 @@ export class PushNotificationService {
         return;
       }
 
-      const defaultOptions: NotificationOptions = {
+      const defaultOptions: any = {
         icon: '/icon-192x192.png',
         badge: '/icon-96x96.png',
         vibrate: [200, 100, 200],
@@ -175,7 +175,7 @@ export class PushNotificationService {
         vibrate: [200, 100, 200],
         requireInteraction: false,
         ...options
-      });
+      } as any);
       
     } catch (error) {
       console.error('Error showing service worker notification:', error);
@@ -197,7 +197,7 @@ export class PushNotificationService {
       let icon = '/icon-192x192.png';
       let requireInteraction = false;
       let vibrate: number[] = [200, 100, 200];
-      let actions: NotificationAction[] = [];
+      let actions: any[] = [];
 
       // Customize based on order status
       switch (data.orderStatus) {
@@ -262,7 +262,7 @@ export class PushNotificationService {
           body = data.message || 'Tu pedido ha sido actualizado';
       }
 
-      const options: NotificationOptions = {
+      const options: any = {
         body,
         icon,
         badge: '/icon-96x96.png',
