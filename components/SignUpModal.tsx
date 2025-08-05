@@ -129,10 +129,16 @@ const SignUpModal = ({ isOpen, onOpenChange }: SignUpModalProps) => {
       });
       
       // Wait a moment to ensure Firestore has processed the write
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Force a refresh of the auth state to pick up the new role
+      await auth.currentUser?.reload();
       
       toast.success(`¡Bienvenido a LicanÑam! Tu cuenta de ${role.toLowerCase() === 'client' ? 'cliente' : role.toLowerCase() === 'cooker' ? 'cocinero' : 'conductor'} ha sido creada exitosamente.`);
+      
+      // Redirect based on role immediately
       onOpenChange(false);
+      window.location.reload(); // Force a full reload to ensure AuthContext picks up the new role
     } catch (err: any) {
       const errorMessage = err?.code 
         ? getFirebaseErrorMessage(err as AuthError)
@@ -183,10 +189,16 @@ const SignUpModal = ({ isOpen, onOpenChange }: SignUpModalProps) => {
       });
       
       // Wait a moment to ensure Firestore has processed the write
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Force a refresh of the auth state to pick up the new role
+      await auth.currentUser?.reload();
       
       toast.success(`¡Bienvenido a LicanÑam! Tu cuenta de ${role.toLowerCase() === 'client' ? 'cliente' : role.toLowerCase() === 'cooker' ? 'cocinero' : 'conductor'} ha sido creada exitosamente.`);
+      
+      // Redirect based on role immediately
       onOpenChange(false);
+      window.location.reload(); // Force a full reload to ensure AuthContext picks up the new role
     } catch (err: any) {
       const errorMessage = err?.code 
         ? getFirebaseErrorMessage(err as AuthError)

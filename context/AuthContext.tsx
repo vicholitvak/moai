@@ -34,7 +34,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const isAdminUser = user.email === 'admin@moai.com' || user.uid === 'admin' || (user.email && user.email.includes('admin'));
           
           const docRef = doc(db, 'users', user.uid);
-          const docSnap = await getDoc(docRef);
+          
+          // Retry logic for new users
+          let docSnap = await getDoc(docRef);
+          let retries = 0;
+          while (!docSnap.exists() && retries < 3 && !isAdminUser) {
+            // Wait and retry for new users
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            docSnap = await getDoc(docRef);
+            retries++;
+          }
           
           if (docSnap.exists()) {
             const userData = docSnap.data();
@@ -47,6 +56,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
             
             setRole(userRole);
+            console.log(`AuthContext: User ${user.email} has role: ${userRole}`);
           } else {
             // For new users or users without a document
             if (isAdminUser) {
@@ -58,7 +68,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               // The SignUpModal will handle creating the document with the correct role
               // For now, don't set a role - this will prevent incorrect redirections
               setRole(null);
-              console.log('User document not found in Firestore. User may need to complete registration.');
+              console.log(`AuthContext: User ${user.email} document not found in Firestore after ${retries} retries. User may need to complete registration.`);
             }
           }
         } else {
