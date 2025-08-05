@@ -17,7 +17,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 interface SignUpModalProps {
   isOpen: boolean;
@@ -268,10 +267,10 @@ const SignUpModal = ({ isOpen, onOpenChange }: SignUpModalProps) => {
           {/* Divider */}
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-border" />
+              <span className="w-full border-t border-atacama-beige/40" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-3 text-muted-foreground font-medium">O regístrate con email</span>
+              <span className="bg-white px-4 text-atacama-brown/70 font-medium">O regístrate con email</span>
             </div>
           </div>
 
@@ -283,17 +282,28 @@ const SignUpModal = ({ isOpen, onOpenChange }: SignUpModalProps) => {
                 <User className="h-4 w-4 text-atacama-orange" />
                 Quiero unirme como...
               </Label>
-              <ToggleGroup 
-                type="single" 
-                value={role} 
-                onValueChange={(value) => setRole(value || 'Client')} 
-                className="grid grid-cols-3 gap-2 w-full" 
-                variant="outline"
-              >
-                <ToggleGroupItem value="Client" className="text-sm py-2.5 px-3 flex-1 text-center border-atacama-beige/40 data-[state=on]:bg-atacama-orange data-[state=on]:text-white data-[state=on]:hover:bg-atacama-orange/90 hover:bg-atacama-beige/10 hover:text-atacama-brown transition-colors">Cliente</ToggleGroupItem>
-                <ToggleGroupItem value="Cooker" className="text-sm py-2.5 px-3 flex-1 text-center border-atacama-beige/40 data-[state=on]:bg-atacama-orange data-[state=on]:text-white data-[state=on]:hover:bg-atacama-orange/90 hover:bg-atacama-beige/10 hover:text-atacama-brown transition-colors">Cocinero</ToggleGroupItem>
-                <ToggleGroupItem value="Driver" className="text-sm py-2.5 px-3 flex-1 text-center border-atacama-beige/40 data-[state=on]:bg-atacama-orange data-[state=on]:text-white data-[state=on]:hover:bg-atacama-orange/90 hover:bg-atacama-beige/10 hover:text-atacama-brown transition-colors">Conductor</ToggleGroupItem>
-              </ToggleGroup>
+              <div className="grid grid-cols-3 gap-2 w-full">
+                {[
+                  { value: 'Client', label: 'Cliente', desc: 'Ordena deliciosa comida casera de cocineros locales' },
+                  { value: 'Cooker', label: 'Cocinero', desc: 'Comparte tus habilidades culinarias y gana dinero' },
+                  { value: 'Driver', label: 'Conductor', desc: 'Entrega comida y gana ingresos flexibles' }
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setRole(option.value)}
+                    className={`
+                      text-sm py-2.5 px-3 rounded-md border-2 transition-all duration-200 font-medium
+                      ${role === option.value 
+                        ? 'bg-atacama-orange border-atacama-orange text-white shadow-md transform scale-[1.02]' 
+                        : 'border-atacama-beige/40 text-atacama-brown hover:border-atacama-orange/50 hover:bg-atacama-beige/10'
+                      }
+                    `}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
               <p className="text-xs text-atacama-brown/70 text-center">
                 {role === 'Client' && 'Ordena deliciosa comida casera de cocineros locales'}
                 {role === 'Cooker' && 'Comparte tus habilidades culinarias y gana dinero'}
