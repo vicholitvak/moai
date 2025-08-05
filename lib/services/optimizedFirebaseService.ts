@@ -79,7 +79,12 @@ export class OptimizedDishesService {
 
         const result = await pagination.getFirstPage();
         
-        if (!result.error && result.data.length > 0) {
+        if (result.error) {
+          console.warn('Pagination returned error:', result.error);
+          throw new Error('Pagination failed');
+        }
+        
+        if (result.data.length > 0) {
           // Pagination worked
           if (useCache) {
             dishCache.set(cacheKey, {
@@ -98,13 +103,13 @@ export class OptimizedDishesService {
         console.warn('Pagination failed, falling back to direct query:', paginationError);
       }
       
-      // Fallback: Use direct query without pagination
-      const { getDocs, orderBy: fbOrderBy, limit: fbLimit } = await import('firebase/firestore');
+      // Fallback: Use simplest possible query to avoid any index requirements
+      const { getDocs, limit: fbLimit, collection } = await import('firebase/firestore');
       const { query } = await import('firebase/firestore');
       
-      // Add ordering and limit to base query
-      const fallbackQuery = query(baseQuery, fbOrderBy('createdAt', 'desc'), fbLimit(pageSize));
-      const directSnapshot = await getDocs(fallbackQuery);
+      // Ultra-simple query - just get dishes with limit, no filters or ordering
+      const simpleQuery = query(collection(db, 'dishes'), fbLimit(pageSize));
+      const directSnapshot = await getDocs(simpleQuery);
       
       const directDishes = directSnapshot.docs.map(doc => ({
         id: doc.id,
