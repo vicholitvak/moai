@@ -40,7 +40,7 @@ import { DishesService, OrdersService, CooksService, AnalyticsService, type Dish
 import { OptimizedDishesService } from '@/lib/services/optimizedFirebaseService';
 
 export default function CookerDashboard() {
-  const { user, logout } = useAuth();
+  const { user, role, loading: authLoading, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [editingDish, setEditingDish] = useState<Dish | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -65,7 +65,19 @@ export default function CookerDashboard() {
   // Load data from Firebase
   useEffect(() => {
     const loadData = async () => {
-      if (!user?.uid) return;
+      // Wait for auth to finish loading before checking profile
+      if (authLoading || !user?.uid) {
+        console.log('Dashboard: Waiting for auth to complete...', { authLoading, userUid: user?.uid });
+        return;
+      }
+
+      // Also wait for role to be determined (unless it's explicitly null after auth is done)
+      if (role === undefined) {
+        console.log('Dashboard: Role is undefined, waiting for role determination...');
+        return;
+      }
+
+      console.log('Dashboard: Auth ready, loading profile...', { user: user.email, role, authLoading });
       
       setLoading(true);
       try {
@@ -74,6 +86,7 @@ export default function CookerDashboard() {
         
         if (!profile) {
           // No profile exists, show onboarding
+          console.log('Dashboard: No cook profile found, showing onboarding');
           setShowOnboarding(true);
           setLoading(false);
           return;
@@ -119,7 +132,7 @@ export default function CookerDashboard() {
     };
     
     loadData();
-  }, [user?.uid]);
+  }, [user?.uid, authLoading, role]);
 
   const handleOnboardingComplete = () => {
     setShowOnboarding(false);
@@ -602,12 +615,14 @@ export default function CookerDashboard() {
     return <div>Por favor inicia sesión para acceder al panel de cocinero.</div>;
   }
   
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Cargando dashboard...</p>
+          <p>
+            {authLoading ? 'Verificando autenticación...' : 'Cargando dashboard...'}
+          </p>
         </div>
       </div>
     );

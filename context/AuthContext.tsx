@@ -35,12 +35,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           
           const docRef = doc(db, 'users', user.uid);
           
-          // Retry logic for new users
+          // Improved retry logic with exponential backoff for both new and existing users
           let docSnap = await getDoc(docRef);
           let retries = 0;
-          while (!docSnap.exists() && retries < 3 && !isAdminUser) {
-            // Wait and retry for new users
-            await new Promise(resolve => setTimeout(resolve, 1000));
+          const maxRetries = isAdminUser ? 2 : 5; // More retries for regular users
+          
+          while (!docSnap.exists() && retries < maxRetries) {
+            // Exponential backoff: 500ms, 1s, 2s, 4s, 8s
+            const delay = Math.min(500 * Math.pow(2, retries), 8000);
+            console.log(`AuthContext: Retrying user document fetch (${retries + 1}/${maxRetries}) after ${delay}ms for ${user.email}`);
+            await new Promise(resolve => setTimeout(resolve, delay));
             docSnap = await getDoc(docRef);
             retries++;
           }
@@ -58,17 +62,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setRole(userRole);
             console.log(`AuthContext: User ${user.email} has role: ${userRole}`);
           } else {
-            // For new users or users without a document
+            // Handle missing user documents
             if (isAdminUser) {
               // Admin users always get Admin role
               await setDoc(docRef, { role: 'Admin' }, { merge: true });
               setRole('Admin');
+              console.log(`AuthContext: Created Admin role for ${user.email}`);
             } else {
-              // Don't automatically create a document for non-admin users
-              // The SignUpModal will handle creating the document with the correct role
-              // For now, don't set a role - this will prevent incorrect redirections
-              setRole(null);
-              console.log(`AuthContext: User ${user.email} document not found in Firestore after ${retries} retries. User may need to complete registration.`);
+              // For regular users, be more careful about setting null role
+              // This could be a network issue or existing user with temporarily missing doc
+              console.warn(`AuthContext: User ${user.email} document not found after ${retries} retries. This may indicate a network issue or missing registration.`);
+              
+              // Keep loading state a bit longer to avoid race conditions
+              // Only set role to null after a significant delay to allow other components to load properly
+              setTimeout(() => {
+                setRole(null);
+                console.log(`AuthContext: Set role to null for ${user.email} after extended wait`);
+              }, 2000); // 2 second delay before setting null role
+              
+              // For now, don't set role immediately to prevent premature onboarding triggers
+              return; // Exit early to keep role as null but delay the setting
             }
           }
         } else {

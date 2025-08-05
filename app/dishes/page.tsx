@@ -114,16 +114,49 @@ const ClientDishesPage = () => {
       
       console.log(`Fetching dishes page ${page} from Firebase with optimized service...`);
       
+      // Temporarily remove isAvailable filter to see all dishes
       // Use optimized service with caching and pagination
       const dishesResult = await OptimizedDishesService.getDishes({
-        isAvailable: true,
+        // isAvailable: true, // Temporarily commented out to see all dishes
         pageSize,
         useCache: !isRefresh // Skip cache on manual refresh
       });
       
+      // Debug: Also try without availability filter to see all dishes
+      console.log('Trying to fetch ALL dishes (including unavailable) for debugging...');
+      try {
+        const allDishesResult = await OptimizedDishesService.getDishes({
+          // Remove isAvailable filter
+          pageSize,
+          useCache: false // Always fresh for debugging
+        });
+        console.log('ALL dishes found (including unavailable):', allDishesResult.data.length);
+        console.log('Sample dishes:', allDishesResult.data.slice(0, 3).map(d => ({ 
+          name: d.name, 
+          isAvailable: d.isAvailable,
+          cookerId: d.cookerId
+        })));
+      } catch (debugError) {
+        console.log('Debug query also failed:', debugError);
+      }
+      
+      console.log('Raw dishes result:', dishesResult);
+      console.log('Number of dishes found:', dishesResult.data.length);
+      console.log('Has more dishes:', dishesResult.hasMore);
+      
+      // Debug: Show availability status of found dishes
+      if (dishesResult.data.length > 0) {
+        console.log('Dish availability status:');
+        dishesResult.data.forEach((dish, index) => {
+          console.log(`${index + 1}. ${dish.name} - isAvailable: ${dish.isAvailable} (${typeof dish.isAvailable})`);
+        });
+      }
+      
       // Get cooks data (this could also be optimized)
       const cooksData = await CooksService.getAllCooks();
       const cooksMap = new Map(cooksData.map(cook => [cook.id, cook]));
+      
+      console.log('Number of cooks found:', cooksData.length);
       
       // Combine dish data with cook information
       const dishesWithCookInfo: DishWithCook[] = dishesResult.data
@@ -154,6 +187,47 @@ const ClientDishesPage = () => {
       console.log(`Loaded ${dishesWithCookInfo.length} dishes for page ${page}`);
     } catch (error) {
       console.error('Error fetching dishes:', error);
+      
+      // Fallback to regular service if optimized service fails
+      try {
+        console.log('Attempting fallback to regular DishesService...');
+        const fallbackDishes = await DishesService.getAllDishes();
+        const cooksData = await CooksService.getAllCooks();
+        const cooksMap = new Map(cooksData.map(cook => [cook.id, cook]));
+        
+        console.log('Fallback dishes found:', fallbackDishes.length);
+        
+        // Filter available dishes manually
+        const availableDishes = fallbackDishes.filter(dish => dish.isAvailable === true);
+        console.log('Available dishes after filtering:', availableDishes.length);
+        
+        const dishesWithCookInfo: DishWithCook[] = availableDishes
+          .map(dish => {
+            const cook = cooksMap.get(dish.cookerId);
+            return {
+              ...dish,
+              cookerName: cook?.displayName || 'Cocinero Desconocido',
+              cookerAvatar: cook?.avatar || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNSAxNUMzMC41MjI5IDE1IDM1IDEwLjUyMjkgMzUgNUMzNSAyLjc5MDg2IDMzLjIwOTEgMSAzMSAxSDIwQzE3LjI5MDkgMSAxNS40NjA5IDIuNzkwODYgMTUgNUMxNSAxMC41MjI5IDE5LjQ3NzEgMTUgMjUgMTVaIiBmaWxsPSIjOUI5QkEzIi8+CjxwYXRoIGQ9Ik0xMCAzNUMxMCAyNi43MTU3IDE2LjcxNTcgMjAgMjUgMjBDMzMuMjg0MyAyMCA0MCAyNi43MTU3IDQwIDM1VjQ1SDBWMzVaIiBmaWxsPSIjOUI5QkEzIi8+Cjwvc3ZnPgo=',
+              cookerRating: cook?.rating || 4.0,
+              distance: cook?.distance || 'Nearby',
+              cookerSelfDelivery: cook?.settings?.selfDelivery || false,
+              isFavorite: favorites.includes(dish.id)
+            };
+          });
+        
+        if (page === 1) {
+          setDishes(dishesWithCookInfo);
+        } else {
+          setDishes(prev => [...prev, ...dishesWithCookInfo]);
+        }
+        
+        setHasMoreDishes(false); // No pagination for fallback
+        setLastUpdated(new Date());
+        
+        console.log(`Fallback loaded ${dishesWithCookInfo.length} dishes`);
+      } catch (fallbackError) {
+        console.error('Fallback also failed:', fallbackError);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
