@@ -85,6 +85,9 @@ The application uses Next.js App Router with role-based routing:
 - Image optimization configured for Unsplash domains
 - CSS variables enable theme consistency across components
 - Real-time subscriptions should be properly cleaned up in useEffect
+- **Firebase OAuth**: Authorized domains must include production URLs (see FIREBASE_CONFIG.md)
+  - Current authorized: `moai-wheat.vercel.app`, `localhost`
+  - Add new deployment domains to Firebase Console → Authentication → Settings → Authorized domains
 
 ### Color Theme Implementation
 
