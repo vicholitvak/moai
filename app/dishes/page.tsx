@@ -216,7 +216,7 @@ const ClientDishesPage = () => {
   // Remove the old addToCart function as we're using the context now
 
   const DishCard = ({ dish, isListView = false }: { dish: Dish; isListView?: boolean }) => (
-    <Card className={`overflow-hidden hover:shadow-lg transition-shadow cursor-pointer ${!dish.isAvailable ? 'opacity-60' : ''} ${isListView ? 'flex' : ''}`}
+    <Card className={`overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer ${!dish.isAvailable ? 'opacity-60' : ''} ${isListView ? 'flex' : ''} border-0 shadow-sm hover:shadow-xl hover:scale-[1.02]`}
           onClick={() => router.push(`/dishes/${dish.id}`)}>
       <div className={`relative ${isListView ? 'w-48 flex-shrink-0' : 'aspect-[4/3]'}`}>
         <LazyImage
@@ -328,9 +328,10 @@ const ClientDishesPage = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+      <div className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4 py-3">
+          {/* Desktop Header */}
+          <div className="hidden md:flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Avatar className="h-10 w-10">
                 <AvatarImage src={user?.photoURL || ''} />
@@ -339,8 +340,8 @@ const ClientDishesPage = () => {
                 </AvatarFallback>
               </Avatar>
               <div>
-                <h1 className="text-2xl font-bold">Discover Dishes</h1>
-                <p className="text-muted-foreground">Fresh homemade food from local cooks</p>
+                <h1 className="text-xl xl:text-2xl font-bold">Discover Dishes</h1>
+                <p className="text-sm text-muted-foreground hidden lg:block">Fresh homemade food from local cooks</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -349,11 +350,12 @@ const ClientDishesPage = () => {
                 size="sm"
                 onClick={handleRefresh}
                 disabled={refreshing}
+                className="hidden lg:flex"
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
                 {refreshing ? 'Actualizando...' : 'Actualizar'}
               </Button>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="hidden lg:flex">
                 <Heart className="h-4 w-4 mr-2" />
                 Favorites
               </Button>
@@ -363,7 +365,7 @@ const ClientDishesPage = () => {
                 onClick={() => router.push('/cart')}
               >
                 <ShoppingCart className="h-4 w-4 mr-2" />
-                Cart ({itemCount})
+                <span className="hidden sm:inline">Cart</span> ({itemCount})
               </Button>
               <Button 
                 variant="outline" 
@@ -372,8 +374,41 @@ const ClientDishesPage = () => {
                 className="text-muted-foreground hover:text-destructive"
               >
                 <LogOut className="h-4 w-4 mr-2" />
-                Logout
+                <span className="hidden sm:inline">Logout</span>
               </Button>
+            </div>
+          </div>
+
+          {/* Mobile Header */}
+          <div className="md:hidden">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={user?.photoURL || ''} />
+                  <AvatarFallback>
+                    <Utensils className="h-4 w-4" />
+                  </AvatarFallback>
+                </Avatar>
+                <h1 className="text-lg font-bold">Discover Dishes</h1>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => router.push('/cart')}
+                >
+                  <ShoppingCart className="h-4 w-4" />
+                  <span className="ml-1">({itemCount})</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={logout}
+                  className="text-muted-foreground hover:text-destructive"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -394,31 +429,53 @@ const ClientDishesPage = () => {
               placeholder="Search dishes, cooks, or cuisines..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-12"
+              className="pl-10 h-12 text-base bg-background/50 backdrop-blur border-border/50 focus:bg-background focus:border-primary/50 transition-all"
             />
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-accent"
+                onClick={() => setSearchQuery('')}
+              >
+                ✕
+              </Button>
+            )}
           </div>
 
-          {/* Category Filters */}
-          <div className="flex flex-wrap gap-2">
-            {categories.map((category) => (
-              <Button
-                key={category}
-                variant={selectedCategory === category ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedCategory(category)}
-              >
-                {category}
-              </Button>
-            ))}
+          {/* Category Filters - Horizontal Scrolling Slider */}
+          <div className="relative">
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 scroll-smooth">
+              <div className="flex gap-2 min-w-max">
+                {categories.map((category) => (
+                  <Button
+                    key={category}
+                    variant={selectedCategory === category ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedCategory(category)}
+                    className={`whitespace-nowrap flex-shrink-0 ${
+                      selectedCategory === category 
+                        ? 'bg-primary text-primary-foreground shadow-md' 
+                        : 'hover:bg-accent'
+                    }`}
+                  >
+                    {category}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            {/* Scroll indicators */}
+            <div className="absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none" />
           </div>
 
           {/* Controls */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setShowFilters(!showFilters)}
+                className="flex-shrink-0"
               >
                 <SlidersHorizontal className="h-4 w-4 mr-2" />
                 Filters
@@ -426,7 +483,7 @@ const ClientDishesPage = () => {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="px-3 py-1 border rounded-md text-sm"
+                className="px-3 py-2 border rounded-md text-sm bg-background min-w-0 flex-1 sm:flex-initial"
               >
                 <option value="rating">Highest Rated</option>
                 <option value="price-low">Price: Low to High</option>
@@ -434,23 +491,51 @@ const ClientDishesPage = () => {
                 <option value="distance">Nearest First</option>
                 <option value="time">Fastest Prep</option>
               </select>
+              <div className="hidden md:flex items-center gap-1 ml-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                >
+                  <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                </Button>
+                <Button variant="outline" size="sm">
+                  <Heart className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
             
-            <div className="flex items-center gap-1">
-              <Button
-                variant={viewMode === 'grid' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setViewMode('grid')}
-              >
-                <Grid3X3 className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === 'list' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setViewMode('list')}
-              >
-                <List className="h-4 w-4" />
-              </Button>
+            <div className="flex items-center justify-between sm:justify-end gap-1">
+              <div className="md:hidden flex items-center gap-1">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                >
+                  <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                </Button>
+                <Button variant="outline" size="sm">
+                  <Heart className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant={viewMode === 'grid' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setViewMode('grid')}
+                >
+                  <Grid3X3 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'list' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setViewMode('list')}
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -483,7 +568,7 @@ const ClientDishesPage = () => {
             <>
               <div className={
                 viewMode === 'grid' 
-                  ? 'grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+                  ? 'grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'
                   : 'space-y-4'
               }>
                 {filteredDishes.map((dish) => (
