@@ -1,601 +1,381 @@
 'use client';
 
-import { getMessaging, getToken, onMessage, MessagePayload } from 'firebase/messaging';
-import { db } from '@/lib/firebase/client';
-import { 
-  collection, 
-  doc, 
-  addDoc, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc,
-  getDoc,
-  getDocs,
-  query, 
-  where, 
-  orderBy, 
-  limit,
-  Timestamp
-} from 'firebase/firestore';
+import { toast } from 'sonner';
 
-export interface NotificationSettings {
-  userId: string;
-  fcmToken?: string;
-  emailNotifications: boolean;
-  pushNotifications: boolean;
-  preferences: {
-    orderUpdates: boolean;
-    promotions: boolean;
-    newDishes: boolean;
-    deliveryUpdates: boolean;
-    messages: boolean;
-    reviews: boolean;
-  };
-  schedule: {
-    startTime: string; // HH:MM format
-    endTime: string;   // HH:MM format
-    timezone: string;
-  };
-  lastUpdated: Timestamp;
-}
-
-export interface NotificationMessage {
-  id?: string;
-  userId: string;
-  type: 'order_update' | 'delivery_update' | 'promotion' | 'new_dish' | 'message' | 'review' | 'system';
+export interface NotificationData {
+  id: string;
   title: string;
-  body: string;
-  data?: Record<string, unknown>;
-  imageUrl?: string;
-  actionUrl?: string;
-  priority: 'low' | 'normal' | 'high';
-  scheduled?: Timestamp;
-  sent: boolean;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
+  duration?: number;
+  priority: 'low' | 'medium' | 'high';
+  category: 'order' | 'payment' | 'delivery' | 'system' | 'promotion';
+  metadata?: Record<string, any>;
+  timestamp: Date;
   read: boolean;
-  createdAt: Timestamp;
-  sentAt?: Timestamp;
-  readAt?: Timestamp;
-}
-
-export interface PushNotificationPayload {
-  title: string;
-  body: string;
-  icon?: string;
-  image?: string;
-  badge?: string;
-  tag?: string;
-  data?: Record<string, unknown>;
-  actions?: Array<{
-    action: string;
-    title: string;
-    icon?: string;
-  }>;
 }
 
 export class NotificationService {
-  private static messaging: any = null;
-  private static isSupported = false;
+  private static notifications: NotificationData[] = [];
+  private static listeners: Set<(notifications: NotificationData[]) => void> = new Set();
+  private static soundEnabled = true;
+  private static pushEnabled = false;
 
-  // Initialize Firebase Messaging
-  static async initialize(): Promise<boolean> {
-    try {
-      if (typeof window === 'undefined') return false;
-
-      // Check if browser supports notifications
-      if (!('Notification' in window)) {
-        console.warn('This browser does not support notifications');
-        return false;
-      }
-
-      // Check if Firebase Messaging is supported
-      if (!('serviceWorker' in navigator)) {
-        console.warn('Service Worker is not supported');
-        return false;
-      }
-
-      this.messaging = getMessaging();
-      this.isSupported = true;
-
-      // Set up message listener for foreground messages
-      this.setupForegroundListener();
-
-      return true;
-    } catch (error) {
-      console.error('Error initializing notification service:', error);
-      return false;
-    }
+  // Configuración de notificaciones
+  static initialize() {
+    this.requestPermission();
+    this.setupServiceWorker();
+    this.loadPreferences();
   }
 
-  // Request notification permission and get FCM token
-  static async requestPermission(userId: string): Promise<string | null> {
-    try {
-      if (!this.isSupported) {
-        await this.initialize();
-      }
-
-      // Request notification permission
+  private static async requestPermission() {
+    if ('Notification' in window) {
       const permission = await Notification.requestPermission();
-      
-      if (permission !== 'granted') {
-        console.warn('Notification permission denied');
-        return null;
-      }
-
-      // Get FCM token
-      const token = await getToken(this.messaging, {
-        vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY
-      });
-
-      if (token) {
-        // Save token to user settings
-        await this.updateUserToken(userId, token);
-        return token;
-      }
-
-      return null;
-    } catch (error) {
-      console.error('Error requesting notification permission:', error);
-      return null;
+      this.pushEnabled = permission === 'granted';
     }
   }
 
-  // Update user FCM token
-  static async updateUserToken(userId: string, token: string): Promise<void> {
-    try {
-      const settingsRef = doc(db, 'notificationSettings', userId);
-      const settingsDoc = await getDoc(settingsRef);
-
-      if (settingsDoc.exists()) {
-        await updateDoc(settingsRef, {
-          fcmToken: token,
-          lastUpdated: Timestamp.now()
-        });
-      } else {
-        // Create default notification settings
-        const defaultSettings: NotificationSettings = {
-          userId,
-          fcmToken: token,
-          emailNotifications: true,
-          pushNotifications: true,
-          preferences: {
-            orderUpdates: true,
-            promotions: true,
-            newDishes: true,
-            deliveryUpdates: true,
-            messages: true,
-            reviews: true
-          },
-          schedule: {
-            startTime: '08:00',
-            endTime: '22:00',
-            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-          },
-          lastUpdated: Timestamp.now()
-        };
-
-        await setDoc(settingsRef, defaultSettings);
-      }
-    } catch (error) {
-      console.error('Error updating user token:', error);
-    }
-  }
-
-  // Get user notification settings
-  static async getUserSettings(userId: string): Promise<NotificationSettings | null> {
-    try {
-      const settingsDoc = await getDoc(doc(db, 'notificationSettings', userId));
-      
-      if (settingsDoc.exists()) {
-        return { id: settingsDoc.id, ...settingsDoc.data() } as NotificationSettings;
-      }
-
-      return null;
-    } catch (error) {
-      console.error('Error getting user settings:', error);
-      return null;
-    }
-  }
-
-  // Update user notification settings
-  static async updateUserSettings(userId: string, settings: Partial<NotificationSettings>): Promise<boolean> {
-    try {
-      const settingsRef = doc(db, 'notificationSettings', userId);
-      await updateDoc(settingsRef, {
-        ...settings,
-        lastUpdated: Timestamp.now()
-      });
-      return true;
-    } catch (error) {
-      console.error('Error updating user settings:', error);
-      return false;
-    }
-  }
-
-  // Send notification to specific user
-  static async sendToUser(userId: string, notification: Omit<NotificationMessage, 'id' | 'userId' | 'sent' | 'read' | 'createdAt'>): Promise<string | null> {
-    try {
-      // Check user notification preferences
-      const settings = await this.getUserSettings(userId);
-      
-      if (!settings || !settings.pushNotifications) {
-        console.log('User has disabled push notifications');
-        return null;
-      }
-
-      // Check if notification type is allowed
-      const typeMap: { [key: string]: keyof NotificationSettings['preferences'] } = {
-        'order_update': 'orderUpdates',
-        'delivery_update': 'deliveryUpdates',
-        'promotion': 'promotions',
-        'new_dish': 'newDishes',
-        'message': 'messages',
-        'review': 'reviews'
-      };
-
-      const preferenceKey = typeMap[notification.type];
-      if (preferenceKey && !settings.preferences[preferenceKey]) {
-        console.log(`User has disabled ${notification.type} notifications`);
-        return null;
-      }
-
-      // Check notification schedule
-      if (!this.isWithinSchedule(settings.schedule)) {
-        // Schedule for later if not urgent
-        if (notification.priority !== 'high') {
-          return await this.scheduleNotification(userId, notification);
-        }
-      }
-
-      // Create notification document
-      const notificationData: NotificationMessage = {
-        ...notification,
-        userId,
-        sent: false,
-        read: false,
-        createdAt: Timestamp.now()
-      };
-
-      const docRef = await addDoc(collection(db, 'notifications'), notificationData);
-
-      // Send via Firebase Cloud Messaging (this would typically be done server-side)
-      if (settings.fcmToken) {
-        // In a real implementation, this would call your backend API
-        // which would use Firebase Admin SDK to send the push notification
-        console.log('Would send FCM notification to token:', settings.fcmToken);
-        
-        // For now, we'll show a browser notification if possible
-        this.showBrowserNotification({
-          title: notification.title,
-          body: notification.body,
-          icon: '/icon-192.png',
-          tag: notification.type,
-          data: notification.data
-        });
-
-        // Mark as sent
-        await updateDoc(docRef, {
-          sent: true,
-          sentAt: Timestamp.now()
-        });
-      }
-
-      return docRef.id;
-    } catch (error) {
-      console.error('Error sending notification:', error);
-      return null;
-    }
-  }
-
-  // Send notification to multiple users
-  static async sendToUsers(userIds: string[], notification: Omit<NotificationMessage, 'id' | 'userId' | 'sent' | 'read' | 'createdAt'>): Promise<string[]> {
-    try {
-      const results = await Promise.allSettled(
-        userIds.map(userId => this.sendToUser(userId, notification))
-      );
-
-      return results
-        .filter((result): result is PromiseFulfilledResult<string> => 
-          result.status === 'fulfilled' && result.value !== null
-        )
-        .map(result => result.value);
-    } catch (error) {
-      console.error('Error sending bulk notifications:', error);
-      return [];
-    }
-  }
-
-  // Schedule notification for later
-  static async scheduleNotification(userId: string, notification: Omit<NotificationMessage, 'id' | 'userId' | 'sent' | 'read' | 'createdAt'>, scheduleTime?: Date): Promise<string | null> {
-    try {
-      const settings = await this.getUserSettings(userId);
-      
-      let scheduledTime = scheduleTime;
-      if (!scheduledTime && settings) {
-        // Schedule for next allowed time
-        scheduledTime = this.getNextAllowedTime(settings.schedule);
-      }
-
-      const notificationData: NotificationMessage = {
-        ...notification,
-        userId,
-        sent: false,
-        read: false,
-        scheduled: scheduledTime ? Timestamp.fromDate(scheduledTime) : undefined,
-        createdAt: Timestamp.now()
-      };
-
-      const docRef = await addDoc(collection(db, 'notifications'), notificationData);
-      return docRef.id;
-    } catch (error) {
-      console.error('Error scheduling notification:', error);
-      return null;
-    }
-  }
-
-  // Get user notifications
-  static async getUserNotifications(userId: string, limit: number = 50): Promise<NotificationMessage[]> {
-    try {
-      const notificationsQuery = query(
-        collection(db, 'notifications'),
-        where('userId', '==', userId),
-        orderBy('createdAt', 'desc'),
-        limit(limit)
-      );
-
-      const notifications = await getDocs(notificationsQuery);
-      return notifications.docs.map(doc => ({ id: doc.id, ...doc.data() } as NotificationMessage));
-    } catch (error) {
-      console.error('Error getting user notifications:', error);
-      return [];
-    }
-  }
-
-  // Mark notification as read
-  static async markAsRead(notificationId: string): Promise<boolean> {
-    try {
-      await updateDoc(doc(db, 'notifications', notificationId), {
-        read: true,
-        readAt: Timestamp.now()
-      });
-      return true;
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
-      return false;
-    }
-  }
-
-  // Mark all notifications as read for user
-  static async markAllAsRead(userId: string): Promise<boolean> {
-    try {
-      const unreadQuery = query(
-        collection(db, 'notifications'),
-        where('userId', '==', userId),
-        where('read', '==', false)
-      );
-
-      const unreadNotifications = await getDocs(unreadQuery);
-      
-      const updatePromises = unreadNotifications.docs.map(doc =>
-        updateDoc(doc.ref, {
-          read: true,
-          readAt: Timestamp.now()
+  private static setupServiceWorker() {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(registration => {
+          console.log('Service Worker registered:', registration);
         })
-      );
-
-      await Promise.all(updatePromises);
-      return true;
-    } catch (error) {
-      console.error('Error marking all notifications as read:', error);
-      return false;
-    }
-  }
-
-  // Delete notification
-  static async deleteNotification(notificationId: string): Promise<boolean> {
-    try {
-      await deleteDoc(doc(db, 'notifications', notificationId));
-      return true;
-    } catch (error) {
-      console.error('Error deleting notification:', error);
-      return false;
-    }
-  }
-
-  // Get unread count
-  static async getUnreadCount(userId: string): Promise<number> {
-    try {
-      const unreadQuery = query(
-        collection(db, 'notifications'),
-        where('userId', '==', userId),
-        where('read', '==', false)
-      );
-
-      const unreadNotifications = await getDocs(unreadQuery);
-      return unreadNotifications.docs.length;
-    } catch (error) {
-      console.error('Error getting unread count:', error);
-      return 0;
-    }
-  }
-
-  // Show browser notification
-  private static showBrowserNotification(payload: PushNotificationPayload): void {
-    try {
-      if (Notification.permission === 'granted') {
-        const notification = new Notification(payload.title, {
-          body: payload.body,
-          icon: payload.icon || '/icon-192.png',
-          image: payload.image,
-          badge: payload.badge,
-          tag: payload.tag,
-          data: payload.data,
-          requireInteraction: false,
-          silent: false
+        .catch(error => {
+          console.error('Service Worker registration failed:', error);
         });
-
-        notification.onclick = () => {
-          window.focus();
-          notification.close();
-          
-          // Handle action based on notification data
-          if (payload.data?.actionUrl) {
-            window.location.href = payload.data.actionUrl;
-          }
-        };
-
-        // Auto close after 5 seconds
-        setTimeout(() => notification.close(), 5000);
-      }
-    } catch (error) {
-      console.error('Error showing browser notification:', error);
     }
   }
 
-  // Setup foreground message listener
-  private static setupForegroundListener(): void {
-    if (!this.messaging) return;
+  private static loadPreferences() {
+    const preferences = localStorage.getItem('notificationPreferences');
+    if (preferences) {
+      const { soundEnabled } = JSON.parse(preferences);
+      this.soundEnabled = soundEnabled;
+    }
+  }
 
-    onMessage(this.messaging, (payload: MessagePayload) => {
-      console.log('Foreground message received:', payload);
+  // Crear notificaciones
+  static create(data: Omit<NotificationData, 'id' | 'timestamp' | 'read'>) {
+    const notification: NotificationData = {
+      ...data,
+      id: this.generateId(),
+      timestamp: new Date(),
+      read: false
+    };
 
-      // Show notification when app is in foreground
-      if (payload.notification) {
-        this.showBrowserNotification({
-          title: payload.notification.title || 'Moai',
-          body: payload.notification.body || '',
-          icon: payload.notification.icon,
-          image: payload.notification.image,
-          data: payload.data
-        });
-      }
+    this.notifications.unshift(notification);
+    this.notifyListeners();
+    this.showToast(notification);
+    this.playSound(notification);
+    this.showPushNotification(notification);
+    this.persistNotifications();
+
+    return notification.id;
+  }
+
+  // Notificaciones específicas por rol
+  static notifyOrderReceived(orderId: string, customerName: string, total: number) {
+    return this.create({
+      title: '¡Nuevo Pedido Recibido!',
+      message: `${customerName} ha realizado un pedido por $${total.toLocaleString('es-CL')}`,
+      type: 'success',
+      priority: 'high',
+      category: 'order',
+      action: {
+        label: 'Ver Pedido',
+        onClick: () => window.location.href = `/cooker/dashboard?order=${orderId}`
+      },
+      metadata: { orderId, customerName, total }
     });
   }
 
-  // Check if current time is within user's notification schedule
-  private static isWithinSchedule(schedule: NotificationSettings['schedule']): boolean {
+  static notifyOrderStatusChange(orderId: string, status: string, role: 'cook' | 'driver' | 'customer') {
+    const statusMessages = {
+      accepted: 'Tu pedido ha sido aceptado y está siendo preparado',
+      preparing: 'Tu pedido está siendo preparado',
+      ready: '¡Tu pedido está listo para recoger!',
+      delivering: 'Tu pedido está en camino',
+      delivered: '¡Tu pedido ha sido entregado!'
+    };
+
+    return this.create({
+      title: 'Estado del Pedido Actualizado',
+      message: statusMessages[status as keyof typeof statusMessages] || `Estado: ${status}`,
+      type: 'info',
+      priority: 'medium',
+      category: 'order',
+      metadata: { orderId, status, role }
+    });
+  }
+
+  static notifyPaymentSuccess(orderId: string, amount: number) {
+    return this.create({
+      title: 'Pago Exitoso',
+      message: `Tu pago de $${amount.toLocaleString('es-CL')} ha sido procesado correctamente`,
+      type: 'success',
+      priority: 'high',
+      category: 'payment',
+      metadata: { orderId, amount }
+    });
+  }
+
+  static notifyPaymentFailed(orderId: string, reason: string) {
+    return this.create({
+      title: 'Error en el Pago',
+      message: `No se pudo procesar tu pago: ${reason}`,
+      type: 'error',
+      priority: 'high',
+      category: 'payment',
+      action: {
+        label: 'Reintentar',
+        onClick: () => window.location.href = `/payment/retry?order=${orderId}`
+      },
+      metadata: { orderId, reason }
+    });
+  }
+
+  static notifyDriverAssigned(orderId: string, driverName: string) {
+    return this.create({
+      title: 'Repartidor Asignado',
+      message: `${driverName} ha sido asignado a tu pedido`,
+      type: 'info',
+      priority: 'medium',
+      category: 'delivery',
+      metadata: { orderId, driverName }
+    });
+  }
+
+  static notifyDeliveryUpdate(orderId: string, message: string) {
+    return this.create({
+      title: 'Actualización de Entrega',
+      message,
+      type: 'info',
+      priority: 'medium',
+      category: 'delivery',
+      metadata: { orderId }
+    });
+  }
+
+  static notifyPromotion(title: string, message: string, discount: number) {
+    return this.create({
+      title,
+      message: `${message} - ${discount}% de descuento`,
+      type: 'info',
+      priority: 'low',
+      category: 'promotion',
+      action: {
+        label: 'Ver Oferta',
+        onClick: () => window.location.href = '/promotions'
+      },
+      metadata: { discount }
+    });
+  }
+
+  // Gestión de notificaciones
+  static markAsRead(id: string) {
+    const notification = this.notifications.find(n => n.id === id);
+    if (notification) {
+      notification.read = true;
+      this.notifyListeners();
+      this.persistNotifications();
+    }
+  }
+
+  static markAllAsRead() {
+    this.notifications.forEach(n => n.read = true);
+    this.notifyListeners();
+    this.persistNotifications();
+  }
+
+  static delete(id: string) {
+    this.notifications = this.notifications.filter(n => n.id !== id);
+    this.notifyListeners();
+    this.persistNotifications();
+  }
+
+  static clearAll() {
+    this.notifications = [];
+    this.notifyListeners();
+    this.persistNotifications();
+  }
+
+  static getUnreadCount(): number {
+    return this.notifications.filter(n => !n.read).length;
+  }
+
+  static getNotifications(filter?: {
+    category?: string;
+    read?: boolean;
+    priority?: string;
+  }): NotificationData[] {
+    let filtered = this.notifications;
+
+    if (filter?.category) {
+      filtered = filtered.filter(n => n.category === filter.category);
+    }
+
+    if (filter?.read !== undefined) {
+      filtered = filtered.filter(n => n.read === filter.read);
+    }
+
+    if (filter?.priority) {
+      filtered = filtered.filter(n => n.priority === filter.priority);
+    }
+
+    return filtered;
+  }
+
+  // Suscripción a cambios
+  static subscribe(callback: (notifications: NotificationData[]) => void) {
+    this.listeners.add(callback);
+    return () => this.listeners.delete(callback);
+  }
+
+  private static notifyListeners() {
+    this.listeners.forEach(callback => callback([...this.notifications]));
+  }
+
+  // Persistencia
+  private static persistNotifications() {
     try {
-      const now = new Date();
-      const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-      
-      return currentTime >= schedule.startTime && currentTime <= schedule.endTime;
+      localStorage.setItem('notifications', JSON.stringify(this.notifications));
     } catch (error) {
-      console.error('Error checking schedule:', error);
-      return true; // Default to allowing notifications
+      console.error('Error persisting notifications:', error);
     }
   }
 
-  // Get next allowed time based on user schedule
-  private static getNextAllowedTime(schedule: NotificationSettings['schedule']): Date {
-    const now = new Date();
-    const [startHour, startMinute] = schedule.startTime.split(':').map(Number);
-    
-    const nextAllowed = new Date(now);
-    nextAllowed.setHours(startHour, startMinute, 0, 0);
-    
-    // If the time has passed today, schedule for tomorrow
-    if (nextAllowed <= now) {
-      nextAllowed.setDate(nextAllowed.getDate() + 1);
+  static loadPersistedNotifications() {
+    try {
+      const stored = localStorage.getItem('notifications');
+      if (stored) {
+        this.notifications = JSON.parse(stored).map((n: any) => ({
+          ...n,
+          timestamp: new Date(n.timestamp)
+        }));
+        this.notifyListeners();
+      }
+    } catch (error) {
+      console.error('Error loading persisted notifications:', error);
     }
-    
-    return nextAllowed;
   }
 
-  // Notification templates for common use cases
-  static getNotificationTemplate(type: string, data: any): Omit<NotificationMessage, 'id' | 'userId' | 'sent' | 'read' | 'createdAt'> {
-    switch (type) {
-      case 'order_confirmed':
-        return {
-          type: 'order_update',
-          title: '¡Pedido confirmado!',
-          body: `Tu pedido #${data.orderId} ha sido confirmado y está siendo preparado.`,
-          data: { orderId: data.orderId, actionUrl: `/orders/${data.orderId}` },
-          priority: 'high'
-        };
+  // Utilidades
+  private static generateId(): string {
+    return `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
 
-      case 'order_ready':
-        return {
-          type: 'order_update',
-          title: '¡Tu pedido está listo!',
-          body: `Tu pedido #${data.orderId} está listo para entrega.`,
-          data: { orderId: data.orderId, actionUrl: `/orders/${data.orderId}` },
-          priority: 'high'
-        };
+  private static showToast(notification: NotificationData) {
+    const toastOptions = {
+      duration: notification.duration || (notification.priority === 'high' ? 5000 : 3000),
+      action: notification.action ? {
+        label: notification.action.label,
+        onClick: notification.action.onClick
+      } : undefined
+    };
 
-      case 'driver_assigned':
-        return {
-          type: 'delivery_update',
-          title: 'Conductor asignado',
-          body: `${data.driverName} está en camino a recoger tu pedido.`,
-          data: { orderId: data.orderId, driverId: data.driverId, actionUrl: `/orders/${data.orderId}` },
-          priority: 'normal'
-        };
-
-      case 'out_for_delivery':
-        return {
-          type: 'delivery_update',
-          title: '¡En camino!',
-          body: `Tu pedido #${data.orderId} está en camino. Tiempo estimado: ${data.estimatedTime} min.`,
-          data: { orderId: data.orderId, actionUrl: `/orders/${data.orderId}` },
-          priority: 'high'
-        };
-
-      case 'delivered':
-        return {
-          type: 'delivery_update',
-          title: '¡Pedido entregado!',
-          body: `Tu pedido #${data.orderId} ha sido entregado. ¡Disfruta tu comida!`,
-          data: { orderId: data.orderId, actionUrl: `/orders/${data.orderId}` },
-          priority: 'normal'
-        };
-
-      case 'new_message':
-        return {
-          type: 'message',
-          title: `Mensaje de ${data.senderName}`,
-          body: data.messagePreview,
-          data: { conversationId: data.conversationId, actionUrl: `/messages/${data.conversationId}` },
-          priority: 'normal'
-        };
-
-      case 'promotion':
-        return {
-          type: 'promotion',
-          title: data.title,
-          body: data.description,
-          imageUrl: data.imageUrl,
-          data: { promotionId: data.promotionId, actionUrl: data.actionUrl },
-          priority: 'low'
-        };
-
-      case 'new_dish':
-        return {
-          type: 'new_dish',
-          title: '¡Nuevo plato disponible!',
-          body: `${data.cookName} ha agregado "${data.dishName}" a su menú.`,
-          imageUrl: data.dishImage,
-          data: { dishId: data.dishId, cookId: data.cookId, actionUrl: `/dishes/${data.dishId}` },
-          priority: 'low'
-        };
-
+    switch (notification.type) {
+      case 'success':
+        toast.success(notification.title, {
+          description: notification.message,
+          ...toastOptions
+        });
+        break;
+      case 'error':
+        toast.error(notification.title, {
+          description: notification.message,
+          ...toastOptions
+        });
+        break;
+      case 'warning':
+        toast.warning(notification.title, {
+          description: notification.message,
+          ...toastOptions
+        });
+        break;
       default:
-        return {
-          type: 'system',
-          title: 'Notificación',
-          body: 'Tienes una nueva notificación en Moai.',
-          priority: 'normal'
-        };
+        toast.info(notification.title, {
+          description: notification.message,
+          ...toastOptions
+        });
     }
   }
 
-  // Send order status notifications
-  static async sendOrderNotification(userId: string, orderId: string, status: string, additionalData?: any): Promise<void> {
-    const template = this.getNotificationTemplate(`order_${status}`, { orderId, ...additionalData });
-    await this.sendToUser(userId, template);
+  private static playSound(notification: NotificationData) {
+    if (!this.soundEnabled || notification.priority === 'low') return;
+
+    try {
+      const audio = new Audio('/sounds/notification.mp3');
+      audio.volume = 0.3;
+      audio.play().catch(error => {
+        console.warn('Could not play notification sound:', error);
+      });
+    } catch (error) {
+      console.warn('Error playing notification sound:', error);
+    }
   }
 
-  // Send delivery notifications
-  static async sendDeliveryNotification(userId: string, orderId: string, status: string, additionalData?: any): Promise<void> {
-    const template = this.getNotificationTemplate(status, { orderId, ...additionalData });
-    await this.sendToUser(userId, template);
+  private static showPushNotification(notification: NotificationData) {
+    if (!this.pushEnabled || notification.priority === 'low') return;
+
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(notification.title, {
+        body: notification.message,
+        icon: '/icon-192x192.png',
+        badge: '/icon-96x96.png',
+        tag: notification.id,
+        requireInteraction: notification.priority === 'high'
+      });
+    }
+  }
+
+  // Configuración
+  static setSoundEnabled(enabled: boolean) {
+    this.soundEnabled = enabled;
+    localStorage.setItem('notificationPreferences', JSON.stringify({ soundEnabled: enabled }));
+  }
+
+  static isSoundEnabled(): boolean {
+    return this.soundEnabled;
+  }
+
+  static setPushEnabled(enabled: boolean) {
+    this.pushEnabled = enabled;
+    if (enabled) {
+      this.requestPermission();
+    }
+  }
+
+  static isPushEnabled(): boolean {
+    return this.pushEnabled;
+  }
+
+  // Limpieza automática
+  static cleanup() {
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+    this.notifications = this.notifications.filter(n => 
+      n.timestamp > oneWeekAgo || n.priority === 'high'
+    );
+
+    this.notifyListeners();
+    this.persistNotifications();
+  }
+
+  // Métricas
+  static getMetrics() {
+    const total = this.notifications.length;
+    const unread = this.getUnreadCount();
+    const byCategory = this.notifications.reduce((acc, n) => {
+      acc[n.category] = (acc[n.category] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return { total, unread, byCategory };
   }
 }

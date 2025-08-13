@@ -28,7 +28,7 @@
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+    --card: 222.2 84% 6%;
     --card-foreground: 210 40% 98%;
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
@@ -46,6 +46,27 @@
     --input: 217.2 32.6% 17.5%;
     --ring: 24 100% 50%;
     --ring-offset-background: 222.2 84% 4.9%;
+  }
+
+  /* Dark mode color overrides for Atacama theme */
+  .dark .bg-atacama-orange {
+    background-color: #F57C00 !important;
+  }
+  
+  .dark .hover\:bg-atacama-orange\/90:hover {
+    background-color: rgba(245, 124, 0, 0.9) !important;
+  }
+  
+  .dark .text-atacama-orange {
+    color: #FF8F00 !important; /* Slightly brighter for dark mode */
+  }
+  
+  .dark .text-atacama-brown {
+    color: #A1887F !important; /* Lighter brown for better contrast */
+  }
+  
+  .dark .border-atacama-orange {
+    border-color: #FF8F00 !important;
   }
 
   /* Fix modal overlay and content transparency issues */

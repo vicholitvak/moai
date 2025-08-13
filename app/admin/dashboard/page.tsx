@@ -54,6 +54,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 interface AdminStats {
   totalUsers: number;
@@ -788,6 +789,7 @@ export default function AdminDashboard() {
                 <Settings className="h-4 w-4 mr-2" />
                 Configuración
               </Button>
+              <ThemeToggle />
               <Button 
                 variant="outline" 
                 size="sm" 

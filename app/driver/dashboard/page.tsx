@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { toast } from 'sonner';
 import { 
   MapPin, 
@@ -728,6 +729,9 @@ export default function DriverDashboard() {
                 )}
                 {isOnline ? 'En Línea' : 'Fuera de Línea'}
               </Button>
+              
+              {/* Theme Toggle */}
+              <ThemeToggle />
               
               {/* User Avatar */}
               <Avatar>

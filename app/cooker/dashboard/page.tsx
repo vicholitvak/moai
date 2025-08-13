@@ -31,6 +31,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import EditDishModal from '@/components/EditDishModal';
 import CookerSettingsModal from '@/components/CookerSettingsModal';
 import { AddDishModal } from '@/components/AddDishModal';
@@ -663,6 +664,7 @@ export default function CookerDashboard() {
                 <Settings className="h-4 w-4 mr-2" />
                 Configuración
               </Button>
+              <ThemeToggle />
               <Button 
                 variant="outline" 
                 size="sm" 

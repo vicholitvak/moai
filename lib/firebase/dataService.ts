@@ -608,6 +608,21 @@ export class OrdersService {
         createdAt: now,
         updatedAt: now
       });
+      
+      // Create chat room for the order
+      try {
+        const { ChatService } = await import('../services/chatService');
+        await ChatService.getOrCreateOrderChatRoom(
+          docRef.id,
+          orderData.cookerId,
+          orderData.customerId,
+          orderData.driverId
+        );
+      } catch (chatError) {
+        console.warn('Could not create chat room for order:', chatError);
+        // Don't fail the order creation if chat creation fails
+      }
+      
       return docRef.id;
     } catch (error) {
       console.error('Error creating order:', error);
@@ -615,7 +630,7 @@ export class OrdersService {
     }
   }
 
-  static async updateOrderStatus(orderId: string, status: Order['status']): Promise<boolean> {
+  static async updateOrderStatus(orderId: string, status: Order['status'], updatedBy?: { role: 'cooker' | 'driver'; userId: string }): Promise<boolean> {
     try {
       const docRef = doc(db, this.collection, orderId);
       await updateDoc(docRef, {
@@ -623,6 +638,32 @@ export class OrdersService {
         updatedAt: Timestamp.now(),
         ...(status === 'delivered' && { actualDeliveryTime: Timestamp.now() })
       });
+      
+      // Send chat notification for status updates
+      if (updatedBy && ['accepted', 'preparing', 'ready', 'delivering', 'delivered'].includes(status)) {
+        try {
+          const { ChatService } = await import('../services/chatService');
+          
+          // Find the chat room for this order
+          const orderDoc = await getDoc(docRef);
+          if (orderDoc.exists()) {
+            const orderData = orderDoc.data() as Order;
+            const roomId = await ChatService.getOrCreateOrderChatRoom(
+              orderId,
+              orderData.cookerId,
+              orderData.customerId,
+              orderData.driverId
+            );
+            
+            if (roomId) {
+              await ChatService.sendOrderUpdateMessage(roomId, orderId, status, updatedBy.role);
+            }
+          }
+        } catch (chatError) {
+          console.warn('Could not send chat notification for status update:', chatError);
+        }
+      }
+      
       return true;
     } catch (error) {
       console.error('Error updating order status:', error);

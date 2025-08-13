@@ -27,3 +27,4 @@ if (!admin.apps.length) {
 }
 
 export { admin };
+export const adminApp = admin.app();

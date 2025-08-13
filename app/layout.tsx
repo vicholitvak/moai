@@ -4,9 +4,12 @@ import "./globals.css";
 import { AuthProvider } from '../context/AuthContext';
 import { CartProvider } from '../context/CartContext';
 import { UserProfileProvider } from '../context/UserProfileContext';
+import { ThemeProvider } from '../contexts/ThemeContext';
 import AuthHandler from '../context/AuthHandler';
 import { Toaster } from '../components/ui/sonner';
 import NotificationInitializer from '../components/NotificationInitializer';
+import FloatingChatButton from '../components/chat/FloatingChatButton';
+import ChatNotificationHandler from '../components/ChatNotificationHandler';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -35,15 +38,19 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <AuthProvider>
-          <UserProfileProvider>
-            <CartProvider>
-              <NotificationInitializer />
-              <AuthHandler>{children}</AuthHandler>
-              <Toaster />
-            </CartProvider>
-          </UserProfileProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <UserProfileProvider>
+              <CartProvider>
+                <NotificationInitializer />
+                <ChatNotificationHandler />
+                <AuthHandler>{children}</AuthHandler>
+                <FloatingChatButton />
+                <Toaster />
+              </CartProvider>
+            </UserProfileProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
