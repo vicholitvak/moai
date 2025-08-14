@@ -1,7 +1,7 @@
 {
-  "name": "LicanÑam - Comida Casera",
-  "short_name": "LicanÑam",
-  "description": "Descubre deliciosa comida casera de cocineros locales",
+  "name": "Moai - Local Food Delivery",
+  "short_name": "Moai",
+  "description": "Discover delicious homemade food from local cooks",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -10,42 +10,42 @@
   "categories": ["food", "lifestyle", "shopping"],
   "icons": [
     {
-      "src": "/llama-icon.jpg",
+      "src": "/icon-96x96.png",
       "sizes": "96x96",
-      "type": "image/jpeg"
+      "type": "image/png"
     },
     {
-      "src": "/llama-icon.jpg",
+      "src": "/icon-192x192.png",
       "sizes": "192x192",
-      "type": "image/jpeg"
+      "type": "image/png"
     },
     {
-      "src": "/llama-icon.jpg", 
+      "src": "/icon-192x192.png", 
       "sizes": "512x512",
-      "type": "image/jpeg"
+      "type": "image/png"
     }
   ],
   "shortcuts": [
     {
-      "name": "Mis Pedidos",
-      "short_name": "Pedidos",
-      "description": "Ver mis pedidos activos",
+      "name": "My Orders",
+      "short_name": "Orders",
+      "description": "View my active orders",
       "url": "/client/orders",
       "icons": [
         {
-          "src": "/llama-icon.jpg",
+          "src": "/icon-96x96.png",
           "sizes": "96x96"
         }
       ]
     },
     {
-      "name": "Explorar Platos",
-      "short_name": "Platos",
-      "description": "Descubre nuevos platos",
+      "name": "Browse Dishes",
+      "short_name": "Dishes",
+      "description": "Discover new dishes",
       "url": "/dishes",
       "icons": [
         {
-          "src": "/llama-icon.jpg", 
+          "src": "/icon-96x96.png", 
           "sizes": "96x96"
         }
       ]

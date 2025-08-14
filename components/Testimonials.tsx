@@ -28,21 +28,55 @@ const testimonialsData: Testimonial[] = [
 
 const TestimonialCard = ({ testimonial }: { testimonial: Testimonial }) => {
   const [imageUrl, setImageUrl] = useState('');
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     const fetchImage = async () => {
-      const response = await fetch(`/api/image?query=${testimonial.query}&orientation=portrait`);
-      const data = await response.json();
-      setImageUrl(data.url);
+      try {
+        const response = await fetch(`/api/image?query=${testimonial.query}&orientation=portrait`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch image: ${response.status}`);
+        }
+        const data = await response.json();
+        if (data.url) {
+          setImageUrl(data.url);
+        } else {
+          setImageError(true);
+        }
+      } catch (error) {
+        console.error('Error fetching testimonial image:', error);
+        setImageError(true);
+      }
     };
-    fetchImage();
-  }, [testimonial.query]);
+
+    // Only fetch if we don't already have an image and haven't errored
+    if (!imageUrl && !imageError) {
+      fetchImage();
+    }
+  }, [testimonial.query, imageUrl, imageError]);
 
   return (
     <div className="bg-white p-8 rounded-lg shadow-lg transform hover:-translate-y-2 transition-transform duration-300">
       <p className="text-gray-600 italic mb-6">&quot;{testimonial.quote}&quot;</p>
       <div className="flex items-center justify-center">
-        {imageUrl && <Image src={imageUrl} alt={testimonial.name} width={60} height={60} className="rounded-full mr-4" />}
+        <div className="w-15 h-15 mr-4 flex-shrink-0">
+          {imageUrl ? (
+            <Image 
+              src={imageUrl} 
+              alt={testimonial.name} 
+              width={60} 
+              height={60} 
+              className="rounded-full object-cover w-15 h-15"
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <div className="w-15 h-15 bg-gradient-to-br from-primary/20 to-primary/40 rounded-full flex items-center justify-center">
+              <span className="text-xl font-bold text-primary">
+                {testimonial.name.charAt(0)}
+              </span>
+            </div>
+          )}
+        </div>
         <div>
           <p className="font-bold text-lg">{testimonial.name}</p>
           <p className="text-gray-500">{testimonial.role}</p>

@@ -1354,6 +1354,20 @@ export class AdminService {
       };
     }
   }
+
+  static async isAdmin(userId: string): Promise<boolean> {
+    try {
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        return userData.role === 'admin' || userData.role === 'Admin';
+      }
+      return false;
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      return false;
+    }
+  }
 }
 
 // App Settings Service
