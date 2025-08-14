@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { AdminService, OrdersService } from '@/lib/firebase/dataService';
-import { onSnapshot, query, collection, orderBy } from 'firebase/firestore';
+import { onSnapshot, query, collection, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import type { Order, Cook, Driver } from '@/lib/firebase/dataService';
 import { formatPrice } from '@/lib/utils';
@@ -116,29 +116,43 @@ const AdminDashboard: React.FC = () => {
   useEffect(() => {
     if (!isAdmin) return;
 
+    const loadDetailedOrders = async () => {
+      try {
+        setLoading(true);
+        const detailedOrders = await OrdersService.getOrdersWithDetails();
+        setOrders(detailedOrders);
+        calculateStats(detailedOrders);
+      } catch (error) {
+        console.error('Error fetching detailed orders:', error);
+        // Fallback to simple orders if detailed fetch fails
+        const ordersQuery = query(
+          collection(db, 'orders'),
+          orderBy('createdAt', 'desc')
+        );
+        const snapshot = await getDocs(ordersQuery);
+        const ordersData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Order[];
+        setOrders(ordersData as any);
+        calculateStats(ordersData);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Initial load
+    loadDetailedOrders();
+
+    // Set up real-time subscription for order changes
     const ordersQuery = query(
       collection(db, 'orders'),
       orderBy('createdAt', 'desc')
     );
 
-    const unsubscribe = onSnapshot(ordersQuery, async (snapshot) => {
-      const ordersData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Order[];
-      
-      // Get detailed orders with cook and driver info
-      try {
-        const detailedOrders = await OrdersService.getOrdersWithDetails();
-        setOrders(detailedOrders);
-        calculateStats(ordersData);
-      } catch (error) {
-        console.error('Error fetching detailed orders:', error);
-        setOrders(ordersData as any);
-        calculateStats(ordersData);
-      }
-      
-      setLoading(false);
+    const unsubscribe = onSnapshot(ordersQuery, () => {
+      // Reload detailed orders when there are changes
+      loadDetailedOrders();
     });
 
     return () => unsubscribe();
@@ -391,6 +405,12 @@ const AdminDashboard: React.FC = () => {
                               <p className="text-sm text-muted-foreground">
                                 {order.customerName} • {order.dishes?.length || 0} items
                               </p>
+                              {order.dishes && order.dishes.length > 0 && (
+                                <p className="text-xs text-muted-foreground">
+                                  {order.dishes.slice(0, 2).map(dish => dish.dishName).join(', ')}
+                                  {order.dishes.length > 2 ? '...' : ''}
+                                </p>
+                              )}
                             </div>
                           </div>
 
@@ -406,28 +426,48 @@ const AdminDashboard: React.FC = () => {
                         </div>
 
                         {/* Cook and Driver Info */}
-                        <div className="flex items-center gap-6 mb-3 text-sm">
-                          {order.cookInfo && (
-                            <div className="flex items-center gap-2">
-                              <ChefHat className="h-4 w-4 text-orange-600" />
-                              <span className="text-muted-foreground">Cocinero:</span>
-                              <span className="font-medium">{order.cookInfo.name}</span>
-                              <span className="text-xs text-muted-foreground">
-                                ⭐ {order.cookInfo.rating?.toFixed(1) || 'N/A'}
-                              </span>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3 text-sm">
+                          {/* Cook Info */}
+                          <div className="flex items-center gap-2 p-2 bg-orange-50 rounded-lg">
+                            <ChefHat className="h-4 w-4 text-orange-600" />
+                            <div className="flex-1">
+                              <span className="text-muted-foreground text-xs">Cocinero:</span>
+                              <div className="font-medium">
+                                {order.cookInfo ? (
+                                  <>
+                                    {order.cookInfo.name || order.cookInfo.displayName || 'Sin nombre'}
+                                    <span className="text-xs text-muted-foreground ml-2">
+                                      ⭐ {order.cookInfo.rating?.toFixed(1) || 'N/A'}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <span className="text-muted-foreground">Cargando...</span>
+                                )}
+                              </div>
                             </div>
-                          )}
+                          </div>
                           
-                          {order.driverInfo && (
-                            <div className="flex items-center gap-2">
-                              <Truck className="h-4 w-4 text-blue-600" />
-                              <span className="text-muted-foreground">Conductor:</span>
-                              <span className="font-medium">{order.driverInfo.name}</span>
-                              <span className="text-xs text-muted-foreground">
-                                ⭐ {order.driverInfo.rating?.toFixed(1) || 'N/A'}
-                              </span>
+                          {/* Driver Info */}
+                          <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg">
+                            <Truck className="h-4 w-4 text-blue-600" />
+                            <div className="flex-1">
+                              <span className="text-muted-foreground text-xs">Conductor:</span>
+                              <div className="font-medium">
+                                {order.driverInfo ? (
+                                  <>
+                                    {order.driverInfo.name || order.driverInfo.displayName || 'Sin nombre'}
+                                    <span className="text-xs text-muted-foreground ml-2">
+                                      ⭐ {order.driverInfo.rating?.toFixed(1) || 'N/A'}
+                                    </span>
+                                  </>
+                                ) : order.status === 'ready' || order.status === 'delivering' || order.status === 'en_viaje' ? (
+                                  <span className="text-yellow-600">Buscando conductor...</span>
+                                ) : (
+                                  <span className="text-muted-foreground">No asignado</span>
+                                )}
+                              </div>
                             </div>
-                          )}
+                          </div>
                         </div>
 
                         {/* Action Buttons */}
