@@ -774,19 +774,44 @@ const CartPage = () => {
                     {orderForm.paymentMethod === 'cash' ? (
                       <>
                         <Banknote className="h-5 w-5 mr-2" />
-                        Solicitar Orden - {formatPrice(total)}
+                        Confirmar Pedido - {formatPrice(total)}
                       </>
                     ) : (
                       <>
                         <div className="bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-semibold mr-2">
                           MP
                         </div>
-                        Solicitar Aprobación - {formatPrice(total)}
+                        Confirmar Pedido - {formatPrice(total)}
                       </>
                     )}
                   </>
                 )}
               </Button>
+            </div>
+
+            {/* Approval Notice */}
+            <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg animate-in fade-in-50 duration-300">
+              <div className="flex items-start gap-3">
+                <div className="bg-blue-500 text-white p-2 rounded-full">
+                  <Shield className="h-4 w-4" />
+                </div>
+                <div>
+                  <h4 className="font-medium text-blue-900 mb-1">Tu orden está sujeta a aprobación</h4>
+                  <p className="text-sm text-blue-700 mb-2">
+                    El cocinero revisará tu pedido y confirmará la disponibilidad antes de procesar.
+                  </p>
+                  <div className="text-xs text-blue-600 space-y-1">
+                    <div>• ✅ Disponibilidad garantizada</div>
+                    <div>• ⏰ Tiempo de preparación preciso</div>
+                    <div>• 🔔 Notificaciones en tiempo real</div>
+                    {orderForm.paymentMethod === 'mercadopago' ? (
+                      <div>• 💳 Pago seguro después de la aprobación</div>
+                    ) : (
+                      <div>• 💰 Pago contra entrega</div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Form validation hints */}

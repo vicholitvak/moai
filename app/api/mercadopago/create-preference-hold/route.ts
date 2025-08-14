@@ -21,6 +21,8 @@ export async function POST(request: NextRequest) {
     });
 
     // Create preference with authorization-only mode (payment hold)
+    // Note: capture: false requires special MercadoPago configuration
+    // For now, we'll create a regular preference and handle approval through notifications
     const preference = {
       items: items.map((item: { id: string; title: string; quantity: number; unit_price: number }) => ({
         id: item.id,
@@ -32,7 +34,7 @@ export async function POST(request: NextRequest) {
       payment_methods: {
         excluded_payment_methods: [],
         excluded_payment_types: [],
-        installments: 1, // Only allow single payment to simplify authorization
+        installments: 1,
       },
       back_urls: {
         success: `${baseUrl}/payment/success?hold=true&order_id=${orderId}`,
@@ -42,8 +44,6 @@ export async function POST(request: NextRequest) {
       auto_return: 'approved',
       external_reference: orderId,
       notification_url: `${baseUrl}/api/mercadopago/webhook?type=hold`,
-      // Enable authorization mode (this requires special MercadoPago account configuration)
-      capture: false, // This tells MP to authorize but not capture immediately
       metadata: {
         approval_required: true,
         order_id: orderId,
