@@ -927,6 +927,33 @@ export class OrdersService {
       callback([]); // Return empty array on error
     });
   }
+
+  static subscribeToCustomerOrders(customerId: string, callback: (orders: Order[]) => void) {
+    // Use fallback query without orderBy to avoid index requirements
+    const q = query(
+      collection(db, this.collection),
+      where('customerId', '==', customerId)
+    );
+
+    return onSnapshot(q, (snapshot) => {
+      const orders = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Order));
+      
+      // Sort client-side to avoid index requirements
+      orders.sort((a, b) => {
+        const aTime = a.createdAt?.toDate() || new Date(0);
+        const bTime = b.createdAt?.toDate() || new Date(0);
+        return bTime.getTime() - aTime.getTime();
+      });
+      
+      callback(orders);
+    }, (error) => {
+      console.error('Error in customer orders subscription:', error);
+      callback([]); // Return empty array on error
+    });
+  }
 }
 
 // Reviews Service
