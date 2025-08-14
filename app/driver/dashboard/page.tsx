@@ -53,6 +53,7 @@ import {
 import OrderDetailsModal from '@/components/OrderDetailsModal';
 import DeliveryFeed from '@/components/DeliveryFeed';
 import ActiveDeliveryView from '@/components/ActiveDeliveryView';
+import DeliveryGuidanceFlow from '@/components/DeliveryGuidanceFlow';
 import { IdleDriverTrackingService } from '@/lib/services/idleDriverTrackingService';
 import RouteOptimizationService, { OptimizedRoute, RoutePoint } from '@/lib/services/routeOptimizationService';
 import { format } from 'date-fns';
@@ -126,6 +127,7 @@ export default function DriverDashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [activeDeliveryOrder, setActiveDeliveryOrder] = useState<Order | null>(null);
+  const [showGuidanceFlow, setShowGuidanceFlow] = useState(false);
   const [idleTracking, setIdleTracking] = useState<{ stop: () => void } | null>(null);
   const [locationWatchId, setLocationWatchId] = useState<number | null>(null);
 
@@ -275,8 +277,57 @@ export default function DriverDashboard() {
         
         if (activeOrder && (!activeDeliveryOrder || activeOrder.id !== activeDeliveryOrder.id)) {
           setActiveDeliveryOrder(activeOrder);
+          // Auto-show guidance flow for newly accepted orders
+          if (activeOrder.status === 'accepted' && (!activeDeliveryOrder || activeOrder.id !== activeDeliveryOrder.id)) {
+            setShowGuidanceFlow(true);
+          }
         } else if (!activeOrder && activeDeliveryOrder) {
           setActiveDeliveryOrder(null);
+          setShowGuidanceFlow(false);
+        }
+
+        // Detect status changes and show notifications
+        if (activeDeliveryOrder && activeOrder && activeOrder.id === activeDeliveryOrder.id && activeOrder.status !== activeDeliveryOrder.status) {
+          const statusMessages = {
+            'accepted': {
+              title: 'Pedido Aceptado',
+              description: 'El cocinero confirmará la disponibilidad pronto',
+              duration: 3000
+            },
+            'preparing': {
+              title: '🍳 ¡Preparación iniciada!',
+              description: 'El cocinero está preparando tu pedido',
+              duration: 4000
+            },
+            'ready': {
+              title: '📦 ¡Pedido listo para recoger!',
+              description: 'Ve al restaurante para recoger el pedido',
+              duration: 5000
+            },
+            'delivering': {
+              title: '🚗 En camino al cliente',
+              description: 'Dirígete a la dirección de entrega',
+              duration: 3000
+            },
+            'delivered': {
+              title: '✅ ¡Entrega completada!',
+              description: 'Ganancia agregada a tu cuenta',
+              duration: 4000
+            }
+          };
+
+          const statusInfo = statusMessages[activeOrder.status as keyof typeof statusMessages];
+          if (statusInfo) {
+            toast.success(statusInfo.title, {
+              description: statusInfo.description,
+              duration: statusInfo.duration
+            });
+
+            // Auto-show guidance flow when status changes to important states
+            if (['preparing', 'ready', 'delivering'].includes(activeOrder.status)) {
+              setShowGuidanceFlow(true);
+            }
+          }
         }
       });
 
@@ -526,12 +577,12 @@ export default function DriverDashboard() {
           setIdleTracking(null);
         }
         
-        // Switch to orders tab and active filter to show the accepted order
-        setActiveTab('orders');
-        setOrderFilter('active');
+        // Show guidance flow for the accepted order
+        setShowGuidanceFlow(true);
+        setActiveTab('dashboard'); // Keep on dashboard to show guidance
         
         toast.success('¡Pedido aceptado!', {
-          description: 'El pedido ha sido asignado a ti. Ahora aparece en tu pestaña de órdenes activas.',
+          description: 'Sigue la guía paso a paso para completar la entrega.',
           duration: 4000
         });
       } else {
@@ -729,6 +780,21 @@ export default function DriverDashboard() {
     }
   };
 
+  const handleNavigateToAddress = (address: string) => {
+    const encodedAddress = encodeURIComponent(address);
+    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+    window.open(mapsUrl, '_blank');
+    toast.success('Navegación iniciada en Google Maps');
+  };
+
+  const handleCallCustomer = (phone: string) => {
+    if (phone) {
+      window.location.href = `tel:${phone}`;
+    } else {
+      toast.error('Número de teléfono no disponible');
+    }
+  };
+
   const acceptOptimizedOrders = async () => {
     if (!optimizedRoute || !user) {
       toast.error('No hay ruta optimizada disponible');
@@ -881,6 +947,59 @@ export default function DriverDashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {activeTab === 'dashboard' && (
           <>
+            {/* Show Delivery Guidance Flow if there's an active order and guidance is enabled */}
+            {activeDeliveryOrder && showGuidanceFlow && (
+              <div className="mb-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold text-gray-900">Guía de Entrega</h2>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowGuidanceFlow(false)}
+                  >
+                    Minimizar Guía
+                  </Button>
+                </div>
+                <DeliveryGuidanceFlow
+                  order={activeDeliveryOrder}
+                  cook={cooksMap.get(activeDeliveryOrder.cookerId)}
+                  onStatusUpdate={handleStatusUpdate}
+                  onStartNavigation={handleNavigateToAddress}
+                  onCallCustomer={handleCallCustomer}
+                />
+              </div>
+            )}
+
+            {/* Show option to expand guidance if there's an active order but guidance is hidden */}
+            {activeDeliveryOrder && !showGuidanceFlow && (
+              <Card className="mb-6 bg-blue-50 border-blue-200">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                        <Package className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-blue-900">
+                          Tienes una entrega activa - Pedido #{activeDeliveryOrder.id.slice(-8)}
+                        </h3>
+                        <p className="text-sm text-blue-700">
+                          Estado: {getStatusText(activeDeliveryOrder.status)} • Cliente: {activeDeliveryOrder.customerName}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => setShowGuidanceFlow(true)}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      <ArrowRight className="h-4 w-4 mr-2" />
+                      Ver Guía
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Enhanced Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card>
@@ -944,7 +1063,7 @@ export default function DriverDashboard() {
               hasActiveDelivery={!!activeDeliveryOrder}
               isDriverOnline={isOnline}
               onOrderAccepted={(orderId) => {
-                console.log('Order accepted:', orderId);
+                handleAcceptOrder(orderId);
               }}
             />
           </div>

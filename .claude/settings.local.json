@@ -27,6 +27,7 @@
       "Bash(grep:*)",
       "Bash(mv:*)"
     ],
-    "deny": []
+    "deny": [],
+    "defaultMode": "acceptEdits"
   }
 }

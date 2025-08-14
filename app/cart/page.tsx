@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
+import { useUserProfile } from '../../context/UserProfileContext';
 import { OrdersService, CooksService } from '@/lib/firebase/dataService';
 import { MercadoPagoService } from '@/lib/services/mercadoPagoService';
 import { OrderApprovalService } from '@/lib/services/orderApprovalService';
@@ -18,7 +19,8 @@ import {
   Banknote,
   User,
   CheckCircle,
-  Shield
+  Shield,
+  Save
 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -27,6 +29,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar'
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
+import GoogleAddressAutocomplete from '../../components/GoogleAddressAutocomplete';
 import { formatPrice, generateDeliveryCode } from '../../lib/utils';
 
 // Remove mock data - using cart context now
@@ -34,6 +37,7 @@ import { formatPrice, generateDeliveryCode } from '../../lib/utils';
 const CartPage = () => {
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { profile, updateProfile } = useUserProfile();
   const { 
     items: cartItems, 
     updateQuantity, 
@@ -47,12 +51,27 @@ const CartPage = () => {
   
   const [currentStep, setCurrentStep] = useState<'cart' | 'checkout' | 'confirmation'>('cart');
   const [orderForm, setOrderForm] = useState({
-    deliveryAddress: '',
-    phone: '',
+    deliveryAddress: profile?.address?.fullAddress || '',
+    phone: profile?.phone || '',
     specialInstructions: '',
     paymentMethod: 'mercadopago' as 'mercadopago' | 'cash'
   });
   const [isProcessing, setIsProcessing] = useState(false);
+  const [addressToSave, setAddressToSave] = useState<{
+    address: string;
+    fullAddressData?: google.maps.places.PlaceResult;
+  } | null>(null);
+
+  // Update form when profile loads
+  useEffect(() => {
+    if (profile) {
+      setOrderForm(prev => ({
+        ...prev,
+        deliveryAddress: profile.address?.fullAddress || prev.deliveryAddress,
+        phone: profile.phone || prev.phone
+      }));
+    }
+  }, [profile]);
 
   // Get totals from cart context
   const subtotal = getCartSubtotal();
@@ -224,6 +243,73 @@ const CartPage = () => {
 
   const handleInputChange = (field: string, value: string) => {
     setOrderForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Handle address change with optional profile saving
+  const handleAddressChange = async (address: string, fullAddressData?: google.maps.places.PlaceResult) => {
+    setOrderForm(prev => ({ ...prev, deliveryAddress: address }));
+
+    // If address is different from saved address, offer to save it
+    if (user && profile && address && address !== profile.address?.fullAddress) {
+      setAddressToSave({ address, fullAddressData });
+    } else {
+      setAddressToSave(null);
+    }
+  };
+
+  // Save new address to user profile
+  const saveAddressToProfile = async () => {
+    if (!user || !profile || !addressToSave) return;
+
+    try {
+      // Parse address components for saving
+      let addressUpdate = {
+        fullAddress: addressToSave.address,
+        street: addressToSave.address, // Fallback to full address
+        city: profile.address?.city || 'Santiago',
+        district: profile.address?.district || '',
+        details: profile.address?.details || '',
+        instructions: profile.address?.instructions || ''
+      };
+
+      // If we have detailed address data from Google Places, use it
+      if (addressToSave.fullAddressData?.address_components) {
+        const components = addressToSave.fullAddressData.address_components;
+        
+        // Extract street number and route
+        const streetNumber = components.find(c => c.types.includes('street_number'))?.long_name || '';
+        const route = components.find(c => c.types.includes('route'))?.long_name || '';
+        const street = `${route} ${streetNumber}`.trim() || addressToSave.address;
+        
+        // Extract locality/city and sublocality (district/comuna)
+        const city = components.find(c => 
+          c.types.includes('locality') || c.types.includes('administrative_area_level_2')
+        )?.long_name || 'Santiago';
+        
+        const district = components.find(c => 
+          c.types.includes('sublocality') || c.types.includes('administrative_area_level_3')
+        )?.long_name || '';
+
+        addressUpdate = {
+          ...addressUpdate,
+          street,
+          city,
+          district
+        };
+      }
+
+      const success = await updateProfile({ address: addressUpdate });
+      
+      if (success) {
+        toast.success('Dirección guardada en tu perfil');
+        setAddressToSave(null);
+      } else {
+        toast.error('Error al guardar la dirección');
+      }
+    } catch (error) {
+      console.error('Error saving address:', error);
+      toast.error('Error al guardar la dirección');
+    }
   };
 
   if (currentStep === 'confirmation') {
@@ -474,12 +560,37 @@ const CartPage = () => {
               <CardContent className="space-y-4">
                 <div>
                   <Label htmlFor="address">Delivery Address</Label>
-                  <Textarea
-                    id="address"
-                    placeholder="Enter your full delivery address..."
+                  <GoogleAddressAutocomplete
                     value={orderForm.deliveryAddress}
-                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange('deliveryAddress', e.target.value)}
+                    onChange={handleAddressChange}
+                    placeholder="Ingresa tu dirección de entrega..."
+                    userSavedAddress={profile?.address?.fullAddress}
+                    className="mt-2"
                   />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    La dirección será detectada automáticamente para una entrega más precisa
+                  </p>
+                  {/* Save address button */}
+                  {addressToSave && (
+                    <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-blue-900">Nueva dirección detectada</p>
+                          <p className="text-xs text-blue-700">
+                            ¿Quieres guardar esta dirección en tu perfil para futuros pedidos?
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={saveAddressToProfile}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          <Save className="h-4 w-4 mr-1" />
+                          Guardar
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="phone">Phone Number</Label>
