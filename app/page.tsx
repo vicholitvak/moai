@@ -22,7 +22,7 @@
 
     useEffect(() => {
       // Track page load performance
-      PerformanceService.trackPageLoad('home');
+      PerformanceService.trackPageLoadSimple('home');
       
       // Show recommendations if user is logged in and is a client
       if (user && role === 'Client') {

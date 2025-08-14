@@ -239,20 +239,24 @@ export class PerformanceService {
     };
   }
 
-  // Métricas de performance
-  static trackPageLoad(page: string) {
+  // Métricas de performance - simplified version for immediate calls
+  static trackPageLoadSimple(page: string) {
     if (typeof window !== 'undefined') {
-      const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
-      const loadTime = navigation.loadEventEnd - navigation.loadEventStart;
-      
-      console.log(`Page load time for ${page}: ${loadTime}ms`);
-      
-      // Enviar métricas a analytics
-      this.sendMetric('page_load_time', {
-        page,
-        loadTime,
-        timestamp: Date.now()
-      });
+      try {
+        const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+        if (navigation && navigation.loadEventEnd && navigation.loadEventStart) {
+          const loadTime = navigation.loadEventEnd - navigation.loadEventStart;
+          
+          if (loadTime > 0) {
+            console.log(`Page load time for ${page}: ${loadTime}ms`);
+            
+            // Call the async version with proper values
+            this.trackPageLoad(page, loadTime);
+          }
+        }
+      } catch (error) {
+        console.warn('Error tracking page load:', error);
+      }
     }
   }
 
@@ -310,6 +314,17 @@ export class PerformanceService {
   // Track page load performance
   static async trackPageLoad(pageName: string, loadTime: number, metadata?: Record<string, unknown>): Promise<void> {
     try {
+      // Validate inputs
+      if (!pageName || typeof loadTime !== 'number' || isNaN(loadTime) || loadTime < 0) {
+        console.warn('Invalid trackPageLoad parameters:', { pageName, loadTime });
+        return;
+      }
+
+      // Ensure we're in a browser environment
+      if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+        return;
+      }
+
       const metric: PerformanceMetric = {
         type: 'page_load',
         name: pageName,
@@ -489,20 +504,37 @@ export class PerformanceService {
   private static setupNavigationObserver(): void {
     if ('PerformanceObserver' in window) {
       const observer = new PerformanceObserver((list) => {
-        for (const entry of list.getEntries()) {
-          if (entry.entryType === 'navigation') {
-            const navEntry = entry as PerformanceNavigationTiming;
-            
-            this.trackPageLoad(
-              window.location.pathname,
-              navEntry.loadEventEnd - navEntry.navigationStart,
-              {
-                domContentLoaded: navEntry.domContentLoadedEventEnd - navEntry.navigationStart,
-                firstPaint: navEntry.responseEnd - navEntry.navigationStart,
-                domComplete: navEntry.domComplete - navEntry.navigationStart
+        try {
+          for (const entry of list.getEntries()) {
+            if (entry.entryType === 'navigation') {
+              const navEntry = entry as PerformanceNavigationTiming;
+              
+              // Validate navigation timing values
+              if (navEntry.loadEventEnd && navEntry.navigationStart && 
+                  navEntry.loadEventEnd > navEntry.navigationStart) {
+                
+                const loadTime = navEntry.loadEventEnd - navEntry.navigationStart;
+                const domContentLoaded = navEntry.domContentLoadedEventEnd && navEntry.navigationStart ? 
+                  navEntry.domContentLoadedEventEnd - navEntry.navigationStart : undefined;
+                const firstPaint = navEntry.responseEnd && navEntry.navigationStart ? 
+                  navEntry.responseEnd - navEntry.navigationStart : undefined;
+                const domComplete = navEntry.domComplete && navEntry.navigationStart ? 
+                  navEntry.domComplete - navEntry.navigationStart : undefined;
+                
+                this.trackPageLoad(
+                  window.location.pathname,
+                  loadTime,
+                  {
+                    ...(domContentLoaded !== undefined && { domContentLoaded }),
+                    ...(firstPaint !== undefined && { firstPaint }),
+                    ...(domComplete !== undefined && { domComplete })
+                  }
+                );
               }
-            );
+            }
           }
+        } catch (error) {
+          console.warn('Error in navigation observer:', error);
         }
       });
 
