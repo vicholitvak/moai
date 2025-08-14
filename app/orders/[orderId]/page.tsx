@@ -114,14 +114,16 @@ const OrderDetailPage = () => {
       
       if (!orderData) {
         toast.error('Pedido no encontrado');
-        router.push('/client/home');
+        const isAdmin = user?.email === 'admin@moai.com' || user?.email?.includes('admin');
+        router.push(isAdmin ? '/admin/dashboard' : '/client/home');
         return;
       }
       
-      // Verify the order belongs to the current user
-      if (orderData.customerId !== user?.uid) {
+      // Verify the order belongs to the current user or user is admin
+      const isAdmin = user?.email === 'admin@moai.com' || user?.email?.includes('admin');
+      if (orderData.customerId !== user?.uid && !isAdmin) {
         toast.error('No tienes permiso para ver este pedido');
-        router.push('/client/home');
+        router.push(isAdmin ? '/admin/dashboard' : '/client/home');
         return;
       }
       
@@ -267,7 +269,10 @@ const OrderDetailPage = () => {
             <p className="text-muted-foreground mb-4">
               No pudimos encontrar el pedido que buscas
             </p>
-            <Button onClick={() => router.push('/client/home')}>
+            <Button onClick={() => {
+              const isAdmin = user?.email === 'admin@moai.com' || user?.email?.includes('admin');
+              router.push(isAdmin ? '/admin/dashboard' : '/client/home');
+            }}>
               Volver al inicio
             </Button>
           </CardContent>

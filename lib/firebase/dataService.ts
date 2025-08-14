@@ -954,6 +954,43 @@ export class OrdersService {
       callback([]); // Return empty array on error
     });
   }
+
+  static subscribeToOrder(orderId: string, callback: (order: Order | null) => void) {
+    return onSnapshot(doc(db, this.collection, orderId), (snapshot) => {
+      if (snapshot.exists()) {
+        const order = {
+          id: snapshot.id,
+          ...snapshot.data()
+        } as Order;
+        callback(order);
+      } else {
+        callback(null);
+      }
+    }, (error) => {
+      console.error('Error in order subscription:', error);
+      callback(null);
+    });
+  }
+
+  static async addOrderReview(orderId: string, reviewData: {
+    rating: number;
+    comment: string;
+    customerId: string;
+    customerName: string;
+    createdAt: Date;
+  }): Promise<boolean> {
+    try {
+      await updateDoc(doc(db, this.collection, orderId), {
+        review: reviewData,
+        reviewed: true,
+        updatedAt: Timestamp.now()
+      });
+      return true;
+    } catch (error) {
+      console.error('Error adding order review:', error);
+      return false;
+    }
+  }
 }
 
 // Reviews Service
