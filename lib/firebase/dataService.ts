@@ -672,8 +672,12 @@ export class OrdersService {
   static async createOrder(orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>): Promise<string | null> {
     try {
       const now = Timestamp.now();
+      const { generateDeliveryCode } = await import('../../lib/utils');
+      
       const docRef = await addDoc(collection(db, this.collection), {
         ...orderData,
+        deliveryCode: orderData.deliveryCode || generateDeliveryCode(),
+        isDelivered: false,
         createdAt: now,
         updatedAt: now
       });
@@ -702,11 +706,26 @@ export class OrdersService {
   static async updateOrderStatus(orderId: string, status: Order['status'], updatedBy?: { role: 'cooker' | 'driver'; userId: string }): Promise<boolean> {
     try {
       const docRef = doc(db, this.collection, orderId);
-      await updateDoc(docRef, {
+      const updateData: any = {
         status,
-        updatedAt: Timestamp.now(),
-        ...(status === 'delivered' && { actualDeliveryTime: Timestamp.now() })
-      });
+        updatedAt: Timestamp.now()
+      };
+
+      // Handle specific status transitions
+      if (status === 'delivered') {
+        updateData.actualDeliveryTime = Timestamp.now();
+        updateData.isDelivered = true;
+      } else if (status === 'ready') {
+        // When order is ready, it becomes available for delivery
+        updateData.availableForPickup = true;
+        updateData.readyTime = Timestamp.now();
+      } else if (status === 'delivering' && updatedBy?.userId) {
+        // Assign driver when order is being delivered
+        updateData.driverId = updatedBy.userId;
+        updateData.pickupTime = Timestamp.now();
+      }
+
+      await updateDoc(docRef, updateData);
       
       // Send chat notification for status updates
       if (updatedBy && ['accepted', 'preparing', 'ready', 'delivering', 'delivered'].includes(status)) {
@@ -848,12 +867,33 @@ export class OrdersService {
       await updateDoc(docRef, {
         driverId: driverId,
         status: 'delivering',
+        pickupTime: Timestamp.now(),
         updatedAt: Timestamp.now()
       });
       return true;
     } catch (error) {
       console.error('Error assigning order to driver:', error);
       return false;
+    }
+  }
+
+  static async getReadyOrdersForPickup(): Promise<Order[]> {
+    try {
+      const querySnapshot = await getDocs(
+        query(
+          collection(db, this.collection),
+          where('status', '==', 'ready')
+        )
+      );
+      
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Order));
+      
+    } catch (error) {
+      console.error('Error fetching ready orders:', error);
+      return [];
     }
   }
 
