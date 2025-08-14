@@ -12,11 +12,13 @@ import { Dish } from '../types';
 import { motion } from 'framer-motion';
 import { formatPrice } from '../lib/utils';
 
-const FeaturedCarousel = ({ dishes }: { dishes: Dish[] }) => {
+const FeaturedCarousel = ({ dishes = [] }: { dishes?: Dish[] }) => {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchImages = async () => {
+      if (!dishes || !Array.isArray(dishes) || dishes.length === 0) return;
+      
       const urls = await Promise.all(dishes.map(async (dish) => {
         const response = await fetch(`/api/image?query=${dish.name}&orientation=landscape`);
         const data = await response.json();
@@ -24,9 +26,8 @@ const FeaturedCarousel = ({ dishes }: { dishes: Dish[] }) => {
       }));
       setImageUrls(urls);
     };
-    if (dishes.length > 0) {
-      fetchImages();
-    }
+    
+    fetchImages();
   }, [dishes]);
 
   if (!dishes || dishes.length === 0) {
