@@ -10,7 +10,23 @@ export const seedCooks: Omit<Cook, 'id' | 'createdAt' | 'updatedAt'>[] = [
     coverImage: '/api/placeholder/800/300',
     bio: 'Nacida y criada en Roma, me mudé a Chile hace 25 años con las recetas de mi abuela y una pasión por la auténtica cocina italiana. Me especializo en platos de pasta tradicionales, salsas caseras y postres italianos clásicos.',
     story: 'Mi viaje culinario comenzó en la cocina de mi nonna en Trastevere, Roma, donde aprendí los secretos de la auténtica cocina italiana. A los 8 años, ya estaba haciendo pasta a mano y revolviendo el ragú perfecto. Cuando me mudé a Chile, traje conmigo estas preciadas recetas familiares.',
-    location: 'Las Condes, Santiago',
+    location: {
+      coordinates: {
+        latitude: -33.4139,
+        longitude: -70.6115,
+        timestamp: Timestamp.now()
+      },
+      address: {
+        street: 'Av. Las Condes 9001',
+        city: 'Santiago',
+        state: 'Región Metropolitana',
+        zipCode: '7550000',
+        country: 'Chile',
+        fullAddress: 'Av. Las Condes 9001, Las Condes, Santiago, Chile'
+      },
+      isActive: true,
+      lastUpdated: Timestamp.now()
+    },
     deliveryRadius: 5,
     rating: 4.8,
     reviewCount: 234,
@@ -35,7 +51,8 @@ export const seedCooks: Omit<Cook, 'id' | 'createdAt' | 'updatedAt'>[] = [
       workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
       currency: 'CLP',
       timezone: 'America/Santiago',
-      language: 'Español'
+      language: 'Español',
+      selfDelivery: false
     }
   },
   {
@@ -45,7 +62,23 @@ export const seedCooks: Omit<Cook, 'id' | 'createdAt' | 'updatedAt'>[] = [
     coverImage: '/api/placeholder/800/300',
     bio: 'Chef especializado en cocina mexicana auténtica con más de 15 años de experiencia. Mis tacos y enchiladas son famosos en todo Santiago por su sabor tradicional y ingredientes frescos.',
     story: 'Aprendí a cocinar de mi madre en Guadalajara, México. Cada receta lleva el amor y la tradición de generaciones de cocineros mexicanos. Mi misión es traer los verdaderos sabores de México a Chile.',
-    location: 'Providencia, Santiago',
+    location: {
+      coordinates: {
+        latitude: -33.4250,
+        longitude: -70.6143,
+        timestamp: Timestamp.now()
+      },
+      address: {
+        street: 'Av. Providencia 2222',
+        city: 'Santiago',
+        state: 'Región Metropolitana',
+        zipCode: '7500000',
+        country: 'Chile',
+        fullAddress: 'Av. Providencia 2222, Providencia, Santiago, Chile'
+      },
+      isActive: true,
+      lastUpdated: Timestamp.now()
+    },
     deliveryRadius: 8,
     rating: 4.7,
     reviewCount: 189,
@@ -68,7 +101,58 @@ export const seedCooks: Omit<Cook, 'id' | 'createdAt' | 'updatedAt'>[] = [
       workingDays: ['tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
       currency: 'CLP',
       timezone: 'America/Santiago',
-      language: 'Español'
+      language: 'Español',
+      selfDelivery: false
+    }
+  },
+  {
+    displayName: 'Astro Chef',
+    email: 'astro@gmail.com',
+    avatar: '/api/placeholder/200/200',
+    coverImage: '/api/placeholder/800/300',
+    bio: 'Chef especializado en cocina fusion chilena con técnicas internacionales. Combino ingredientes locales con sabores del mundo para crear experiencias únicas.',
+    story: 'Mi pasión por la cocina comenzó explorando los mercados locales de Santiago. Cada plato cuenta una historia que une tradiciones culinarias de diferentes culturas.',
+    location: {
+      coordinates: {
+        latitude: -33.4489,
+        longitude: -70.6693,
+        timestamp: Timestamp.now()
+      },
+      address: {
+        street: 'Av. Providencia 1234',
+        city: 'Santiago',
+        state: 'Región Metropolitana',
+        zipCode: '7500000',
+        country: 'Chile',
+        fullAddress: 'Av. Providencia 1234, Santiago, Región Metropolitana, Chile'
+      },
+      isActive: true,
+      lastUpdated: Timestamp.now()
+    },
+    deliveryRadius: 6,
+    rating: 4.6,
+    reviewCount: 95,
+    totalOrders: 324,
+    yearsExperience: 8,
+    joinedDate: 'Abril 2023',
+    specialties: ['Cocina Fusion', 'Platos Chilenos', 'Técnicas Internacionales'],
+    certifications: ['Chef Profesional', 'Certificado en Seguridad Alimentaria'],
+    languages: ['Español (Nativo)', 'Inglés (Fluido)'],
+    cookingStyle: 'Fusion moderna con ingredientes locales',
+    favoriteIngredients: ['Merkén', 'Quinoa', 'Palta', 'Productos del Mar'],
+    achievements: [
+      { title: 'Chef Innovador', description: 'Creaciones únicas y populares', icon: '⭐' },
+      { title: 'Sabores Locales', description: 'Especialista en ingredientes chilenos', icon: '🇨🇱' }
+    ],
+    settings: {
+      autoAcceptOrders: false,
+      maxOrdersPerDay: 15,
+      workingHours: { start: '10:00', end: '20:00' },
+      workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+      currency: 'CLP',
+      timezone: 'America/Santiago',
+      language: 'Español',
+      selfDelivery: true
     }
   }
 ];

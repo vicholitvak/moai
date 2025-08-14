@@ -93,21 +93,32 @@ export default function CookerDashboard() {
           return;
         }
         
-        // Check if profile is complete
-        const isComplete = !!(
-          profile.displayName &&
-          profile.location?.address?.street &&
-          profile.location?.address?.city &&
-          profile.specialties?.length > 0 &&
-          profile.cookingStyle &&
-          profile.settings?.workingDays?.length > 0
-        );
+        // Check if profile is complete - only require essential fields for basic operation
+        const missingFields = [];
+        if (!profile.displayName) missingFields.push('displayName');
+        if (!profile.specialties?.length) missingFields.push('specialties');
+        if (!profile.settings?.workingDays?.length) missingFields.push('settings.workingDays');
+        
+        // Optional fields that shouldn't block dashboard access
+        const optionalMissingFields = [];
+        if (!profile.location?.address?.street) optionalMissingFields.push('location.address.street');
+        if (!profile.location?.address?.city) optionalMissingFields.push('location.address.city');
+        if (!profile.cookingStyle) optionalMissingFields.push('cookingStyle');
+        
+        const isComplete = missingFields.length === 0;
         
         if (!isComplete) {
           // Profile exists but incomplete, show onboarding
+          console.log('Dashboard: Profile incomplete, missing essential fields:', missingFields);
+          console.log('Dashboard: Optional missing fields (profile can be completed later):', optionalMissingFields);
           setShowOnboarding(true);
           setLoading(false);
           return;
+        }
+        
+        // Show warning if optional fields are missing but allow access
+        if (optionalMissingFields.length > 0) {
+          console.log('Dashboard: Profile could be improved by completing:', optionalMissingFields);
         }
         
         setCookProfile(profile);
