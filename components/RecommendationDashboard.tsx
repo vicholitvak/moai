@@ -51,10 +51,14 @@ export default function RecommendationDashboard({ className = '' }: Recommendati
         RecommendationService.getCookRecommendations(user.uid, 6)
       ]);
 
-      setDishRecommendations(dishes);
-      setCookRecommendations(cooks);
+      // Ensure arrays are always set, even if service returns undefined
+      setDishRecommendations(Array.isArray(dishes) ? dishes : []);
+      setCookRecommendations(Array.isArray(cooks) ? cooks : []);
     } catch (error) {
       console.error('Error loading recommendations:', error);
+      // Set empty arrays on error to prevent undefined length access
+      setDishRecommendations([]);
+      setCookRecommendations([]);
     } finally {
       setLoading(false);
     }
@@ -158,7 +162,7 @@ export default function RecommendationDashboard({ className = '' }: Recommendati
             onClick={() => setActiveTab('dishes')}
             className="text-xs"
           >
-            Platos ({dishRecommendations.length})
+            Platos ({dishRecommendations?.length || 0})
           </Button>
           <Button
             variant={activeTab === 'cooks' ? 'default' : 'ghost'}
@@ -166,7 +170,7 @@ export default function RecommendationDashboard({ className = '' }: Recommendati
             onClick={() => setActiveTab('cooks')}
             className="text-xs"
           >
-            Cocineros ({cookRecommendations.length})
+            Cocineros ({cookRecommendations?.length || 0})
           </Button>
         </div>
       </div>
@@ -174,9 +178,9 @@ export default function RecommendationDashboard({ className = '' }: Recommendati
       {/* Recommendations Content */}
       {activeTab === 'dishes' ? (
         <div className="space-y-4">
-          {dishRecommendations.length > 0 ? (
+          {(dishRecommendations?.length || 0) > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {dishRecommendations.map((recommendation) => (
+              {(dishRecommendations || []).map((recommendation) => (
                 <DishRecommendationCard
                   key={recommendation.dishId}
                   recommendation={recommendation}
@@ -199,9 +203,9 @@ export default function RecommendationDashboard({ className = '' }: Recommendati
         </div>
       ) : (
         <div className="space-y-4">
-          {cookRecommendations.length > 0 ? (
+          {(cookRecommendations?.length || 0) > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {cookRecommendations.map((recommendation) => (
+              {(cookRecommendations || []).map((recommendation) => (
                 <CookRecommendationCard
                   key={recommendation.cookId}
                   recommendation={recommendation}
