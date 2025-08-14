@@ -267,10 +267,10 @@ export default function DriverDashboard() {
         setOrders(fetchedOrders);
         updateStats(fetchedOrders);
         
-        // Check if there's an active delivery order (accepted/preparing/delivering)
+        // Check if there's an active delivery order (accepted/preparing/ready/delivering)
         const activeOrder = fetchedOrders.find(order => 
           order.driverId === user.uid && 
-          ['accepted', 'preparing', 'delivering'].includes(order.status)
+          ['accepted', 'preparing', 'ready', 'delivering'].includes(order.status)
         );
         
         if (activeOrder && (!activeDeliveryOrder || activeOrder.id !== activeDeliveryOrder.id)) {
@@ -525,8 +525,15 @@ export default function DriverDashboard() {
           idleTracking.stop();
           setIdleTracking(null);
         }
-        toast.success(`Pedido ${orderId} aceptado y asignado.`);
-        // The subscription will update the orders state
+        
+        // Switch to orders tab and active filter to show the accepted order
+        setActiveTab('orders');
+        setOrderFilter('active');
+        
+        toast.success('¡Pedido aceptado!', {
+          description: 'El pedido ha sido asignado a ti. Ahora aparece en tu pestaña de órdenes activas.',
+          duration: 4000
+        });
       } else {
         toast.error(`Error al aceptar el pedido ${orderId}`);
       }
@@ -1924,23 +1931,45 @@ export default function DriverDashboard() {
                                 </Button>
                               )}
                               
+                              {orderFilter === 'active' && order.status === 'accepted' && (
+                                <div className="flex flex-col gap-1">
+                                  <Badge variant="outline" className="text-yellow-600 border-yellow-300">
+                                    Esperando confirmación del cocinero
+                                  </Badge>
+                                  <p className="text-xs text-muted-foreground">
+                                    El cocinero debe confirmar que puede preparar el pedido
+                                  </p>
+                                </div>
+                              )}
+                              
+                              {orderFilter === 'active' && order.status === 'preparing' && (
+                                <div className="flex flex-col gap-1">
+                                  <Badge variant="outline" className="text-blue-600 border-blue-300">
+                                    Preparando ({order.estimatedReadyTime || 'Calculando...'})
+                                  </Badge>
+                                  <p className="text-xs text-muted-foreground">
+                                    El cocinero está preparando el pedido
+                                  </p>
+                                </div>
+                              )}
+                              
                               {orderFilter === 'active' && order.status === 'ready' && (
                                 <Button
                                   size="sm"
                                   onClick={() => handleStatusUpdate(order.id, 'delivering')}
                                   className="bg-blue-600 hover:bg-blue-700"
                                 >
-                                  Iniciar Entrega
+                                  Recoger y Entregar
                                 </Button>
                               )}
                               
                               {orderFilter === 'active' && order.status === 'delivering' && (
                                 <Button
                                   size="sm"
-                                  onClick={() => router.push('/driver/delivery-verification')}
-                                  className="bg-purple-600 hover:bg-purple-700"
+                                  onClick={() => handleStatusUpdate(order.id, 'delivered')}
+                                  className="bg-green-600 hover:bg-green-700"
                                 >
-                                  Verificar Entrega
+                                  Confirmar Entrega
                                 </Button>
                               )}
                               

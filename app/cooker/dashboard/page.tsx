@@ -36,6 +36,13 @@ import { ThemeToggle } from '@/components/ui/theme-toggle';
 import EditDishModal from '@/components/EditDishModal';
 import CookerSettingsModal from '@/components/CookerSettingsModal';
 import { AddDishModal } from '@/components/AddDishModal';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import CookerOnboarding from '@/components/CookerOnboarding';
 import OrderApproval from '@/components/CashOrderApproval';
 // import LocationSetup from '@/components/LocationSetup'; // Unused import
@@ -708,29 +715,56 @@ export default function CookerDashboard() {
                 <p className="text-muted-foreground">Gestiona tus platos y pedidos</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm">
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              <Button variant="outline" size="sm" className="hidden sm:flex">
                 <Bell className="h-4 w-4 mr-2" />
-                Notificaciones
+                <span className="hidden lg:inline">Notificaciones</span>
               </Button>
               <Button 
                 variant="outline" 
                 size="sm"
                 onClick={() => setIsSettingsModalOpen(true)}
+                className="hidden sm:flex"
               >
                 <Settings className="h-4 w-4 mr-2" />
-                Configuración
+                <span className="hidden lg:inline">Configuración</span>
               </Button>
               <ThemeToggle />
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={logout}
-                className="text-muted-foreground hover:text-destructive"
+                className="text-muted-foreground hover:text-destructive hidden sm:flex"
               >
                 <LogOut className="h-4 w-4 mr-2" />
-                Cerrar Sesión
+                <span className="hidden lg:inline">Cerrar Sesión</span>
               </Button>
+              
+              {/* Mobile menu */}
+              <div className="sm:hidden">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-9 w-9 p-0">
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={() => {}}>
+                      <Bell className="h-4 w-4 mr-2" />
+                      Notificaciones
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setIsSettingsModalOpen(true)}>
+                      <Settings className="h-4 w-4 mr-2" />
+                      Configuración
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={logout} className="text-destructive">
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Cerrar Sesión
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
           </div>
         </div>

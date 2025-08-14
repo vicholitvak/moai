@@ -357,20 +357,20 @@ export default function OrderApproval({ className }: OrderApprovalProps) {
                     value={estimatedTimes[order.id]?.toString() || "30"}
                     onValueChange={(value) => updateEstimatedTime(order.id, parseInt(value))}
                   >
-                    <SelectTrigger className="bg-white">
+                    <SelectTrigger className="bg-white border-green-300 focus:border-green-500 focus:ring-green-200">
                       <SelectValue placeholder="Seleccionar tiempo" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="15">15 minutos</SelectItem>
-                      <SelectItem value="20">20 minutos</SelectItem>
-                      <SelectItem value="25">25 minutos</SelectItem>
-                      <SelectItem value="30">30 minutos</SelectItem>
-                      <SelectItem value="40">40 minutos</SelectItem>
-                      <SelectItem value="45">45 minutos</SelectItem>
-                      <SelectItem value="60">1 hora</SelectItem>
-                      <SelectItem value="75">1 hora 15 min</SelectItem>
-                      <SelectItem value="90">1 hora 30 min</SelectItem>
-                      <SelectItem value="120">2 horas</SelectItem>
+                    <SelectContent className="z-50 bg-white shadow-lg border border-green-200 backdrop-blur-sm">
+                      <SelectItem value="15" className="focus:bg-green-50 focus:text-green-900">15 minutos</SelectItem>
+                      <SelectItem value="20" className="focus:bg-green-50 focus:text-green-900">20 minutos</SelectItem>
+                      <SelectItem value="25" className="focus:bg-green-50 focus:text-green-900">25 minutos</SelectItem>
+                      <SelectItem value="30" className="focus:bg-green-50 focus:text-green-900">30 minutos</SelectItem>
+                      <SelectItem value="40" className="focus:bg-green-50 focus:text-green-900">40 minutos</SelectItem>
+                      <SelectItem value="45" className="focus:bg-green-50 focus:text-green-900">45 minutos</SelectItem>
+                      <SelectItem value="60" className="focus:bg-green-50 focus:text-green-900">1 hora</SelectItem>
+                      <SelectItem value="75" className="focus:bg-green-50 focus:text-green-900">1 hora 15 min</SelectItem>
+                      <SelectItem value="90" className="focus:bg-green-50 focus:text-green-900">1 hora 30 min</SelectItem>
+                      <SelectItem value="120" className="focus:bg-green-50 focus:text-green-900">2 horas</SelectItem>
                     </SelectContent>
                   </Select>
                   <div className="flex items-center gap-2 text-sm text-green-700">

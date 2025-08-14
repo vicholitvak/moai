@@ -127,31 +127,61 @@ export function AddDishModal({
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, isAdditional: boolean = false) => {
+  const handleMainImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      console.error('Image too large');
+      return;
+    }
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      console.error('Invalid file type');
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const imageData = e.target?.result as string;
+      setImagePreview(imageData);
+      setValue('image', imageData);
+      setSelectedImageIndex(0);
+    };
+    reader.readAsDataURL(file);
+  };
+  
+  const handleAdditionalImagesUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
     
-    Array.from(files).forEach((file, index) => {
+    const newImages: string[] = [];
+    let processedCount = 0;
+    
+    Array.from(files).forEach((file) => {
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        console.error('Image too large');
+        console.error('Image too large:', file.name);
         return;
       }
       
       // Validate file type
       if (!file.type.startsWith('image/')) {
-        console.error('Invalid file type');
+        console.error('Invalid file type:', file.name);
         return;
       }
       
       const reader = new FileReader();
       reader.onload = (e) => {
         const imageData = e.target?.result as string;
-        if (isAdditional) {
-          setAdditionalImages(prev => [...prev, imageData].slice(0, 5)); // Max 5 additional images
-        } else if (index === 0) {
-          setImagePreview(imageData);
-          setValue('image', imageData);
+        newImages.push(imageData);
+        processedCount++;
+        
+        // When all files are processed, update state
+        if (processedCount === files.length) {
+          setAdditionalImages(prev => [...prev, ...newImages].slice(0, 5)); // Max 5 additional images
         }
       };
       reader.readAsDataURL(file);
@@ -448,41 +478,53 @@ export function AddDishModal({
                   )}
                   
                   {/* Upload buttons */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleImageUpload(e, false)}
-                      className="hidden"
-                      id="main-image-upload"
-                    />
-                    <Label htmlFor="main-image-upload" className="cursor-pointer">
-                      <div className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors">
-                        <Upload className="h-4 w-4" />
-                        <span>Imagen Principal</span>
-                      </div>
-                    </Label>
+                  <div className="space-y-2">
+                    {/* Main image upload */}
+                    <div>
+                      <Label className="text-sm font-medium mb-1 block">Imagen Principal</Label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleMainImageUpload}
+                        className="hidden"
+                        id="main-image-upload"
+                      />
+                      <Label htmlFor="main-image-upload" className="cursor-pointer block">
+                        <div className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-primary/50 bg-primary/5 rounded-lg hover:border-primary hover:bg-primary/10 transition-all">
+                          <Upload className="h-4 w-4 text-primary" />
+                          <span className="text-sm">{imagePreview === defaultImage ? 'Seleccionar Imagen Principal' : 'Cambiar Imagen Principal'}</span>
+                        </div>
+                      </Label>
+                    </div>
                     
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={(e) => handleImageUpload(e, true)}
-                      className="hidden"
-                      id="additional-images-upload"
-                      disabled={additionalImages.length >= 5}
-                    />
-                    <Label 
-                      htmlFor="additional-images-upload" 
-                      className={`cursor-pointer ${
-                        additionalImages.length >= 5 ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                    >
-                      <div className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors">
-                        <Plus className="h-4 w-4" />
-                        <span>Más Fotos ({additionalImages.length}/5)</span>
-                      </div>
-                    </Label>
+                    {/* Additional images upload */}
+                    <div>
+                      <Label className="text-sm font-medium mb-1 block">Imágenes Adicionales</Label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleAdditionalImagesUpload}
+                        className="hidden"
+                        id="additional-images-upload"
+                        disabled={additionalImages.length >= 5}
+                      />
+                      <Label 
+                        htmlFor="additional-images-upload" 
+                        className={`cursor-pointer block ${
+                          additionalImages.length >= 5 ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                      >
+                        <div className={`flex items-center justify-center gap-2 p-3 border-2 border-dashed rounded-lg transition-all ${
+                          additionalImages.length >= 5 
+                            ? 'border-gray-300 bg-gray-50' 
+                            : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
+                        }`}>
+                          <Plus className="h-4 w-4" />
+                          <span className="text-sm">Agregar Más Fotos ({additionalImages.length}/5)</span>
+                        </div>
+                      </Label>
+                    </div>
                   </div>
                   
                   <p className="text-xs text-muted-foreground mt-2">

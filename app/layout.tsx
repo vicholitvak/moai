@@ -10,6 +10,7 @@ import { Toaster } from '../components/ui/sonner';
 import NotificationInitializer from '../components/NotificationInitializer';
 import FloatingChatButton from '../components/chat/FloatingChatButton';
 import ChatNotificationHandler from '../components/ChatNotificationHandler';
+import { ThemeScript } from './theme-script';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -36,8 +37,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <ThemeScript />
+      </head>
+      <body className={inter.className} suppressHydrationWarning>
         <ThemeProvider>
           <AuthProvider>
             <UserProfileProvider>

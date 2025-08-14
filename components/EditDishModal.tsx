@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Upload, Plus, Minus } from 'lucide-react';
+import { X, Upload, Plus, Minus, Info } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
+import { Switch } from './ui/switch';
 
 interface EditDishModalProps {
   dish: { id: string; name: string; description: string; price: number; images: string[]; category: string; preparationTime: number; servingSize: number; dietaryRestrictions: string[]; nutrition: Record<string, number>; availability: boolean; };
@@ -16,6 +17,8 @@ interface EditDishModalProps {
 }
 
 const EditDishModal: React.FC<EditDishModalProps> = ({ dish, isOpen, onClose, onSave }) => {
+  const defaultImage = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xNzUgMTI1SDE5NVYxNDVIMjE1VjE2NUgxOTVWMTg1SDE3NVYxNjVIMTU1VjE0NUgxNzVWMTI1WiIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K';
+  
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -31,11 +34,16 @@ const EditDishModal: React.FC<EditDishModalProps> = ({ dish, isOpen, onClose, on
       protein: '',
       carbs: '',
       fat: ''
-    }
+    },
+    deliveryMode: 'cook' as 'cook' | 'external',
+    deliveryFee: 0
   });
   const [newIngredient, setNewIngredient] = useState('');
   const [newAllergen, setNewAllergen] = useState('');
-  const [imagePreview, setImagePreview] = useState('');
+  const [imagePreview, setImagePreview] = useState(defaultImage);
+  const [additionalImages, setAdditionalImages] = useState<string[]>([]);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
+  const [showNutrition, setShowNutrition] = useState<boolean>(false);
 
   useEffect(() => {
     if (dish && isOpen) {
@@ -48,6 +56,8 @@ const EditDishModal: React.FC<EditDishModalProps> = ({ dish, isOpen, onClose, on
         status: dish.status || 'active',
         image: dish.image || '',
         ingredients: dish.ingredients || [],
+        deliveryMode: dish.deliveryMode || 'cook',
+        deliveryFee: dish.deliveryFee || 0,
         allergens: dish.allergens || [],
         nutritionInfo: dish.nutritionInfo || {
           calories: 0,
@@ -56,7 +66,22 @@ const EditDishModal: React.FC<EditDishModalProps> = ({ dish, isOpen, onClose, on
           fat: ''
         }
       });
-      setImagePreview(dish.image || '');
+      setImagePreview(dish.image || defaultImage);
+      
+      // Load additional images if they exist
+      if (dish.images && Array.isArray(dish.images) && dish.images.length > 1) {
+        setAdditionalImages(dish.images.slice(1));
+      } else {
+        setAdditionalImages([]);
+      }
+      
+      // Check if nutrition info has values
+      const hasNutrition = dish.nutritionInfo && 
+        (dish.nutritionInfo.calories > 0 || 
+         dish.nutritionInfo.protein !== '0g' || 
+         dish.nutritionInfo.carbs !== '0g' || 
+         dish.nutritionInfo.fat !== '0g');
+      setShowNutrition(hasNutrition || false);
     }
   }, [dish, isOpen]);
 
@@ -111,27 +136,86 @@ const EditDishModal: React.FC<EditDishModalProps> = ({ dish, isOpen, onClose, on
     }));
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMainImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
+    if (!file) return;
+    
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      console.error('Image too large');
+      return;
+    }
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      console.error('Invalid file type');
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const imageData = e.target?.result as string;
+      setImagePreview(imageData);
+      setFormData(prev => ({ ...prev, image: imageData }));
+      setSelectedImageIndex(0);
+    };
+    reader.readAsDataURL(file);
+  };
+  
+  const handleAdditionalImagesUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    
+    const newImages: string[] = [];
+    let processedCount = 0;
+    
+    Array.from(files).forEach((file) => {
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        console.error('Image too large:', file.name);
+        return;
+      }
+      
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        console.error('Invalid file type:', file.name);
+        return;
+      }
+      
       const reader = new FileReader();
       reader.onload = (e) => {
-        const result = e.target?.result as string;
-        setImagePreview(result);
-        setFormData(prev => ({ ...prev, image: result }));
+        const imageData = e.target?.result as string;
+        newImages.push(imageData);
+        processedCount++;
+        
+        // When all files are processed, update state
+        if (processedCount === files.length) {
+          setAdditionalImages(prev => [...prev, ...newImages].slice(0, 5)); // Max 5 additional images
+        }
       };
       reader.readAsDataURL(file);
+    });
+  };
+  
+  const removeAdditionalImage = (index: number) => {
+    setAdditionalImages(prev => prev.filter((_, i) => i !== index));
+    if (selectedImageIndex === index + 1) {
+      setSelectedImageIndex(0);
     }
   };
 
   const handleSave = () => {
+    const allImages = [formData.image, ...additionalImages].filter(img => img && img !== defaultImage);
     const updatedDish = {
       ...dish,
       ...formData,
+      images: allImages.length > 1 ? allImages : undefined,
       price: parseFloat(formData.price.toString()),
-      nutritionInfo: {
-        ...formData.nutritionInfo,
-        calories: parseInt(formData.nutritionInfo.calories.toString()) || 0
+      nutritionInfo: showNutrition ? formData.nutritionInfo : {
+        calories: 0,
+        protein: '0g',
+        carbs: '0g',
+        fat: '0g'
       }
     };
     onSave(updatedDish);
@@ -253,35 +337,105 @@ const EditDishModal: React.FC<EditDishModalProps> = ({ dish, isOpen, onClose, on
               {/* Image Upload */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Dish Image</CardTitle>
+                  <CardTitle>Imágenes del Plato</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {imagePreview && (
-                      <div className="aspect-video rounded-lg overflow-hidden bg-muted">
-                        <img
-                          src={imagePreview}
-                          alt="Dish preview"
-                          className="w-full h-full object-cover"
-                        />
+                    {/* Main image preview with thumbnails */}
+                    <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
+                      <img
+                        src={selectedImageIndex === 0 ? imagePreview : additionalImages[selectedImageIndex - 1]}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    
+                    {/* Thumbnails */}
+                    {(imagePreview !== defaultImage || additionalImages.length > 0) && (
+                      <div className="flex gap-2 overflow-x-auto">
+                        {imagePreview !== defaultImage && (
+                          <div 
+                            className={`relative w-16 h-16 rounded border-2 cursor-pointer transition-all ${
+                              selectedImageIndex === 0 ? 'border-primary' : 'border-gray-200'
+                            }`}
+                            onClick={() => setSelectedImageIndex(0)}
+                          >
+                            <img src={imagePreview} alt="Main" className="w-full h-full object-cover rounded" />
+                            <Badge className="absolute -top-2 -right-2 text-xs px-1">Principal</Badge>
+                          </div>
+                        )}
+                        {additionalImages.map((img, index) => (
+                          <div 
+                            key={index}
+                            className={`relative w-16 h-16 rounded border-2 cursor-pointer transition-all ${
+                              selectedImageIndex === index + 1 ? 'border-primary' : 'border-gray-200'
+                            }`}
+                            onClick={() => setSelectedImageIndex(index + 1)}
+                          >
+                            <img src={img} alt={`Additional ${index + 1}`} className="w-full h-full object-cover rounded" />
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeAdditionalImage(index);
+                              }}
+                              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center hover:bg-red-600"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
                       </div>
                     )}
-                    <div>
-                      <Label htmlFor="image-upload" className="cursor-pointer">
-                        <div className="border-2 border-dashed border-input rounded-lg p-6 text-center hover:border-primary transition-colors">
-                          <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                          <p className="text-sm text-muted-foreground">
-                            Click to upload a new image
-                          </p>
-                        </div>
-                      </Label>
-                      <input
-                        id="image-upload"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        className="hidden"
-                      />
+                    
+                    {/* Upload buttons */}
+                    <div className="space-y-2">
+                      {/* Main image upload */}
+                      <div>
+                        <Label className="text-sm font-medium mb-1 block">Imagen Principal</Label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleMainImageUpload}
+                          className="hidden"
+                          id="main-image-upload-edit"
+                        />
+                        <Label htmlFor="main-image-upload-edit" className="cursor-pointer block">
+                          <div className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-primary/50 bg-primary/5 rounded-lg hover:border-primary hover:bg-primary/10 transition-all">
+                            <Upload className="h-4 w-4 text-primary" />
+                            <span className="text-sm">{imagePreview === defaultImage ? 'Seleccionar Imagen Principal' : 'Cambiar Imagen Principal'}</span>
+                          </div>
+                        </Label>
+                      </div>
+                      
+                      {/* Additional images upload */}
+                      <div>
+                        <Label className="text-sm font-medium mb-1 block">Imágenes Adicionales</Label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleAdditionalImagesUpload}
+                          className="hidden"
+                          id="additional-images-upload-edit"
+                          disabled={additionalImages.length >= 5}
+                        />
+                        <Label 
+                          htmlFor="additional-images-upload-edit" 
+                          className={`cursor-pointer block ${
+                            additionalImages.length >= 5 ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                        >
+                          <div className={`flex items-center justify-center gap-2 p-3 border-2 border-dashed rounded-lg transition-all ${
+                            additionalImages.length >= 5 
+                              ? 'border-gray-300 bg-gray-50' 
+                              : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
+                          }`}>
+                            <Plus className="h-4 w-4" />
+                            <span className="text-sm">Agregar Más Fotos ({additionalImages.length}/5)</span>
+                          </div>
+                        </Label>
+                      </div>
                     </div>
                   </div>
                 </CardContent>

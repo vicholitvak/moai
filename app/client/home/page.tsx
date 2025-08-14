@@ -112,18 +112,35 @@ const ClientHome = () => {
       // Fetch all dishes
       const allDishes = await DishesService.getAllDishes();
       
-      // Featured dishes - top rated or promoted dishes
+      // Featured dishes - real dishes from the platform, sorted by rating and availability
       const featured = allDishes
         .filter(d => d.isAvailable)
-        .sort((a, b) => (b.rating || 0) - (a.rating || 0))
-        .slice(0, 4);
+        .sort((a, b) => {
+          // Prioritize dishes with actual ratings, then by creation date
+          const ratingA = a.rating || 0;
+          const ratingB = b.rating || 0;
+          if (ratingA !== ratingB) {
+            return ratingB - ratingA;
+          }
+          // If ratings are equal, prioritize newer dishes
+          const dateA = a.createdAt?.toDate() || new Date(0);
+          const dateB = b.createdAt?.toDate() || new Date(0);
+          return dateB.getTime() - dateA.getTime();
+        })
+        .slice(0, 6);
       setFeaturedDishes(featured);
       
-      // Recommendations
-      setRecommendations(allDishes.slice(4, 10));
+      // Recommendations - different dishes from featured
+      const recommendedDishes = allDishes
+        .filter(d => d.isAvailable && !featured.includes(d))
+        .slice(0, 6);
+      setRecommendations(recommendedDishes);
       
-      // Fetch favorite dishes (mock for now)
-      setFavoriteDishes(allDishes.slice(10, 14));
+      // Fetch favorite dishes - could be based on user preferences in the future
+      const otherDishes = allDishes
+        .filter(d => d.isAvailable && !featured.includes(d) && !recommendedDishes.includes(d))
+        .slice(0, 4);
+      setFavoriteDishes(otherDishes);
       
       // Fetch top cooks
       const cooks = await CooksService.getAllCooks();
@@ -306,7 +323,7 @@ const ClientHome = () => {
               <CardDescription>Los mejores platos según nuestros clientes</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 {featuredDishes.map((dish) => (
                   <Card 
                     key={dish.id}
@@ -318,27 +335,33 @@ const ClientHome = () => {
                         src={dish.image} 
                         alt={dish.name}
                         className="w-full h-full object-cover rounded-t-lg"
+                        onError={(e) => {
+                          e.currentTarget.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300&h=300&fit=crop';
+                        }}
                       />
                       <Badge className="absolute top-2 left-2 bg-yellow-500">
                         <Star className="h-3 w-3 mr-1" />
                         Destacado
                       </Badge>
-                      {dish.discount && (
-                        <Badge className="absolute top-2 right-2 bg-red-500">
-                          -{dish.discount}%
+                      {dish.rating > 4.5 && (
+                        <Badge className="absolute top-2 right-2 bg-green-500">
+                          Mejor Valorado
                         </Badge>
                       )}
                     </div>
                     <CardContent className="p-3">
                       <h3 className="font-semibold text-sm mb-1 line-clamp-1">{dish.name}</h3>
+                      <p className="text-xs text-muted-foreground mb-1 line-clamp-1">
+                        Por {dish.cookerName}
+                      </p>
                       <p className="text-xs text-muted-foreground mb-2 line-clamp-1">
                         {dish.category}
                       </p>
                       <div className="flex items-center justify-between">
-                        <span className="font-bold">{formatPrice(dish.price)}</span>
+                        <span className="font-bold text-sm">{formatPrice(dish.price)}</span>
                         <div className="flex items-center gap-1">
                           <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                          <span className="text-xs">{dish.rating || 4.5}</span>
+                          <span className="text-xs">{dish.rating?.toFixed(1) || 'Nuevo'}</span>
                         </div>
                       </div>
                     </CardContent>
