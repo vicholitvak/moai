@@ -524,8 +524,8 @@ function RecommendationInsights({ userId }: { userId: string }) {
           <div>
             <h4 className="font-medium mb-3">Categorías Favoritas</h4>
             <div className="flex flex-wrap gap-2">
-              {insights.topCategories.length > 0 ? (
-                insights.topCategories.map((category: string, index: number) => (
+              {(insights?.topCategories?.length || 0) > 0 ? (
+                (insights?.topCategories || []).map((category: string, index: number) => (
                   <Badge key={index} variant="secondary" className="text-xs">
                     {category}
                   </Badge>
@@ -541,8 +541,8 @@ function RecommendationInsights({ userId }: { userId: string }) {
           <div>
             <h4 className="font-medium mb-3">Ingredientes Preferidos</h4>
             <div className="flex flex-wrap gap-2">
-              {insights.topIngredients.length > 0 ? (
-                insights.topIngredients.slice(0, 8).map((ingredient: string, index: number) => (
+              {(insights?.topIngredients?.length || 0) > 0 ? (
+                (insights?.topIngredients || []).slice(0, 8).map((ingredient: string, index: number) => (
                   <Badge key={index} variant="outline" className="text-xs">
                     {ingredient}
                   </Badge>
@@ -560,14 +560,14 @@ function RecommendationInsights({ userId }: { userId: string }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="text-center p-4 bg-muted rounded-lg">
               <p className="text-2xl font-bold text-primary">
-                ${insights.averageOrderValue.toLocaleString('es-CL')}
+                ${(insights?.averageOrderValue || 0).toLocaleString('es-CL')}
               </p>
               <p className="text-sm text-muted-foreground">Valor promedio de pedido</p>
             </div>
             
             <div className="text-center p-4 bg-muted rounded-lg">
               <p className="text-2xl font-bold text-primary">
-                {insights.preferredCooks.length}
+                {insights?.preferredCooks?.length || 0}
               </p>
               <p className="text-sm text-muted-foreground">Cocineros favoritos</p>
             </div>
