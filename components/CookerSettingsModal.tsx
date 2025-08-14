@@ -1,13 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Upload, Save, User, Bell, Shield, CreditCard, MapPin, Clock, Globe } from 'lucide-react';
+import { X, Upload, Save, User, Bell, Shield, CreditCard, MapPin, Clock, Globe, Truck } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { Input } from './ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 interface CookerSettingsModalProps {
   isOpen: boolean;
@@ -38,7 +40,9 @@ const CookerSettingsModal: React.FC<CookerSettingsModalProps> = ({
     // Preferences
     autoAcceptOrders: false,
     maxOrdersPerDay: 20,
-    selfDelivery: false,
+    deliveryMode: 'external' as 'self' | 'external' | 'both',
+    selfDeliveryFee: 0,
+    maxDeliveryDistance: 5,
     workingHours: {
       start: '09:00',
       end: '21:00'
@@ -72,6 +76,7 @@ const CookerSettingsModal: React.FC<CookerSettingsModalProps> = ({
 
   useEffect(() => {
     if (currentUser && isOpen) {
+      const settings = currentUser.settings || {};
       setFormData(prev => ({
         ...prev,
         displayName: currentUser.displayName || '',
@@ -79,7 +84,34 @@ const CookerSettingsModal: React.FC<CookerSettingsModalProps> = ({
         avatar: currentUser.photoURL || '',
         phone: currentUser.phone || '',
         location: currentUser.location || '',
-        // Set other defaults based on user data
+        deliveryRadius: currentUser.deliveryRadius || 5,
+        
+        // Delivery preferences
+        deliveryMode: settings.selfDelivery ? 'self' : (settings.deliveryMode || 'external'),
+        selfDeliveryFee: settings.selfDeliveryFee || 0,
+        maxDeliveryDistance: settings.maxDeliveryDistance || 5,
+        
+        // Other preferences
+        autoAcceptOrders: settings.autoAcceptOrders || false,
+        maxOrdersPerDay: settings.maxOrdersPerDay || 20,
+        workingHours: settings.workingHours || {
+          start: '09:00',
+          end: '21:00'
+        },
+        workingDays: settings.workingDays || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
+        
+        // Notifications
+        emailNotifications: settings.emailNotifications || {
+          newOrders: true,
+          orderUpdates: true,
+          promotions: false,
+          weeklyReports: true
+        },
+        pushNotifications: settings.pushNotifications || {
+          newOrders: true,
+          orderUpdates: true,
+          messages: true
+        }
       }));
       setAvatarPreview(currentUser.photoURL || '');
     }
@@ -431,17 +463,94 @@ const CookerSettingsModal: React.FC<CookerSettingsModalProps> = ({
                         className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Self-delivery</Label>
-                        <p className="text-sm text-gray-600">Deliver orders yourself instead of using drivers</p>
+                    {/* Delivery Mode Section */}
+                    <div className="space-y-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Truck className="h-5 w-5 text-blue-600" />
+                        <h3 className="font-semibold text-lg">Modo de Entrega</h3>
                       </div>
-                      <input
-                        type="checkbox"
-                        checked={formData.selfDelivery || false}
-                        onChange={(e) => handleInputChange('selfDelivery', e.target.checked)}
-                        className="h-4 w-4"
-                      />
+                      
+                      <div>
+                        <Label htmlFor="deliveryMode">¿Cómo prefieres manejar las entregas?</Label>
+                        <Select
+                          value={formData.deliveryMode || 'external'}
+                          onValueChange={(value) => handleInputChange('deliveryMode', value)}
+                        >
+                          <SelectTrigger className="mt-2">
+                            <SelectValue placeholder="Selecciona modo de entrega" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="self">
+                              🚗 Solo yo reparto - Manejo todas las entregas personalmente
+                            </SelectItem>
+                            <SelectItem value="external">
+                              📦 Solo delivery externo - Los conductores de la plataforma se encargan
+                            </SelectItem>
+                            <SelectItem value="both">
+                              🔄 Ambos - Puedo repartir yo o usar conductores externos
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Esta preferencia afectará cómo se muestran tus platos a los clientes
+                        </p>
+                      </div>
+
+                      {/* Self Delivery Settings - Only show if self or both */}
+                      {(formData.deliveryMode === 'self' || formData.deliveryMode === 'both') && (
+                        <div className="space-y-3 mt-4 p-3 bg-blue-50 rounded-md border border-blue-200">
+                          <h4 className="font-medium text-blue-900">Configuración de Entrega Personal</h4>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                              <Label htmlFor="selfDeliveryFee">Tarifa de entrega (CLP)</Label>
+                              <Input
+                                id="selfDeliveryFee"
+                                type="number"
+                                min="0"
+                                step="100"
+                                value={formData.selfDeliveryFee || 0}
+                                onChange={(e) => handleInputChange('selfDeliveryFee', parseInt(e.target.value) || 0)}
+                                className="mt-1"
+                                placeholder="ej: 2000"
+                              />
+                              <p className="text-xs text-gray-500 mt-1">Deja en 0 para entrega gratuita</p>
+                            </div>
+                            
+                            <div>
+                              <Label htmlFor="maxDeliveryDistance">Distancia máxima (km)</Label>
+                              <Input
+                                id="maxDeliveryDistance"
+                                type="number"
+                                min="1"
+                                max="50"
+                                value={formData.maxDeliveryDistance || 5}
+                                onChange={(e) => handleInputChange('maxDeliveryDistance', parseInt(e.target.value) || 5)}
+                                className="mt-1"
+                                placeholder="ej: 10"
+                              />
+                              <p className="text-xs text-gray-500 mt-1">¿Qué tan lejos puedes entregar?</p>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-blue-100 border border-blue-300 rounded p-2">
+                            <p className="text-sm text-blue-800">
+                              💡 <strong>Ventajas del reparto personal:</strong> Mayor control sobre el servicio, 
+                              relación directa con clientes, y te quedas con el 100% de la tarifa de entrega.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* External Delivery Info */}
+                      {formData.deliveryMode === 'external' && (
+                        <div className="bg-green-50 border border-green-200 rounded p-3">
+                          <p className="text-sm text-green-800">
+                            📦 Con delivery externo, los conductores de la plataforma se encargan de todas las entregas. 
+                            Tú solo te enfocas en cocinar.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

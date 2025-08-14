@@ -69,14 +69,10 @@ const ClientDishesPage = () => {
   const [hasMoreDishes, setHasMoreDishes] = useState(false);
   const pageSize = 20;
 
-  // Filter and search logic
+  // Filter and search logic - Allow browsing without authentication
   useEffect(() => {
-    if (!user) {
-      router.push('/');
-    } else {
-      fetchDishes();
-    }
-  }, [user, router]);
+    fetchDishes();
+  }, []);
 
   // Add refresh functionality - check for data changes periodically or on window focus
   useEffect(() => {
@@ -227,6 +223,12 @@ const ClientDishesPage = () => {
     });
 
   const toggleFavorite = (dishId: string) => {
+    if (!user) {
+      // Redirect to login if trying to favorite without account
+      router.push(`/login?returnUrl=/dishes&action=favorite&dishId=${dishId}`);
+      return;
+    }
+    
     const updatedFavorites = favorites.includes(dishId)
       ? favorites.filter(id => id !== dishId)
       : [...favorites, dishId];
@@ -237,11 +239,25 @@ const ClientDishesPage = () => {
     ));
   };
 
-  // Remove the old addToCart function as we're using the context now
+  // Function to handle dish clicks - redirect to login if not authenticated
+  const handleDishClick = (dishId: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    
+    if (!user) {
+      // Show a modal or redirect to login with return URL
+      router.push(`/login?returnUrl=/dishes/${dishId}`);
+      return;
+    }
+    
+    // User is authenticated, proceed to dish page
+    router.push(`/dishes/${dishId}`);
+  };
 
   const DishCard = ({ dish, isListView = false }: { dish: Dish; isListView?: boolean }) => (
     <Card className={`overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer ${!dish.isAvailable ? 'opacity-60' : ''} ${isListView ? 'flex' : ''} border-0 shadow-sm hover:shadow-xl hover:scale-[1.02]`}
-          onClick={() => router.push(`/dishes/${dish.id}`)}>
+          onClick={() => handleDishClick(dish.id)}>
       <div className={`relative ${isListView ? 'w-48 flex-shrink-0' : 'aspect-[4/3]'}`}>
         <LazyImage
           src={dish.image} 
@@ -337,13 +353,10 @@ const ClientDishesPage = () => {
         <Button 
           className="w-full" 
           disabled={!dish.isAvailable}
-          onClick={(e) => {
-            e.stopPropagation();
-            router.push(`/dishes/${dish.id}`);
-          }}
+          onClick={(e) => handleDishClick(dish.id, e)}
         >
           <ShoppingCart className="h-4 w-4 mr-2" />
-          {dish.isAvailable ? 'View Details' : 'Sold Out'}
+          {dish.isAvailable ? (user ? 'View Details' : 'Crear Cuenta para Pedir') : 'Sold Out'}
         </Button>
       </CardContent>
     </Card>
@@ -379,27 +392,48 @@ const ClientDishesPage = () => {
                 <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
                 {refreshing ? 'Actualizando...' : 'Actualizar'}
               </Button>
-              <Button variant="outline" size="sm" className="hidden lg:flex">
-                <Heart className="h-4 w-4 mr-2" />
-                Favorites
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => router.push('/cart')}
-              >
-                <ShoppingCart className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Cart</span> ({itemCount})
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={logout}
-                className="text-muted-foreground hover:text-destructive"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Logout</span>
-              </Button>
+              {user ? (
+                <>
+                  <Button variant="outline" size="sm" className="hidden lg:flex">
+                    <Heart className="h-4 w-4 mr-2" />
+                    Favorites
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => router.push('/cart')}
+                  >
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Cart</span> ({itemCount})
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={logout}
+                    className="text-muted-foreground hover:text-destructive"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Logout</span>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => router.push('/login')}
+                  >
+                    Iniciar Sesión
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    onClick={() => router.push('/login')}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    Crear Cuenta
+                  </Button>
+                </>
+              )}
             </div>
           </div>
 
@@ -413,25 +447,45 @@ const ClientDishesPage = () => {
                     <Utensils className="h-4 w-4" />
                   </AvatarFallback>
                 </Avatar>
-                <h1 className="text-lg font-bold">Discover Dishes</h1>
+                <h1 className="text-lg font-bold">Explorar Platos</h1>
               </div>
               <div className="flex items-center gap-1">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => router.push('/cart')}
-                >
-                  <ShoppingCart className="h-4 w-4" />
-                  <span className="ml-1">({itemCount})</span>
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={logout}
-                  className="text-muted-foreground hover:text-destructive"
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
+                {user ? (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => router.push('/cart')}
+                    >
+                      <ShoppingCart className="h-4 w-4" />
+                      <span className="ml-1">({itemCount})</span>
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={logout}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      <LogOut className="h-4 w-4" />
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => router.push('/login')}
+                    >
+                      Login
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      onClick={() => router.push('/login')}
+                    >
+                      Sign Up
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -524,9 +578,11 @@ const ClientDishesPage = () => {
                 >
                   <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
                 </Button>
-                <Button variant="outline" size="sm">
-                  <Heart className="h-4 w-4" />
-                </Button>
+                {user && (
+                  <Button variant="outline" size="sm">
+                    <Heart className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
             
@@ -540,9 +596,11 @@ const ClientDishesPage = () => {
                 >
                   <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
                 </Button>
-                <Button variant="outline" size="sm">
-                  <Heart className="h-4 w-4" />
-                </Button>
+                {user && (
+                  <Button variant="outline" size="sm">
+                    <Heart className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
               <div className="flex items-center gap-1">
                 <Button

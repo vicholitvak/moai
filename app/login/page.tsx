@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, AuthError } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import { useAuth } from '@/context/AuthContext';
@@ -45,6 +45,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get('returnUrl') || '/';
   
   let user = null;
   try {
@@ -57,9 +59,9 @@ export default function LoginPage() {
   // Handle redirect when user is authenticated
   useEffect(() => {
     if (user) {
-      router.push('/');
+      router.push(returnUrl);
     }
-  }, [user, router]);
+  }, [user, router, returnUrl]);
 
   // Show loading or return null while redirecting
   if (user) {
