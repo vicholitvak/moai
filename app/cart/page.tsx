@@ -195,7 +195,7 @@ const CartPage = () => {
         
         // Redirect to orders page
         setTimeout(() => {
-          router.push('/orders');
+          router.push('/client/orders');
         }, 2000);
       } else {
         throw new Error('No se pudo crear ninguna orden');

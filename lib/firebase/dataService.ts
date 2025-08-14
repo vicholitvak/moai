@@ -447,6 +447,67 @@ export class DishesService {
       return [];
     }
   }
+
+  static async getUserFavorites(userId: string): Promise<string[]> {
+    try {
+      const favoritesDoc = await getDoc(doc(db, 'favorites', userId));
+      if (favoritesDoc.exists()) {
+        const data = favoritesDoc.data();
+        return data.dishIds || [];
+      }
+      return [];
+    } catch (error) {
+      console.error('Error fetching user favorites:', error);
+      return [];
+    }
+  }
+
+  static async addToFavorites(userId: string, dishId: string): Promise<boolean> {
+    try {
+      const favoritesRef = doc(db, 'favorites', userId);
+      const favoritesDoc = await getDoc(favoritesRef);
+      
+      if (favoritesDoc.exists()) {
+        const currentFavorites = favoritesDoc.data().dishIds || [];
+        if (!currentFavorites.includes(dishId)) {
+          await updateDoc(favoritesRef, {
+            dishIds: [...currentFavorites, dishId],
+            updatedAt: Timestamp.now()
+          });
+        }
+      } else {
+        await setDoc(favoritesRef, {
+          dishIds: [dishId],
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now()
+        });
+      }
+      return true;
+    } catch (error) {
+      console.error('Error adding to favorites:', error);
+      return false;
+    }
+  }
+
+  static async removeFromFavorites(userId: string, dishId: string): Promise<boolean> {
+    try {
+      const favoritesRef = doc(db, 'favorites', userId);
+      const favoritesDoc = await getDoc(favoritesRef);
+      
+      if (favoritesDoc.exists()) {
+        const currentFavorites = favoritesDoc.data().dishIds || [];
+        const updatedFavorites = currentFavorites.filter((id: string) => id !== dishId);
+        await updateDoc(favoritesRef, {
+          dishIds: updatedFavorites,
+          updatedAt: Timestamp.now()
+        });
+      }
+      return true;
+    } catch (error) {
+      console.error('Error removing from favorites:', error);
+      return false;
+    }
+  }
 }
 
 // Cooks Service

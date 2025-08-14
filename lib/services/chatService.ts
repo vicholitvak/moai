@@ -73,6 +73,14 @@ export class ChatService {
     orderId?: string
   ): Promise<string | null> {
     try {
+      // Validate that we have participants
+      if (!participants || participants.length === 0) {
+        console.error('Cannot create chat room: no participants provided');
+        return null;
+      }
+
+      console.log('Creating chat room with participants:', participants);
+
       const roomData: Omit<ChatRoom, 'id'> = {
         participants,
         participantDetails,
@@ -92,6 +100,9 @@ export class ChatService {
       return docRef.id;
     } catch (error) {
       console.error('Error creating chat room:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', error.message);
+      }
       return null;
     }
   }
@@ -106,6 +117,8 @@ export class ChatService {
     driverId?: string
   ): Promise<string | null> {
     try {
+      console.log('Getting or creating chat room for order:', orderId, 'participants:', { cookerId, customerId, driverId });
+
       // Check if room already exists for this order
       const q = query(
         collection(db, this.ROOMS_COLLECTION),
@@ -116,14 +129,21 @@ export class ChatService {
       const querySnapshot = await getDocs(q);
       
       if (!querySnapshot.empty) {
+        console.log('Chat room already exists for order:', orderId);
         return querySnapshot.docs[0].id;
+      }
+
+      // Validate required participants
+      if (!cookerId || !customerId) {
+        console.error('Cannot create chat room: missing required participants (cookerId or customerId)');
+        return null;
       }
 
       // Create new room if it doesn't exist
       const participants = [cookerId, customerId];
       if (driverId) participants.push(driverId);
 
-      // Get user details
+      // Get user details with better error handling
       const participantDetails: ChatRoom['participantDetails'] = {};
       
       for (const userId of participants) {
@@ -135,6 +155,12 @@ export class ChatService {
               name: userData.displayName || userData.email || 'Usuario',
               role: userData.role?.toLowerCase() || 'customer',
               avatar: userData.photoURL || userData.avatar
+            };
+          } else {
+            console.warn(`User document not found for ${userId}, using default details`);
+            participantDetails[userId] = {
+              name: 'Usuario',
+              role: 'customer'
             };
           }
         } catch (error) {
