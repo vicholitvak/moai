@@ -1034,6 +1034,33 @@ export class OrdersService {
     });
   }
 
+  static subscribeToOrdersByCook(cookerId: string, callback: (orders: Order[]) => void) {
+    // Use fallback query without orderBy to avoid index requirements
+    const q = query(
+      collection(db, this.collection),
+      where('cookerId', '==', cookerId)
+    );
+
+    return onSnapshot(q, (snapshot) => {
+      const orders = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Order));
+      
+      // Sort client-side to avoid index requirements
+      orders.sort((a, b) => {
+        const aTime = a.createdAt?.toDate() || new Date(0);
+        const bTime = b.createdAt?.toDate() || new Date(0);
+        return bTime.getTime() - aTime.getTime();
+      });
+      
+      callback(orders);
+    }, (error) => {
+      console.error('Error in cook orders subscription:', error);
+      callback([]); // Return empty array on error
+    });
+  }
+
   static subscribeToOrder(orderId: string, callback: (order: Order | null) => void) {
     return onSnapshot(doc(db, this.collection, orderId), (snapshot) => {
       if (snapshot.exists()) {

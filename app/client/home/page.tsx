@@ -53,6 +53,7 @@ const ClientHome = () => {
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [favoriteDishes, setFavoriteDishes] = useState<any[]>([]);
+  const [featuredDishes, setFeaturedDishes] = useState<any[]>([]);
   const [topCooks, setTopCooks] = useState<any[]>([]);
   const [stats, setStats] = useState({
     totalOrders: 0,
@@ -108,12 +109,21 @@ const ClientHome = () => {
         averageRating: 4.5 // This would be calculated from reviews
       });
       
-      // Fetch recommendations (mock for now)
+      // Fetch all dishes
       const allDishes = await DishesService.getAllDishes();
-      setRecommendations(allDishes.slice(0, 6));
+      
+      // Featured dishes - top rated or promoted dishes
+      const featured = allDishes
+        .filter(d => d.isAvailable)
+        .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+        .slice(0, 4);
+      setFeaturedDishes(featured);
+      
+      // Recommendations
+      setRecommendations(allDishes.slice(4, 10));
       
       // Fetch favorite dishes (mock for now)
-      setFavoriteDishes(allDishes.slice(6, 10));
+      setFavoriteDishes(allDishes.slice(10, 14));
       
       // Fetch top cooks
       const cooks = await CooksService.getAllCooks();
@@ -284,6 +294,60 @@ const ClientHome = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Featured Dishes */}
+        {featuredDishes.length > 0 && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                Platos Destacados
+              </CardTitle>
+              <CardDescription>Los mejores platos según nuestros clientes</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {featuredDishes.map((dish) => (
+                  <Card 
+                    key={dish.id}
+                    className="cursor-pointer hover:shadow-lg transition-all hover:scale-105"
+                    onClick={() => router.push(`/dishes/${dish.id}`)}
+                  >
+                    <div className="aspect-square relative">
+                      <img 
+                        src={dish.image} 
+                        alt={dish.name}
+                        className="w-full h-full object-cover rounded-t-lg"
+                      />
+                      <Badge className="absolute top-2 left-2 bg-yellow-500">
+                        <Star className="h-3 w-3 mr-1" />
+                        Destacado
+                      </Badge>
+                      {dish.discount && (
+                        <Badge className="absolute top-2 right-2 bg-red-500">
+                          -{dish.discount}%
+                        </Badge>
+                      )}
+                    </div>
+                    <CardContent className="p-3">
+                      <h3 className="font-semibold text-sm mb-1 line-clamp-1">{dish.name}</h3>
+                      <p className="text-xs text-muted-foreground mb-2 line-clamp-1">
+                        {dish.category}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold">{formatPrice(dish.price)}</span>
+                        <div className="flex items-center gap-1">
+                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                          <span className="text-xs">{dish.rating || 4.5}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Active Orders */}
         {activeOrders.length > 0 && (

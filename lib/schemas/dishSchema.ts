@@ -39,7 +39,22 @@ export const addDishSchema = z.object({
     .refine(
       (img) => img.startsWith('data:image/') || img.startsWith('http'),
       'La imagen debe ser válida (base64 o URL)'
-    )
+    ),
+  
+  images: z.array(z.string())
+    .optional()
+    .refine(
+      (imgs) => !imgs || imgs.every(img => img.startsWith('data:image/') || img.startsWith('http')),
+      'Todas las imágenes deben ser válidas (base64 o URL)'
+    ),
+  
+  deliveryMode: z.enum(['cook', 'external'], {
+    errorMap: () => ({ message: 'Selecciona un modo de entrega válido' })
+  }).optional(),
+  
+  deliveryFee: z.number()
+    .min(0, 'La tarifa de entrega debe ser mayor o igual a 0')
+    .optional()
 });
 
 // Dish update schema (all fields optional except ID)

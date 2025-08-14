@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Upload, Plus, Minus, AlertCircle } from 'lucide-react';
+import { X, Upload, Plus, Minus, AlertCircle, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { type Dish } from '@/lib/firebase/dataService';
 import { useFormValidation } from '@/hooks/useFormValidation';
 import { addDishSchema, type AddDishFormData } from '@/lib/schemas/dishSchema';
@@ -32,7 +33,21 @@ export function AddDishModal({
   cookerAvatar, 
   cookerRating 
 }: AddDishModalProps) {
-  const [imagePreview, setImagePreview] = useState<string>('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjNGNEY2Ci8+CjxwYXRoIGQ9Ik0xNzUgMTI1SDE5NVYxNDVIMjE1VjE2NUgxOTVWMTg1SDE3NVYxNjVIMTU1VjE0NUgxNzVWMTI1WiIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K');
+  const defaultImage = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xNzUgMTI1SDE5NVYxNDVIMjE1VjE2NUgxOTVWMTg1SDE3NVYxNjVIMTU1VjE0NUgxNzVWMTI1WiIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K';
+  const [imagePreview, setImagePreview] = useState<string>(defaultImage);
+  const [additionalImages, setAdditionalImages] = useState<string[]>([]);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
+  const [showNutrition, setShowNutrition] = useState<boolean>(false);
+  const [nutritionInfo, setNutritionInfo] = useState({
+    calories: 0,
+    protein: '0g',
+    carbs: '0g',
+    fat: '0g',
+    fiber: '0g',
+    sugar: '0g',
+    sodium: '0mg',
+    cholesterol: '0mg'
+  });
   
   const {
     data,
@@ -52,11 +67,16 @@ export function AddDishModal({
       category: 'Platos principales' as const,
       prepTime: '',
       ingredients: [''],
-      image: imagePreview
+      image: imagePreview,
+      images: [],
+      deliveryMode: 'cook' as const,
+      deliveryFee: 0
     },
     onSubmit: async (validatedData) => {
+      const allImages = [validatedData.image, ...additionalImages].filter(img => img !== defaultImage);
       const dishData: Omit<Dish, 'id' | 'createdAt' | 'updatedAt'> = {
         ...validatedData,
+        images: allImages.length > 1 ? allImages : undefined,
         cookerId,
         cookerName,
         cookerAvatar,
@@ -66,7 +86,7 @@ export function AddDishModal({
         reviewCount: 0,
         isAvailable: true,
         allergens: [],
-        nutritionInfo: {
+        nutritionInfo: showNutrition ? nutritionInfo : {
           calories: 0,
           protein: '0g',
           carbs: '0g',
@@ -107,12 +127,13 @@ export function AddDishModal({
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, isAdditional: boolean = false) => {
+    const files = e.target.files;
+    if (!files) return;
+    
+    Array.from(files).forEach((file, index) => {
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        // You could use toast here or set a specific error
         console.error('Image too large');
         return;
       }
@@ -126,17 +147,30 @@ export function AddDishModal({
       const reader = new FileReader();
       reader.onload = (e) => {
         const imageData = e.target?.result as string;
-        setImagePreview(imageData);
-        setValue('image', imageData);
+        if (isAdditional) {
+          setAdditionalImages(prev => [...prev, imageData].slice(0, 5)); // Max 5 additional images
+        } else if (index === 0) {
+          setImagePreview(imageData);
+          setValue('image', imageData);
+        }
       };
       reader.readAsDataURL(file);
+    });
+  };
+  
+  const removeAdditionalImage = (index: number) => {
+    setAdditionalImages(prev => prev.filter((_, i) => i !== index));
+    if (selectedImageIndex === index + 1) {
+      setSelectedImageIndex(0);
     }
   };
 
 
   const handleClose = () => {
     reset();
-    setImagePreview('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjNGNEY2Ci8+CjxwYXRoIGQ9Ik0xNzUgMTI1SDE5NVYxNDFIMjE1VjE2NUgxOTVWMTg1SDE3NVYxNjVIMTU1VjE0NUgxNzVWMTI1WiIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K');
+    setImagePreview(defaultImage);
+    setAdditionalImages([]);
+    setSelectedImageIndex(0);
     onClose();
   };
 
@@ -177,7 +211,7 @@ export function AddDishModal({
                   required
                   value={data.name || ''}
                   onChange={(e) => handleInputChange('name', e.target.value)}
-                  className={hasFieldError('name') ? 'border-red-500' : ''}
+                  className={`mt-1 ${hasFieldError('name') ? 'border-red-500' : ''}`}
                   placeholder="Ej: Spaghetti Carbonara"
                 />
                 <FieldError field="name" />
@@ -223,7 +257,7 @@ export function AddDishModal({
                       const numValue = Math.round(parseFloat(value) || 0);
                       handleInputChange('price', numValue);
                     }}
-                    className={hasFieldError('price') ? 'border-red-500' : ''}
+                    className={`mt-1 ${hasFieldError('price') ? 'border-red-500' : ''}`}
                     placeholder="10990"
                   />
                   <FieldError field="price" />
@@ -237,7 +271,7 @@ export function AddDishModal({
                     required
                     value={data.prepTime || ''}
                     onChange={(e) => handleInputChange('prepTime', e.target.value)}
-                    className={hasFieldError('prepTime') ? 'border-red-500' : ''}
+                    className={`mt-1 ${hasFieldError('prepTime') ? 'border-red-500' : ''}`}
                     placeholder="25 mins"
                   />
                   <FieldError field="prepTime" />
@@ -306,39 +340,298 @@ export function AddDishModal({
                   Lista los ingredientes principales que hacen especial a tu plato.
                 </p>
               </div>
+              
+              {/* Delivery Mode */}
+              <div>
+                <Label>Modo de Entrega</Label>
+                <Select
+                  value={data.deliveryMode || 'cook'}
+                  onValueChange={(value) => handleInputChange('deliveryMode', value)}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Selecciona modo de entrega" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cook">
+                      El cocinero se encarga del reparto
+                    </SelectItem>
+                    <SelectItem value="external">
+                      Requiere servicio de delivery externo
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Define si realizas el reparto o necesitas un servicio externo.
+                </p>
+              </div>
+              
+              {/* Delivery Fee (shown only when cook delivers) */}
+              {data.deliveryMode === 'cook' && (
+                <div>
+                  <Label htmlFor="deliveryFee">Tarifa de Entrega (CLP)</Label>
+                  <Input
+                    id="deliveryFee"
+                    type="number"
+                    min="0"
+                    step="100"
+                    value={data.deliveryFee || ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === '') {
+                        handleInputChange('deliveryFee', 0);
+                        return;
+                      }
+                      const numValue = Math.round(parseFloat(value) || 0);
+                      handleInputChange('deliveryFee', numValue);
+                    }}
+                    className="mt-1"
+                    placeholder="2000"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Tarifa adicional por el servicio de entrega. Deja en 0 para entrega gratuita.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Right Column - Image Upload */}
             <div className="space-y-6">
               {/* Image Upload */}
               <div>
-                <Label>Imagen del Plato *</Label>
+                <Label>Imágenes del Plato *</Label>
                 <div className="mt-2">
+                  {/* Main image preview with thumbnails */}
                   <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden mb-3">
                     <img
-                      src={imagePreview}
+                      src={selectedImageIndex === 0 ? imagePreview : additionalImages[selectedImageIndex - 1]}
                       alt="Preview"
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                    id="image-upload"
-                  />
-                  <Label htmlFor="image-upload" className="cursor-pointer">
-                    <div className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors">
-                      <Upload className="h-4 w-4" />
-                      <span>Subir Imagen</span>
+                  
+                  {/* Thumbnails */}
+                  {(imagePreview !== defaultImage || additionalImages.length > 0) && (
+                    <div className="flex gap-2 mb-3 overflow-x-auto">
+                      {imagePreview !== defaultImage && (
+                        <div 
+                          className={`relative w-16 h-16 rounded border-2 cursor-pointer transition-all ${
+                            selectedImageIndex === 0 ? 'border-primary' : 'border-gray-200'
+                          }`}
+                          onClick={() => setSelectedImageIndex(0)}
+                        >
+                          <img src={imagePreview} alt="Main" className="w-full h-full object-cover rounded" />
+                          <Badge className="absolute -top-2 -right-2 text-xs px-1">Principal</Badge>
+                        </div>
+                      )}
+                      {additionalImages.map((img, index) => (
+                        <div 
+                          key={index}
+                          className={`relative w-16 h-16 rounded border-2 cursor-pointer transition-all ${
+                            selectedImageIndex === index + 1 ? 'border-primary' : 'border-gray-200'
+                          }`}
+                          onClick={() => setSelectedImageIndex(index + 1)}
+                        >
+                          <img src={img} alt={`Additional ${index + 1}`} className="w-full h-full object-cover rounded" />
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeAdditionalImage(index);
+                            }}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center hover:bg-red-600"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
                     </div>
-                  </Label>
+                  )}
+                  
+                  {/* Upload buttons */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleImageUpload(e, false)}
+                      className="hidden"
+                      id="main-image-upload"
+                    />
+                    <Label htmlFor="main-image-upload" className="cursor-pointer">
+                      <div className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors">
+                        <Upload className="h-4 w-4" />
+                        <span>Imagen Principal</span>
+                      </div>
+                    </Label>
+                    
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={(e) => handleImageUpload(e, true)}
+                      className="hidden"
+                      id="additional-images-upload"
+                      disabled={additionalImages.length >= 5}
+                    />
+                    <Label 
+                      htmlFor="additional-images-upload" 
+                      className={`cursor-pointer ${
+                        additionalImages.length >= 5 ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      <div className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition-colors">
+                        <Plus className="h-4 w-4" />
+                        <span>Más Fotos ({additionalImages.length}/5)</span>
+                      </div>
+                    </Label>
+                  </div>
+                  
                   <p className="text-xs text-muted-foreground mt-2">
-                    Una buena foto aumenta significativamente las ventas. Usa luz natural y muestra el plato completo.
+                    Puedes subir hasta 6 imágenes. La primera será la principal. Usa luz natural y muestra diferentes ángulos del plato.
                   </p>
                 </div>
               </div>
+              
+              {/* Nutrition Information Toggle */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                      <Label htmlFor="nutrition-toggle" className="text-sm font-medium">
+                        Información Nutricional
+                      </Label>
+                    </div>
+                    <Switch
+                      id="nutrition-toggle"
+                      checked={showNutrition}
+                      onCheckedChange={setShowNutrition}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Opcional: Agrega información nutricional detallada de tu plato
+                  </p>
+                </CardHeader>
+                
+                {showNutrition && (
+                  <CardContent className="space-y-3 pt-0">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label htmlFor="calories" className="text-xs">Calorías</Label>
+                        <Input
+                          id="calories"
+                          type="number"
+                          min="0"
+                          value={nutritionInfo.calories || ''}
+                          onChange={(e) => setNutritionInfo(prev => ({
+                            ...prev,
+                            calories: parseInt(e.target.value) || 0
+                          }))}
+                          className="h-8 text-sm mt-1"
+                          placeholder="250"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="protein" className="text-xs">Proteína</Label>
+                        <Input
+                          id="protein"
+                          type="text"
+                          value={nutritionInfo.protein}
+                          onChange={(e) => setNutritionInfo(prev => ({
+                            ...prev,
+                            protein: e.target.value
+                          }))}
+                          className="h-8 text-sm mt-1"
+                          placeholder="15g"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="carbs" className="text-xs">Carbohidratos</Label>
+                        <Input
+                          id="carbs"
+                          type="text"
+                          value={nutritionInfo.carbs}
+                          onChange={(e) => setNutritionInfo(prev => ({
+                            ...prev,
+                            carbs: e.target.value
+                          }))}
+                          className="h-8 text-sm mt-1"
+                          placeholder="30g"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="fat" className="text-xs">Grasas</Label>
+                        <Input
+                          id="fat"
+                          type="text"
+                          value={nutritionInfo.fat}
+                          onChange={(e) => setNutritionInfo(prev => ({
+                            ...prev,
+                            fat: e.target.value
+                          }))}
+                          className="h-8 text-sm mt-1"
+                          placeholder="10g"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="fiber" className="text-xs">Fibra</Label>
+                        <Input
+                          id="fiber"
+                          type="text"
+                          value={nutritionInfo.fiber}
+                          onChange={(e) => setNutritionInfo(prev => ({
+                            ...prev,
+                            fiber: e.target.value
+                          }))}
+                          className="h-8 text-sm mt-1"
+                          placeholder="5g"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="sugar" className="text-xs">Azúcar</Label>
+                        <Input
+                          id="sugar"
+                          type="text"
+                          value={nutritionInfo.sugar}
+                          onChange={(e) => setNutritionInfo(prev => ({
+                            ...prev,
+                            sugar: e.target.value
+                          }))}
+                          className="h-8 text-sm mt-1"
+                          placeholder="8g"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="sodium" className="text-xs">Sodio</Label>
+                        <Input
+                          id="sodium"
+                          type="text"
+                          value={nutritionInfo.sodium}
+                          onChange={(e) => setNutritionInfo(prev => ({
+                            ...prev,
+                            sodium: e.target.value
+                          }))}
+                          className="h-8 text-sm mt-1"
+                          placeholder="300mg"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="cholesterol" className="text-xs">Colesterol</Label>
+                        <Input
+                          id="cholesterol"
+                          type="text"
+                          value={nutritionInfo.cholesterol}
+                          onChange={(e) => setNutritionInfo(prev => ({
+                            ...prev,
+                            cholesterol: e.target.value
+                          }))}
+                          className="h-8 text-sm mt-1"
+                          placeholder="20mg"
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                )}
+              </Card>
 
             </div>
           </div>
