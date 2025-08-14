@@ -157,4 +157,119 @@ export class MercadoPagoService {
     // Mercado Pago in Chile works with CLP directly
     return Math.round(amountCLP);
   }
+
+  // Create a payment reservation (authorization without capture)
+  static async createPaymentReservation(paymentData: PaymentData) {
+    try {
+      const response = await fetch('/api/mercadopago/create-reservation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(paymentData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create payment reservation');
+      }
+
+      const reservation = await response.json();
+      return reservation;
+    } catch (error) {
+      console.error('Error creating payment reservation:', error);
+      throw error;
+    }
+  }
+
+  // Capture a previously authorized payment
+  static async capturePayment(paymentId: string, amount?: number) {
+    try {
+      const response = await fetch('/api/mercadopago/capture-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ paymentId, amount }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to capture payment');
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Error capturing payment:', error);
+      throw error;
+    }
+  }
+
+  // Cancel a payment authorization
+  static async cancelPaymentAuthorization(paymentId: string) {
+    try {
+      const response = await fetch('/api/mercadopago/cancel-authorization', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ paymentId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to cancel payment authorization');
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Error canceling payment authorization:', error);
+      throw error;
+    }
+  }
+
+  // Process a refund for a completed payment
+  static async refundPayment(paymentId: string, amount?: number) {
+    try {
+      const response = await fetch('/api/mercadopago/refund-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ paymentId, amount }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to process refund');
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Error processing refund:', error);
+      throw error;
+    }
+  }
+
+  // Create a preference with authorization-only (hold) mode
+  static async createPreferenceWithHold(paymentData: PaymentData) {
+    try {
+      const response = await fetch('/api/mercadopago/create-preference-hold', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(paymentData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create payment preference with hold');
+      }
+
+      const preference = await response.json();
+      return preference;
+    } catch (error) {
+      console.error('Error creating payment preference with hold:', error);
+      throw error;
+    }
+  }
 }

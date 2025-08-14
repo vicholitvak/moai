@@ -165,14 +165,24 @@ export class OrderApprovalService {
    */
   private static async releasePaymentHold(paymentId: string): Promise<void> {
     try {
-      // Implementation depends on MercadoPago API for releasing holds
-      // This would typically involve calling their capture payment endpoint
       console.log('Releasing payment hold for:', paymentId);
       
-      // For now, we'll just log this as the MercadoPago integration 
-      // would need specific implementation based on their hold/capture flow
+      // Use MercadoPago service to capture the authorized payment
+      const captureResult = await MercadoPagoService.capturePayment(paymentId);
+      
+      if (captureResult.success) {
+        console.log('Payment hold released successfully:', {
+          paymentId: captureResult.paymentId,
+          status: captureResult.status,
+          capturedAmount: captureResult.captured_amount
+        });
+      } else {
+        throw new Error('Failed to capture payment');
+      }
     } catch (error) {
       console.error('Error releasing payment hold:', error);
+      // Don't throw - we don't want to fail the order approval if payment capture fails
+      // The payment can be captured manually later
     }
   }
 
@@ -183,10 +193,36 @@ export class OrderApprovalService {
     try {
       console.log('Processing refund for payment:', paymentId);
       
-      // Implementation would use MercadoPago refund API
-      // await MercadoPagoService.refundPayment(paymentId);
+      // First, try to cancel authorization if payment is still authorized
+      try {
+        const cancelResult = await MercadoPagoService.cancelPaymentAuthorization(paymentId);
+        if (cancelResult.success) {
+          console.log('Payment authorization canceled successfully:', {
+            paymentId: cancelResult.paymentId,
+            status: cancelResult.status
+          });
+          return;
+        }
+      } catch (cancelError) {
+        console.log('Could not cancel authorization, attempting refund instead:', cancelError);
+      }
+      
+      // If cancellation failed, try to process refund (for captured payments)
+      const refundResult = await MercadoPagoService.refundPayment(paymentId);
+      
+      if (refundResult.success) {
+        console.log('Payment refunded successfully:', {
+          refundId: refundResult.refundId,
+          paymentId: refundResult.paymentId,
+          amount: refundResult.amount
+        });
+      } else {
+        throw new Error('Failed to process refund');
+      }
     } catch (error) {
       console.error('Error processing refund:', error);
+      // Don't throw - we don't want to fail the order rejection if refund fails
+      // The refund can be processed manually later
     }
   }
 

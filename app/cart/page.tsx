@@ -60,14 +60,88 @@ const CartPage = () => {
   const serviceFee = getServiceFee();
   const total = getTotal();
 
-  // Unified function for all orders with approval (both cash and digital)
-  const handleOrderWithApproval = async (paymentMethod: 'card' | 'cash_on_delivery') => {
+  // Handle digital payment orders with approval (requires MercadoPago hold)
+  const handleDigitalOrderWithApproval = async () => {
     if (!user || cartItems.length === 0) return;
     
     setIsProcessing(true);
     
     try {
-      // Create orders with approval for each cook
+      // For digital payments with approval, we need to create MercadoPago preference with hold first
+      // Then create orders in pending_approval status after payment authorization
+      
+      const mainOrderId = `hold_${Date.now()}_${user.uid}`;
+      
+      // Create MercadoPago payment preference with authorization hold
+      const paymentData = {
+        amount: total,
+        description: `Pedido Moai con Aprobación - ${cartItems.length} items`,
+        orderId: mainOrderId,
+        customerEmail: user.email || '',
+        customerName: user.displayName || user.email || 'Cliente',
+        items: cartItems.map(item => ({
+          id: item.dishId,
+          title: item.name,
+          quantity: item.quantity,
+          unit_price: MercadoPagoService.convertCurrency(item.price)
+        }))
+      };
+
+      const preference = await MercadoPagoService.createPreferenceWithHold(paymentData);
+      
+      if (preference.initPoint) {
+        // Store order data in sessionStorage for processing after payment authorization
+        const ordersByCook = cartItems.reduce((acc, item) => {
+          if (!acc[item.cookerId]) {
+            acc[item.cookerId] = [];
+          }
+          acc[item.cookerId]?.push(item);
+          return acc;
+        }, {} as Record<string, typeof cartItems>);
+
+        const pendingOrderData = {
+          ordersByCook,
+          mainOrderId,
+          orderForm,
+          user: { uid: user.uid, displayName: user.displayName, email: user.email },
+          totals: { subtotal, deliveryFee, serviceFee, total }
+        };
+        
+        sessionStorage.setItem('pendingApprovalOrder', JSON.stringify(pendingOrderData));
+        
+        // Clear cart before redirecting to payment
+        clearCart();
+        
+        // Show success message
+        toast.success('Redirigiendo a Mercado Pago...', {
+          description: 'Tu pago se mantendrá en espera hasta la aprobación del cocinero',
+          duration: 2000
+        });
+        
+        // Redirect to MercadoPago payment with hold
+        setTimeout(() => {
+          window.location.href = preference.initPoint;
+        }, 1000);
+      } else {
+        throw new Error('Failed to create payment preference with hold');
+      }
+      
+    } catch (error) {
+      console.error('Error creating digital order with approval:', error);
+      toast.error('Error al crear la orden. Por favor, intenta nuevamente.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Handle cash payment orders with approval
+  const handleCashOrderWithApproval = async () => {
+    if (!user || cartItems.length === 0) return;
+    
+    setIsProcessing(true);
+    
+    try {
+      // Create cash orders with approval for each cook
       const ordersByCook = cartItems.reduce((acc, item) => {
         if (!acc[item.cookerId]) {
           acc[item.cookerId] = [];
@@ -100,11 +174,7 @@ const CartPage = () => {
             phone: orderForm.phone,
             instructions: orderForm.specialInstructions
           },
-          paymentMethod,
-          // For digital payments, create a temporary payment ID until approved
-          ...(paymentMethod === 'card' && {
-            paymentId: `pending_${Date.now()}_${user.uid}`
-          })
+          paymentMethod: 'cash_on_delivery' as const
         };
 
         return OrderApprovalService.createOrderWithApproval(orderData);
@@ -118,9 +188,8 @@ const CartPage = () => {
         clearCart();
         
         // Show success message
-        const paymentTypeText = paymentMethod === 'card' ? 'digital' : 'en efectivo';
         toast.success('¡Orden enviada para aprobación!', {
-          description: `El cocinero debe aprobar tu orden ${paymentTypeText} antes de procesar. Recibirás notificaciones cuando sea aprobada.`,
+          description: 'El cocinero debe aprobar tu orden en efectivo antes de procesar. Recibirás notificaciones cuando sea aprobada.',
           duration: 4000
         });
         
@@ -133,7 +202,7 @@ const CartPage = () => {
       }
       
     } catch (error) {
-      console.error('Error creating order with approval:', error);
+      console.error('Error creating cash order with approval:', error);
       toast.error('Error al crear la orden. Por favor, intenta nuevamente.');
     } finally {
       setIsProcessing(false);
@@ -147,9 +216,9 @@ const CartPage = () => {
     
     // All payments now require approval by default
     if (orderForm.paymentMethod === 'cash') {
-      return handleOrderWithApproval('cash_on_delivery');
+      return handleCashOrderWithApproval();
     } else {
-      return handleOrderWithApproval('card');
+      return handleDigitalOrderWithApproval();
     }
   };
 
