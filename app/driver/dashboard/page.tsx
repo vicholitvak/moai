@@ -165,9 +165,7 @@ export default function DriverDashboard() {
       const isComplete = !!(
         driver.displayName &&
         driver.phone &&
-        driver.vehicleInfo?.make &&
-        driver.vehicleInfo?.model &&
-        driver.vehicleInfo?.licensePlate &&
+        driver.vehicleType &&
         driver.workingDays?.length > 0
       );
       
@@ -176,9 +174,7 @@ export default function DriverDashboard() {
         console.log('DriverDashboard: Driver profile incomplete, showing onboarding. Missing:', {
           displayName: !driver.displayName,
           phone: !driver.phone,
-          make: !driver.vehicleInfo?.make,
-          model: !driver.vehicleInfo?.model,
-          licensePlate: !driver.vehicleInfo?.licensePlate,
+          vehicleType: !driver.vehicleType,
           workingDays: !driver.workingDays?.length
         });
         setShowOnboarding(true);

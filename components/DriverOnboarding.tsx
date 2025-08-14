@@ -196,7 +196,13 @@ export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) 
         avatar: user.photoURL || '',
         phone: data.phone,
         vehicleType: data.vehicleType,
-        vehicleInfo: data.vehicleInfo,
+        vehicleInfo: {
+          make: selectedVehicle.name,
+          model: selectedVehicle.name,
+          year: new Date().getFullYear(),
+          licensePlate: 'N/A',
+          color: 'N/A'
+        },
         currentLocation: {
           coordinates: {
             latitude: 0,
