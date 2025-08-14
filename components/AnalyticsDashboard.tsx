@@ -303,7 +303,7 @@ const AnalyticsDashboard = ({
   };
 
   const getChartData = (): ChartData => {
-    if (!searchAnalytics) return { labels: [], datasets: [] };
+    if (!searchAnalytics || !searchAnalytics.searchTrends) return { labels: [], datasets: [] };
 
     return {
       labels: searchAnalytics.searchTrends.map(trend => 
@@ -398,17 +398,17 @@ const AnalyticsDashboard = ({
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-orange-600">
-                  {realTimeStats.topQueries.length}
+                  {realTimeStats?.topQueries?.length || 0}
                 </div>
                 <div className="text-sm text-muted-foreground">Consultas únicas</div>
               </div>
             </div>
             
-            {realTimeStats.topQueries.length > 0 && (
+            {(realTimeStats?.topQueries?.length || 0) > 0 && (
               <div className="mt-4">
                 <h4 className="font-medium mb-2">Búsquedas populares (última hora):</h4>
                 <div className="flex flex-wrap gap-2">
-                  {realTimeStats.topQueries.slice(0, 5).map((query: string, index: number) => (
+                  {(realTimeStats?.topQueries || []).slice(0, 5).map((query: string, index: number) => (
                     <Badge key={index} variant="outline" className="text-xs">
                       {query}
                     </Badge>
@@ -478,7 +478,7 @@ const AnalyticsDashboard = ({
                     Gráfico de tendencias de búsqueda
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {searchAnalytics.searchTrends.length} puntos de datos
+                    {(searchAnalytics?.searchTrends || []).length} puntos de datos
                   </p>
                 </div>
               </div>
@@ -487,7 +487,7 @@ const AnalyticsDashboard = ({
         )}
 
         {/* Popular Queries */}
-        {searchAnalytics && searchAnalytics.popularQueries.length > 0 && (
+        {searchAnalytics && (searchAnalytics.popularQueries?.length || 0) > 0 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
