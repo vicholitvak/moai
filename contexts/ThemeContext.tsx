@@ -54,17 +54,22 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     const root = document.documentElement;
     
+    console.log('ThemeContext: Applying theme', { theme, resolvedTheme, mounted });
+    
     // Remove all theme classes
     root.classList.remove('light', 'dark');
     
     // Add current theme class
     root.classList.add(resolvedTheme);
     
+    console.log('ThemeContext: Document classes after change:', root.classList.toString());
+    
     // Save to localStorage
     localStorage.setItem('moai-theme', theme);
   }, [theme, resolvedTheme, mounted]);
 
   const handleSetTheme = (newTheme: Theme) => {
+    console.log('ThemeContext: Setting theme to', newTheme);
     setTheme(newTheme);
   };
 

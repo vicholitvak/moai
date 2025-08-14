@@ -93,6 +93,8 @@ export interface PerformanceReport {
 export class PerformanceService {
   private static sessionId: string | null = null;
   private static isInitialized = false;
+  private static cache = new Map<string, { data: any; timestamp: number; ttl: number }>();
+  private static readonly DEFAULT_TTL = 5 * 60 * 1000; // 5 minutes
 
   // Initialize performance monitoring
   static initialize(): void {
@@ -113,6 +115,196 @@ export class PerformanceService {
   // Generate session ID
   private static generateSessionId(): string {
     return `perf_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  // Implementar cache inteligente con TTL
+  static setCache(key: string, data: any, ttl: number = this.DEFAULT_TTL) {
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now(),
+      ttl
+    });
+  }
+
+  static getCache(key: string): any | null {
+    const cached = this.cache.get(key);
+    if (!cached) return null;
+
+    const isExpired = Date.now() - cached.timestamp > cached.ttl;
+    if (isExpired) {
+      this.cache.delete(key);
+      return null;
+    }
+
+    return cached.data;
+  }
+
+  // Preload crítico de datos
+  static async preloadCriticalData(userId: string, role: string) {
+    const promises = [];
+    
+    if (role === 'Client') {
+      promises.push(
+        this.preloadDishes(),
+        this.preloadCooks()
+      );
+    } else if (role === 'Cook') {
+      promises.push(
+        this.preloadCookOrders(userId),
+        this.preloadCookDishes(userId)
+      );
+    } else if (role === 'Driver') {
+      promises.push(
+        this.preloadAvailableOrders(),
+        this.preloadDriverStats(userId)
+      );
+    }
+
+    return Promise.allSettled(promises);
+  }
+
+  private static async preloadDishes() {
+    // Implementar preload de platos más populares
+  }
+
+  private static async preloadCooks() {
+    // Implementar preload de cocineros activos
+  }
+
+  private static async preloadCookOrders(cookId: string) {
+    // Implementar preload de pedidos del cocinero
+  }
+
+  private static async preloadCookDishes(cookId: string) {
+    // Implementar preload de platos del cocinero
+  }
+
+  private static async preloadAvailableOrders() {
+    // Implementar preload de órdenes disponibles
+  }
+
+  private static async preloadDriverStats(driverId: string) {
+    // Implementar preload de estadísticas del conductor
+  }
+
+  // Optimización de imágenes
+  static getOptimizedImageUrl(url: string, width: number = 400, quality: number = 80): string {
+    if (!url) return '';
+    
+    // Si es una imagen local, usar Next.js Image optimization
+    if (url.startsWith('/')) {
+      return url;
+    }
+    
+    // Para imágenes externas, usar un servicio de optimización
+    return url;
+  }
+
+  // Lazy loading inteligente
+  static createIntersectionObserver(
+    callback: IntersectionObserverCallback,
+    options: IntersectionObserverInit = {}
+  ): IntersectionObserver {
+    return new IntersectionObserver(callback, {
+      rootMargin: '50px',
+      threshold: 0.1,
+      ...options
+    });
+  }
+
+  // Debounce para búsquedas
+  static debounce<T extends (...args: any[]) => any>(
+    func: T,
+    wait: number
+  ): (...args: Parameters<T>) => void {
+    let timeout: NodeJS.Timeout;
+    return (...args: Parameters<T>) => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func(...args), wait);
+    };
+  }
+
+  // Throttle para actualizaciones frecuentes
+  static throttle<T extends (...args: any[]) => any>(
+    func: T,
+    limit: number
+  ): (...args: Parameters<T>) => void {
+    let inThrottle: boolean;
+    return (...args: Parameters<T>) => {
+      if (!inThrottle) {
+        func(...args);
+        inThrottle = true;
+        setTimeout(() => inThrottle = false, limit);
+      }
+    };
+  }
+
+  // Métricas de performance
+  static trackPageLoad(page: string) {
+    if (typeof window !== 'undefined') {
+      const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+      const loadTime = navigation.loadEventEnd - navigation.loadEventStart;
+      
+      console.log(`Page load time for ${page}: ${loadTime}ms`);
+      
+      // Enviar métricas a analytics
+      this.sendMetric('page_load_time', {
+        page,
+        loadTime,
+        timestamp: Date.now()
+      });
+    }
+  }
+
+  static trackApiCall(endpoint: string, duration: number, success: boolean) {
+    this.sendMetric('api_call', {
+      endpoint,
+      duration,
+      success,
+      timestamp: Date.now()
+    });
+  }
+
+  private static sendMetric(name: string, data: any) {
+    // Implementar envío de métricas a servicio de analytics
+    console.log(`Metric: ${name}`, data);
+  }
+
+  // Optimización de bundle
+  static async lazyLoadComponent(importFn: () => Promise<any>) {
+    try {
+      const module = await importFn();
+      return module.default || module;
+    } catch (error) {
+      console.error('Error lazy loading component:', error);
+      return null;
+    }
+  }
+
+  // Prefetch de rutas críticas
+  static prefetchRoute(route: string) {
+    if (typeof window !== 'undefined') {
+      // Implementar prefetch de rutas usando Next.js router
+    }
+  }
+
+  // Optimización de listas virtuales para grandes datasets
+  static createVirtualList<T>(
+    items: T[],
+    itemHeight: number,
+    containerHeight: number
+  ) {
+    const visibleCount = Math.ceil(containerHeight / itemHeight);
+    const startIndex = 0;
+    const endIndex = Math.min(visibleCount, items.length);
+
+    return {
+      visibleItems: items.slice(startIndex, endIndex),
+      startIndex,
+      endIndex,
+      totalHeight: items.length * itemHeight,
+      itemHeight
+    };
   }
 
   // Track page load performance

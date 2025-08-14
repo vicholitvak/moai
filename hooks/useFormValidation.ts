@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { z } from 'zod';
 import { validateData, ValidationResult, sanitizeObject } from '@/lib/utils/validation';
 
@@ -268,3 +268,20 @@ export function useAsyncFormValidation<T extends Record<string, any>>(
     isAsyncValidating: asyncValidating.size > 0
   };
 }
+
+// Debounce hook for search inputs
+export const useDebounce = <T>(value: T, delay: number): T => {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};

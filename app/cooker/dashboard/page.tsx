@@ -36,6 +36,7 @@ import EditDishModal from '@/components/EditDishModal';
 import CookerSettingsModal from '@/components/CookerSettingsModal';
 import { AddDishModal } from '@/components/AddDishModal';
 import CookerOnboarding from '@/components/CookerOnboarding';
+import OrderApproval from '@/components/CashOrderApproval';
 // import LocationSetup from '@/components/LocationSetup'; // Unused import
 import { DishesService, OrdersService, CooksService, AnalyticsService, type Dish, type Order, type Cook } from '@/lib/firebase/dataService';
 import { OptimizedDishesService } from '@/lib/services/optimizedFirebaseService';
@@ -912,6 +913,9 @@ export default function CookerDashboard() {
                 </div>
               </div>
             </div>
+
+            {/* Order Approval Section (Cash & Digital Payments) */}
+            <OrderApproval className="mb-6" />
 
             {/* Orders by Status Sections */}
             {orders.length > 0 ? (

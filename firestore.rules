@@ -57,6 +57,10 @@ service cloud.firestore {
         resource.data.status in ['pending', 'accepted', 'preparing', 'ready'] &&
         (!('driverId' in resource.data) || resource.data.driverId == null || resource.data.driverId == '');
       
+      // Allow drivers to read orders with pending_approval status (they might need delivery info)
+      allow read: if request.auth != null && 
+        resource.data.status == 'pending_approval';
+      
       // Allow write if user is involved or will be involved
       allow write: if request.auth != null && 
         (request.auth.uid == resource.data.customerId || 

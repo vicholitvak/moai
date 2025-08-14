@@ -124,7 +124,9 @@ export interface Order {
   deliveryFee: number;
   serviceFee: number;
   total: number;
-  status: 'pending' | 'accepted' | 'preparing' | 'ready' | 'delivering' | 'delivered' | 'cancelled';
+  paymentMethod: 'card' | 'cash_on_delivery';
+  paymentStatus: 'pending' | 'paid' | 'failed' | 'cash_pending';
+  status: 'pending_approval' | 'pending' | 'accepted' | 'preparing' | 'ready' | 'delivering' | 'delivered' | 'cancelled' | 'rejected';
   deliveryInfo: {
     address: string;
     phone: string;
@@ -132,6 +134,12 @@ export interface Order {
   };
   deliveryCode: string;
   isDelivered: boolean;
+  cookerApproval?: {
+    approved: boolean;
+    approvedAt?: Timestamp;
+    rejectedAt?: Timestamp;
+    rejectionReason?: string;
+  };
   orderTime?: Timestamp;
   estimatedDeliveryTime?: Timestamp;
   actualDeliveryTime?: Timestamp;

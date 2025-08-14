@@ -1,612 +1,536 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { SearchService, type SearchFilters, type SearchResult } from '@/lib/services/searchService';
-import { LocationService, type Coordinates } from '@/lib/services/locationService';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Search, Filter, MapPin, Clock, Star, DollarSign, X, SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { 
-  Search, 
-  Filter, 
-  X, 
-  Star,
-  Clock,
-  MapPin,
-  DollarSign,
-  ChefHat,
-  Utensils,
-  Eye,
-  SlidersHorizontal,
-  TrendingUp,
-  Heart,
-  Zap
-} from 'lucide-react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { toast } from 'sonner';
-import { useAuth } from '@/context/AuthContext';
+import { Card, CardContent } from '@/components/ui/card';
+import { useDebounce } from '@/hooks/useFormValidation';
 
-interface AdvancedSearchProps {
-  initialQuery?: string;
-  showLocation?: boolean;
-  showRecommendations?: boolean;
-  onDishSelect?: (dishId: string) => void;
+interface SearchFilters {
+  query: string;
+  category: string;
+  priceRange: [number, number];
+  rating: number;
+  maxPrepTime: number;
+  distance: number;
+  dietaryRestrictions: string[];
+  ingredients: string[];
+  sortBy: 'relevance' | 'rating' | 'price-low' | 'price-high' | 'distance' | 'prep-time';
 }
 
-const AdvancedSearch = ({ 
-  initialQuery = '', 
-  showLocation = true,
-  showRecommendations = true,
-  onDishSelect 
-}: AdvancedSearchProps) => {
-  const { user } = useAuth();
-  const [query, setQuery] = useState(initialQuery);
-  const [filters, setFilters] = useState<SearchFilters>({
-    query: initialQuery,
-    availability: true,
-    sortBy: 'relevance'
-  });
-  const [results, setResults] = useState<SearchResult | null>(null);
-  const [recommendations, setRecommendations] = useState<any[]>([]);
-  const [trending, setTrending] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
-  const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
-  const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
+interface AdvancedSearchProps {
+  onSearch: (filters: SearchFilters) => void;
+  onFiltersChange: (filters: SearchFilters) => void;
+  initialFilters?: Partial<SearchFilters>;
+  className?: string;
+}
 
+const categories = [
+  'Todas',
+  'Italiana', 'Mexicana', 'Japonesa', 'India', 'Americana', 'Francesa', 
+  'China', 'Tailandesa', 'Mediterránea', 'Vegana', 'Saludable', 
+  'Acompañamientos', 'Para Tomar', 'Postres'
+];
+
+const dietaryOptions = [
+  'Vegetariano', 'Vegano', 'Sin Gluten', 'Sin Lactosa', 'Sin Nuez', 
+  'Bajo en Carbohidratos', 'Alto en Proteína', 'Orgánico'
+];
+
+const sortOptions = [
+  { value: 'relevance', label: 'Relevancia' },
+  { value: 'rating', label: 'Mejor Calificados' },
+  { value: 'price-low', label: 'Precio: Menor a Mayor' },
+  { value: 'price-high', label: 'Precio: Mayor a Menor' },
+  { value: 'distance', label: 'Más Cercanos' },
+  { value: 'prep-time', label: 'Más Rápidos' }
+];
+
+export default function AdvancedSearch({
+  onSearch,
+  onFiltersChange,
+  initialFilters,
+  className = ''
+}: AdvancedSearchProps) {
+  const [filters, setFilters] = useState<SearchFilters>({
+    query: '',
+    category: 'Todas',
+    priceRange: [0, 50000],
+    rating: 0,
+    maxPrepTime: 60,
+    distance: 10000,
+    dietaryRestrictions: [],
+    ingredients: [],
+    sortBy: 'relevance',
+    ...initialFilters
+  });
+
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+
+  const debouncedQuery = useDebounce(filters.query, 300);
+
+  // Load recent searches from localStorage
   useEffect(() => {
-    if (initialQuery) {
-      performSearch();
-    } else {
-      loadInitialData();
-    }
-    if (showLocation) {
-      getCurrentLocation();
+    const saved = localStorage.getItem('recent_searches');
+    if (saved) {
+      setRecentSearches(JSON.parse(saved));
     }
   }, []);
 
-  const getCurrentLocation = async () => {
-    try {
-      const coordinates = await LocationService.getCurrentPosition();
-      setUserLocation(coordinates);
-      setFilters(prev => ({ ...prev, location: coordinates, maxDistance: 15 }));
-    } catch (error) {
-      console.error('Error getting location:', error);
+  // Generate search suggestions
+  useEffect(() => {
+    if (debouncedQuery.length > 2) {
+      generateSuggestions(debouncedQuery);
+    } else {
+      setSuggestions([]);
     }
-  };
+  }, [debouncedQuery]);
 
-  const loadInitialData = async () => {
-    setLoading(true);
-    try {
-      // Load trending dishes
-      const trendingDishes = await SearchService.getTrendingDishes(8);
-      setTrending(trendingDishes);
+  // Trigger search when filters change
+  useEffect(() => {
+    onFiltersChange(filters);
+  }, [filters, onFiltersChange]);
 
-      // Load recommendations if user is logged in
-      if (showRecommendations && user) {
-        const recs = await SearchService.getRecommendations({
-          userId: user.uid,
-          location: userLocation || undefined,
-          limit: 6
-        });
-        setRecommendations(recs.dishes);
-      }
-    } catch (error) {
-      console.error('Error loading initial data:', error);
-    } finally {
-      setLoading(false);
+  const generateSuggestions = useCallback(async (query: string) => {
+    // Mock suggestions - in real app, fetch from API
+    const mockSuggestions = [
+      `${query} italiano`,
+      `${query} vegano`,
+      `${query} rápido`,
+      `${query} saludable`,
+      `${query} picante`
+    ];
+    setSuggestions(mockSuggestions);
+  }, []);
+
+  const handleSearch = useCallback(() => {
+    if (filters.query.trim()) {
+      setIsSearching(true);
+      
+      // Save to recent searches
+      const updated = [filters.query, ...recentSearches.filter(s => s !== filters.query)].slice(0, 5);
+      setRecentSearches(updated);
+      localStorage.setItem('recent_searches', JSON.stringify(updated));
+      
+      onSearch(filters);
+      
+      setTimeout(() => setIsSearching(false), 500);
     }
-  };
+  }, [filters, onSearch, recentSearches]);
 
-  const performSearch = useCallback(async () => {
-    if (!query.trim() && !Object.keys(filters).some(key => 
-      key !== 'query' && key !== 'availability' && key !== 'sortBy' && filters[key as keyof SearchFilters]
-    )) {
-      setResults(null);
-      loadInitialData();
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const searchResults = await SearchService.search({
-        ...filters,
-        query: query.trim() || undefined
-      });
-      setResults(searchResults);
-      setSearchSuggestions(searchResults.suggestions || []);
-    } catch (error) {
-      console.error('Search error:', error);
-      toast.error('Error en la búsqueda');
-    } finally {
-      setLoading(false);
-    }
-  }, [query, filters]);
-
-  const handleSearch = () => {
-    setFilters(prev => ({ ...prev, query }));
-    performSearch();
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
-  };
-
-  const updateFilter = (key: keyof SearchFilters, value: any) => {
+  const updateFilter = useCallback((key: keyof SearchFilters, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }));
-  };
+  }, []);
 
-  const clearFilters = () => {
+  const toggleDietaryRestriction = useCallback((restriction: string) => {
+    setFilters(prev => ({
+      ...prev,
+      dietaryRestrictions: prev.dietaryRestrictions.includes(restriction)
+        ? prev.dietaryRestrictions.filter(r => r !== restriction)
+        : [...prev.dietaryRestrictions, restriction]
+    }));
+  }, []);
+
+  const addIngredient = useCallback((ingredient: string) => {
+    if (ingredient.trim() && !filters.ingredients.includes(ingredient.trim())) {
+      setFilters(prev => ({
+        ...prev,
+        ingredients: [...prev.ingredients, ingredient.trim()]
+      }));
+    }
+  }, [filters.ingredients]);
+
+  const removeIngredient = useCallback((ingredient: string) => {
+    setFilters(prev => ({
+      ...prev,
+      ingredients: prev.ingredients.filter(i => i !== ingredient)
+    }));
+  }, []);
+
+  const clearFilters = useCallback(() => {
     setFilters({
-      availability: true,
-      sortBy: 'relevance',
-      location: userLocation || undefined,
-      maxDistance: userLocation ? 15 : undefined
+      query: '',
+      category: 'Todas',
+      priceRange: [0, 50000],
+      rating: 0,
+      maxPrepTime: 60,
+      distance: 10000,
+      dietaryRestrictions: [],
+      ingredients: [],
+      sortBy: 'relevance'
     });
-    setQuery('');
-    setResults(null);
-    loadInitialData();
-  };
+  }, []);
 
-  const applySuggestion = (suggestion: string) => {
-    setQuery(suggestion);
-    setFilters(prev => ({ ...prev, query: suggestion }));
-    performSearch();
-  };
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('es-CL', {
-      style: 'currency',
-      currency: 'CLP'
-    }).format(price);
-  };
-
-  const getActiveFiltersCount = () => {
-    const activeFilters = Object.entries(filters).filter(([key, value]) => {
-      if (key === 'availability' || key === 'sortBy' || key === 'location' || key === 'maxDistance') return false;
-      if (key === 'query') return value && value.trim();
-      return value !== undefined && value !== null && value !== '';
-    });
-    return activeFilters.length;
-  };
+  const hasActiveFilters = filters.category !== 'Todas' || 
+    filters.rating > 0 || 
+    filters.maxPrepTime < 60 || 
+    filters.dietaryRestrictions.length > 0 || 
+    filters.ingredients.length > 0;
 
   return (
-    <div className="space-y-6">
-      {/* Search Bar */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex gap-2">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Buscar platos, ingredientes, cocineros..."
-                className="pl-10 pr-4"
-              />
-            </div>
-            <Button onClick={handleSearch} className="bg-moai-orange hover:bg-moai-orange/90">
-              <Search className="h-4 w-4" />
-            </Button>
-            <Button 
-              onClick={() => setShowFilters(!showFilters)} 
-              variant="outline"
-              className="relative"
-            >
-              <SlidersHorizontal className="h-4 w-4 mr-2" />
-              Filtros
-              {getActiveFiltersCount() > 0 && (
-                <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 text-xs bg-moai-orange">
-                  {getActiveFiltersCount()}
-                </Badge>
-              )}
-            </Button>
-          </div>
+    <div className={`space-y-4 ${className}`}>
+      {/* Main Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+        <Input
+          placeholder="Buscar platos, cocineros, ingredientes..."
+          value={filters.query}
+          onChange={(e) => updateFilter('query', e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+          className="pl-10 pr-20 h-12 text-base"
+        />
+        <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            className="h-8 w-8 p-0"
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+          </Button>
+          <Button
+            onClick={handleSearch}
+            disabled={isSearching}
+            size="sm"
+            className="h-8"
+          >
+            {isSearching ? 'Buscando...' : 'Buscar'}
+          </Button>
+        </div>
+      </div>
 
-          {/* Search Suggestions */}
-          {searchSuggestions.length > 0 && !results && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              <span className="text-sm text-muted-foreground">Sugerencias:</span>
-              {searchSuggestions.map((suggestion, index) => (
-                <Button
+      {/* Search Suggestions */}
+      {suggestions.length > 0 && (
+        <Card className="absolute z-10 w-full mt-1">
+          <CardContent className="p-2">
+            <div className="space-y-1">
+              {suggestions.map((suggestion, index) => (
+                <button
                   key={index}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => applySuggestion(suggestion)}
-                  className="h-7 text-xs"
+                  onClick={() => {
+                    updateFilter('query', suggestion);
+                    handleSearch();
+                  }}
+                  className="w-full text-left px-3 py-2 text-sm hover:bg-muted rounded-md transition-colors"
                 >
                   {suggestion}
-                </Button>
+                </button>
               ))}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Recent Searches */}
+      {recentSearches.length > 0 && !filters.query && (
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">Búsquedas recientes:</p>
+          <div className="flex flex-wrap gap-2">
+            {recentSearches.map((search, index) => (
+              <Badge
+                key={index}
+                variant="outline"
+                className="cursor-pointer hover:bg-primary hover:text-primary-foreground"
+                onClick={() => {
+                  updateFilter('query', search);
+                  handleSearch();
+                }}
+              >
+                {search}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Quick Filters */}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant={filters.category !== 'Todas' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => updateFilter('category', 'Todas')}
+        >
+          Todas las categorías
+        </Button>
+        {categories.slice(1, 7).map((category) => (
+          <Button
+            key={category}
+            variant={filters.category === category ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => updateFilter('category', category)}
+          >
+            {category}
+          </Button>
+        ))}
+      </div>
 
       {/* Advanced Filters */}
-      {showFilters && (
+      {showAdvancedFilters && (
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <Filter className="h-5 w-5" />
-                Filtros Avanzados
-              </span>
-              <Button onClick={clearFilters} variant="outline" size="sm">
-                <X className="h-4 w-4 mr-2" />
-                Limpiar
+          <CardContent className="p-6 space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Filtros Avanzados</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                disabled={!hasActiveFilters}
+              >
+                Limpiar Filtros
               </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Category Filter */}
-              <div>
-                <Label>Categoría</Label>
-                <select
-                  value={filters.category || ''}
-                  onChange={(e) => updateFilter('category', e.target.value || undefined)}
-                  className="w-full mt-1 p-2 border rounded"
-                >
-                  <option value="">Todas las categorías</option>
-                  <option value="Comida Casera">Comida Casera</option>
-                  <option value="Internacional">Internacional</option>
-                  <option value="Vegetariano">Vegetariano</option>
-                  <option value="Postres">Postres</option>
-                  <option value="Saludable">Saludable</option>
-                  <option value="Tradicional">Tradicional</option>
-                </select>
-              </div>
-
-              {/* Price Range */}
-              <div>
-                <Label>Rango de Precio</Label>
-                <div className="flex gap-2 mt-1">
-                  <Input
-                    type="number"
-                    placeholder="Min"
-                    value={filters.priceRange?.min || ''}
-                    onChange={(e) => updateFilter('priceRange', {
-                      ...filters.priceRange,
-                      min: parseInt(e.target.value) || 0
-                    })}
-                  />
-                  <Input
-                    type="number"
-                    placeholder="Max"
-                    value={filters.priceRange?.max || ''}
-                    onChange={(e) => updateFilter('priceRange', {
-                      ...filters.priceRange,
-                      max: parseInt(e.target.value) || 50000
-                    })}
-                  />
-                </div>
-              </div>
-
-              {/* Rating Filter */}
-              <div>
-                <Label>Rating Mínimo</Label>
-                <select
-                  value={filters.rating || ''}
-                  onChange={(e) => updateFilter('rating', parseFloat(e.target.value) || undefined)}
-                  className="w-full mt-1 p-2 border rounded"
-                >
-                  <option value="">Cualquier rating</option>
-                  <option value="4.5">4.5+ estrellas</option>
-                  <option value="4.0">4.0+ estrellas</option>
-                  <option value="3.5">3.5+ estrellas</option>
-                  <option value="3.0">3.0+ estrellas</option>
-                </select>
-              </div>
-
-              {/* Prep Time */}
-              <div>
-                <Label>Tiempo de Preparación</Label>
-                <select
-                  value={filters.prepTime || ''}
-                  onChange={(e) => updateFilter('prepTime', e.target.value || undefined)}
-                  className="w-full mt-1 p-2 border rounded"
-                >
-                  <option value="">Cualquier tiempo</option>
-                  <option value="15 min">15 min o menos</option>
-                  <option value="30 min">30 min o menos</option>
-                  <option value="45 min">45 min o menos</option>
-                  <option value="60+ min">Más de 60 min</option>
-                </select>
-              </div>
             </div>
 
-            {/* Dietary Preferences */}
+            {/* Categories */}
             <div>
-              <Label>Preferencias Dietéticas</Label>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {['vegetarian', 'vegan', 'gluten-free', 'keto', 'paleo'].map((diet) => (
+              <label className="text-sm font-medium mb-2 block">Categoría</label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {categories.map((category) => (
                   <Button
-                    key={diet}
-                    variant={filters.dietary?.includes(diet) ? 'default' : 'outline'}
+                    key={category}
+                    variant={filters.category === category ? 'default' : 'outline'}
                     size="sm"
-                    onClick={() => {
-                      const current = filters.dietary || [];
-                      const updated = current.includes(diet)
-                        ? current.filter(d => d !== diet)
-                        : [...current, diet];
-                      updateFilter('dietary', updated.length > 0 ? updated : undefined);
-                    }}
-                    className={filters.dietary?.includes(diet) ? 'bg-moai-orange hover:bg-moai-orange/90' : ''}
+                    onClick={() => updateFilter('category', category)}
+                    className="justify-start"
                   >
-                    {diet}
+                    {category}
                   </Button>
                 ))}
               </div>
+            </div>
+
+            {/* Price Range */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">
+                Rango de Precio: ${filters.priceRange[0].toLocaleString('es-CL')} - ${filters.priceRange[1].toLocaleString('es-CL')}
+              </label>
+              <div className="flex items-center gap-4">
+                <Input
+                  type="number"
+                  placeholder="Mín"
+                  value={filters.priceRange[0]}
+                  onChange={(e) => updateFilter('priceRange', [parseInt(e.target.value) || 0, filters.priceRange[1]])}
+                  className="w-24"
+                />
+                <span>-</span>
+                <Input
+                  type="number"
+                  placeholder="Máx"
+                  value={filters.priceRange[1]}
+                  onChange={(e) => updateFilter('priceRange', [filters.priceRange[0], parseInt(e.target.value) || 50000])}
+                  className="w-24"
+                />
+              </div>
+            </div>
+
+            {/* Rating Filter */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">
+                Calificación mínima: {filters.rating > 0 ? `${filters.rating}+ estrellas` : 'Cualquiera'}
+              </label>
+              <div className="flex items-center gap-2">
+                {[0, 3, 3.5, 4, 4.5].map((rating) => (
+                  <Button
+                    key={rating}
+                    variant={filters.rating === rating ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => updateFilter('rating', rating)}
+                  >
+                    {rating === 0 ? 'Cualquiera' : `${rating}+`}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Prep Time */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">
+                Tiempo máximo de preparación: {filters.maxPrepTime} min
+              </label>
+              <input
+                type="range"
+                min="15"
+                max="120"
+                step="15"
+                value={filters.maxPrepTime}
+                onChange={(e) => updateFilter('maxPrepTime', parseInt(e.target.value))}
+                className="w-full"
+              />
+              <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                <span>15 min</span>
+                <span>120 min</span>
+              </div>
+            </div>
+
+            {/* Distance */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">
+                Distancia máxima: {filters.distance / 1000} km
+              </label>
+              <input
+                type="range"
+                min="1000"
+                max="50000"
+                step="1000"
+                value={filters.distance}
+                onChange={(e) => updateFilter('distance', parseInt(e.target.value))}
+                className="w-full"
+              />
+              <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                <span>1 km</span>
+                <span>50 km</span>
+              </div>
+            </div>
+
+            {/* Dietary Restrictions */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">Restricciones Dietéticas</label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {dietaryOptions.map((option) => (
+                  <Button
+                    key={option}
+                    variant={filters.dietaryRestrictions.includes(option) ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => toggleDietaryRestriction(option)}
+                    className="justify-start"
+                  >
+                    {option}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Ingredients */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">Ingredientes</label>
+              <div className="flex gap-2 mb-2">
+                <Input
+                  placeholder="Agregar ingrediente..."
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      addIngredient(e.currentTarget.value);
+                      e.currentTarget.value = '';
+                    }
+                  }}
+                  className="flex-1"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const input = document.querySelector('input[placeholder="Agregar ingrediente..."]') as HTMLInputElement;
+                    if (input) {
+                      addIngredient(input.value);
+                      input.value = '';
+                    }
+                  }}
+                >
+                  Agregar
+                </Button>
+              </div>
+              {filters.ingredients.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {filters.ingredients.map((ingredient) => (
+                    <Badge
+                      key={ingredient}
+                      variant="secondary"
+                      className="flex items-center gap-1"
+                    >
+                      {ingredient}
+                      <X
+                        className="h-3 w-3 cursor-pointer"
+                        onClick={() => removeIngredient(ingredient)}
+                      />
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Sort Options */}
             <div>
-              <Label>Ordenar por</Label>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {[
-                  { value: 'relevance', label: 'Relevancia', icon: Zap },
-                  { value: 'rating', label: 'Rating', icon: Star },
-                  { value: 'price_low', label: 'Precio (menor)', icon: DollarSign },
-                  { value: 'price_high', label: 'Precio (mayor)', icon: DollarSign },
-                  { value: 'prep_time', label: 'Tiempo prep.', icon: Clock },
-                  { value: 'distance', label: 'Distancia', icon: MapPin }
-                ].map((sort) => (
+              <label className="text-sm font-medium mb-2 block">Ordenar por</label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {sortOptions.map((option) => (
                   <Button
-                    key={sort.value}
-                    variant={filters.sortBy === sort.value ? 'default' : 'outline'}
+                    key={option.value}
+                    variant={filters.sortBy === option.value ? 'default' : 'outline'}
                     size="sm"
-                    onClick={() => updateFilter('sortBy', sort.value)}
-                    className={filters.sortBy === sort.value ? 'bg-moai-orange hover:bg-moai-orange/90' : ''}
+                    onClick={() => updateFilter('sortBy', option.value)}
+                    className="justify-start"
                   >
-                    <sort.icon className="h-3 w-3 mr-1" />
-                    {sort.label}
+                    {option.label}
                   </Button>
                 ))}
               </div>
             </div>
-
-            <Button onClick={performSearch} className="w-full bg-moai-orange hover:bg-moai-orange/90">
-              Aplicar Filtros
-            </Button>
           </CardContent>
         </Card>
       )}
 
-      {/* Results */}
-      {loading && (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-moai-orange mx-auto mb-4"></div>
-            <p>Buscando...</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {results && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>
-                {results.totalResults} resultados encontrados
-                {results.searchTime && (
-                  <span className="text-sm font-normal text-muted-foreground ml-2">
-                    ({results.searchTime}ms)
-                  </span>
-                )}
-              </CardTitle>
-              {results.facets && (
-                <div className="text-sm text-muted-foreground">
-                  {results.facets.categories.length} categorías disponibles
-                </div>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            {results.totalResults === 0 ? (
-              <div className="text-center py-8">
-                <Utensils className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No se encontraron resultados</h3>
-                <p className="text-muted-foreground mb-4">
-                  Intenta ajustar tus filtros o cambiar tu búsqueda
-                </p>
-                <Button onClick={clearFilters} variant="outline">
-                  Limpiar filtros
-                </Button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {results.dishes.map((dish) => (
-                  <Card key={dish.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                    <div className="relative h-48">
-                      <Image
-                        src={dish.image || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xNzUgMTIwSDIyNVYxNDBIMjQwVjE2MEgyNDBWMTgwSDIyNVYyMDBIMTc1VjE4MEgxNjBWMTYwSDE2MFYxNDBIMTc1VjEyMFoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+'}
-                        alt={dish.name}
-                        fill
-                        className="object-cover"
-                      />
-                      <div className="absolute top-2 left-2">
-                        <Badge className="bg-moai-orange text-white">
-                          <Star className="h-3 w-3 mr-1" />
-                          {dish.rating.toFixed(1)}
-                        </Badge>
-                      </div>
-                      {dish.distance && (
-                        <div className="absolute top-2 right-2">
-                          <Badge variant="secondary">
-                            <MapPin className="h-3 w-3 mr-1" />
-                            {LocationService.formatDistance(dish.distance)}
-                          </Badge>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <CardContent className="p-4">
-                      <div className="space-y-3">
-                        <div>
-                          <h3 className="font-semibold text-lg">{dish.name}</h3>
-                          <p className="text-sm text-muted-foreground line-clamp-2">
-                            {dish.description}
-                          </p>
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                          <div className="text-2xl font-bold text-moai-orange">
-                            {formatPrice(dish.price)}
-                          </div>
-                          <div className="text-right">
-                            <div className="text-sm font-medium">{dish.cookerName}</div>
-                            <div className="text-xs text-muted-foreground flex items-center">
-                              <Clock className="h-3 w-3 mr-1" />
-                              {dish.prepTime}
-                            </div>
-                          </div>
-                        </div>
-
-                        {dish.matchReasons && dish.matchReasons.length > 0 && (
-                          <div className="flex flex-wrap gap-1">
-                            {dish.matchReasons.slice(0, 2).map((reason, index) => (
-                              <Badge key={index} variant="outline" className="text-xs">
-                                {reason}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-
-                        <Link href={`/dishes/${dish.id}`} className="block">
-                          <Button className="w-full bg-moai-orange hover:bg-moai-orange/90">
-                            <Eye className="h-4 w-4 mr-2" />
-                            Ver Plato
-                          </Button>
-                        </Link>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Recommendations */}
-      {!results && showRecommendations && recommendations.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Heart className="h-5 w-5 text-moai-orange" />
-              Recomendado para ti
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {recommendations.map((dish) => (
-                <Card key={dish.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                  <div className="relative h-48">
-                    <Image
-                      src={dish.image || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xNzUgMTIwSDIyNVYxNDBIMjQwVjE2MEgyNDBWMTgwSDIyNVYyMDBIMTc1VjE4MEgxNjBWMTYwSDE2MFYxNDBIMTc1VjEyMFoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+'}
-                      alt={dish.name}
-                      fill
-                      className="object-cover"
-                    />
-                    <div className="absolute top-2 left-2">
-                      <Badge className="bg-green-600 text-white">
-                        <Heart className="h-3 w-3 mr-1" />
-                        Recomendado
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  <CardContent className="p-4">
-                    <div className="space-y-3">
-                      <div>
-                        <h3 className="font-semibold text-lg">{dish.name}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {dish.recommendationReason}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="text-2xl font-bold text-moai-orange">
-                          {formatPrice(dish.price)}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Star className="h-4 w-4 text-amber-400 fill-current" />
-                          <span className="text-sm font-medium">{dish.rating.toFixed(1)}</span>
-                        </div>
-                      </div>
-
-                      <Link href={`/dishes/${dish.id}`} className="block">
-                        <Button className="w-full bg-moai-orange hover:bg-moai-orange/90">
-                          <Eye className="h-4 w-4 mr-2" />
-                          Ver Plato
-                        </Button>
-                      </Link>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Trending */}
-      {!results && trending.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-moai-orange" />
-              Tendencias
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {trending.map((dish) => (
-                <Card key={dish.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                  <div className="relative h-32">
-                    <Image
-                      src={dish.image || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xNzUgMTIwSDIyNVYxNDBIMjQwVjE2MEgyNDBWMTgwSDIyNVYyMDBIMTc1VjE4MEgxNjBWMTYwSDE2MFYxNDBIMTc1VjEyMFoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+'}
-                      alt={dish.name}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  
-                  <CardContent className="p-3">
-                    <div className="space-y-2">
-                      <h3 className="font-semibold text-sm">{dish.name}</h3>
-                      <div className="flex items-center justify-between">
-                        <div className="text-lg font-bold text-moai-orange">
-                          {formatPrice(dish.price)}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Star className="h-3 w-3 text-amber-400 fill-current" />
-                          <span className="text-xs">{dish.rating.toFixed(1)}</span>
-                        </div>
-                      </div>
-                      <Link href={`/dishes/${dish.id}`} className="block">
-                        <Button size="sm" className="w-full bg-moai-orange hover:bg-moai-orange/90">
-                          Ver
-                        </Button>
-                      </Link>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+      {/* Active Filters Summary */}
+      {hasActiveFilters && (
+        <div className="flex flex-wrap gap-2">
+          <span className="text-sm text-muted-foreground">Filtros activos:</span>
+          {filters.category !== 'Todas' && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              {filters.category}
+              <X
+                className="h-3 w-3 cursor-pointer"
+                onClick={() => updateFilter('category', 'Todas')}
+              />
+            </Badge>
+          )}
+          {filters.rating > 0 && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              {filters.rating}+ estrellas
+              <X
+                className="h-3 w-3 cursor-pointer"
+                onClick={() => updateFilter('rating', 0)}
+              />
+            </Badge>
+          )}
+          {filters.maxPrepTime < 60 && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              < {filters.maxPrepTime} min
+              <X
+                className="h-3 w-3 cursor-pointer"
+                onClick={() => updateFilter('maxPrepTime', 60)}
+              />
+            </Badge>
+          )}
+          {filters.dietaryRestrictions.map((restriction) => (
+            <Badge
+              key={restriction}
+              variant="secondary"
+              className="flex items-center gap-1"
+            >
+              {restriction}
+              <X
+                className="h-3 w-3 cursor-pointer"
+                onClick={() => toggleDietaryRestriction(restriction)}
+              />
+            </Badge>
+          ))}
+          {filters.ingredients.map((ingredient) => (
+            <Badge
+              key={ingredient}
+              variant="secondary"
+              className="flex items-center gap-1"
+            >
+              {ingredient}
+              <X
+                className="h-3 w-3 cursor-pointer"
+                onClick={() => removeIngredient(ingredient)}
+              />
+            </Badge>
+          ))}
+        </div>
       )}
     </div>
   );
-};
-
-export default AdvancedSearch;
+}

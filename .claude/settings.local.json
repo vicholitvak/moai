@@ -24,7 +24,8 @@
       "Bash(npm run type-check:*)",
       "Bash(timeout 15 npm run dev)",
       "Bash(npx tsc:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }

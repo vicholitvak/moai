@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { OrdersService, CooksService } from '@/lib/firebase/dataService';
 import { MercadoPagoService } from '@/lib/services/mercadoPagoService';
+import { OrderApprovalService } from '@/lib/services/orderApprovalService';
 import { toast } from 'sonner';
 import { 
   ArrowLeft, 
@@ -14,6 +15,7 @@ import {
   Minus, 
   ShoppingCart, 
   CreditCard,
+  Banknote,
   User,
   CheckCircle,
   Shield
@@ -48,7 +50,7 @@ const CartPage = () => {
     deliveryAddress: '',
     phone: '',
     specialInstructions: '',
-    paymentMethod: 'mercadopago'
+    paymentMethod: 'mercadopago' as 'mercadopago' | 'cash'
   });
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -58,15 +60,14 @@ const CartPage = () => {
   const serviceFee = getServiceFee();
   const total = getTotal();
 
-  // updateQuantity and removeFromCart are now from cart context
-
-  const handleCheckout = async () => {
+  // Unified function for all orders with approval (both cash and digital)
+  const handleOrderWithApproval = async (paymentMethod: 'card' | 'cash_on_delivery') => {
     if (!user || cartItems.length === 0) return;
     
     setIsProcessing(true);
     
     try {
-      // First, create the order in Firebase
+      // Create orders with approval for each cook
       const ordersByCook = cartItems.reduce((acc, item) => {
         if (!acc[item.cookerId]) {
           acc[item.cookerId] = [];
@@ -75,20 +76,11 @@ const CartPage = () => {
         return acc;
       }, {} as Record<string, typeof cartItems>);
 
-      // Create a single order ID for Mercado Pago reference
-      const mainOrderId = `order_${Date.now()}_${user.uid}`;
-      
-      // Generate delivery code for order verification
-      const deliveryCode = generateDeliveryCode();
-      
-      // Create orders for each cook
       const orderPromises = Object.entries(ordersByCook).map(async ([cookerId, items]) => {
-        // Check if cook has self-delivery enabled
-        const cook = await CooksService.getCookById(cookerId);
-        const isSelfDelivery = cook?.settings?.selfDelivery || false;
         const orderData = {
           customerId: user.uid,
-          customerName: user.displayName || user.email || 'Customer',
+          customerName: user.displayName || user.email || 'Cliente',
+          customerEmail: user.email || '',
           cookerId,
           dishes: items.map(item => ({
             dishId: item.dishId,
@@ -103,64 +95,61 @@ const CartPage = () => {
           total: (items.reduce((sum, item) => sum + item.totalPrice, 0) + 
                  (deliveryFee / Object.keys(ordersByCook).length) + 
                  (serviceFee / Object.keys(ordersByCook).length)),
-          status: 'pending' as const,
           deliveryInfo: {
             address: orderForm.deliveryAddress,
             phone: orderForm.phone,
             instructions: orderForm.specialInstructions
           },
-          paymentId: mainOrderId,
-          deliveryCode: deliveryCode,
-          isDelivered: false,
-          isSelfDelivery: isSelfDelivery,
-          driverId: isSelfDelivery ? cookerId : undefined // Cook is the driver for self-delivery
+          paymentMethod,
+          // For digital payments, create a temporary payment ID until approved
+          ...(paymentMethod === 'card' && {
+            paymentId: `pending_${Date.now()}_${user.uid}`
+          })
         };
 
-        return OrdersService.createOrder(orderData);
+        return OrderApprovalService.createOrderWithApproval(orderData);
       });
 
-      await Promise.all(orderPromises);
+      const results = await Promise.all(orderPromises);
+      const successfulOrders = results.filter(Boolean);
 
-      // Create Mercado Pago payment preference
-      const paymentData = {
-        amount: total,
-        description: `Pedido Moai - ${cartItems.length} items`,
-        orderId: mainOrderId,
-        customerEmail: user.email || '',
-        customerName: user.displayName || user.email || 'Cliente',
-        items: cartItems.map(item => ({
-          id: item.dishId,
-          title: item.name,
-          quantity: item.quantity,
-          unit_price: MercadoPagoService.convertCurrency(item.price)
-        }))
-      };
-
-      const preference = await MercadoPagoService.createPreference(paymentData);
-      
-      if (preference.initPoint) {
-        // Clear cart before redirecting to payment
+      if (successfulOrders.length > 0) {
+        // Clear cart
         clearCart();
         
         // Show success message
-        toast.success('Redirigiendo a Mercado Pago...', {
-          description: 'Tu pedido ha sido creado exitosamente',
-          duration: 2000
+        const paymentTypeText = paymentMethod === 'card' ? 'digital' : 'en efectivo';
+        toast.success('¡Orden enviada para aprobación!', {
+          description: `El cocinero debe aprobar tu orden ${paymentTypeText} antes de procesar. Recibirás notificaciones cuando sea aprobada.`,
+          duration: 4000
         });
         
-        // Redirect to Mercado Pago payment
+        // Redirect to orders page
         setTimeout(() => {
-          window.location.href = preference.initPoint;
-        }, 1000);
+          router.push('/orders');
+        }, 2000);
       } else {
-        throw new Error('Failed to create payment preference');
+        throw new Error('No se pudo crear ninguna orden');
       }
       
     } catch (error) {
-      console.error('Error creating payment:', error);
-      toast.error('Error al procesar el pago. Por favor, intenta nuevamente.');
+      console.error('Error creating order with approval:', error);
+      toast.error('Error al crear la orden. Por favor, intenta nuevamente.');
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  // updateQuantity and removeFromCart are now from cart context
+
+  const handleCheckout = async () => {
+    if (!user || cartItems.length === 0) return;
+    
+    // All payments now require approval by default
+    if (orderForm.paymentMethod === 'cash') {
+      return handleOrderWithApproval('cash_on_delivery');
+    } else {
+      return handleOrderWithApproval('card');
     }
   };
 
@@ -480,7 +469,7 @@ const CartPage = () => {
                         </div>
                         <div className="flex-1">
                           <div className="font-medium text-foreground">Pago Online Seguro</div>
-                          <div className="text-sm text-muted-foreground">Tarjetas, transferencias y más</div>
+                          <div className="text-sm text-blue-600">⚡ Requiere aprobación del cocinero</div>
                         </div>
                         <div className={`w-4 h-4 rounded-full border-2 transition-colors duration-200 ${
                           orderForm.paymentMethod === 'mercadopago' 
@@ -494,26 +483,42 @@ const CartPage = () => {
                       </div>
                     </label>
 
-                    {/* Cash on Delivery Option (temporarily disabled) */}
+                    {/* Cash on Delivery Option */}
                     <label 
-                      className="flex items-center p-4 border-2 rounded-lg cursor-not-allowed transition-all duration-200 bg-muted border-border opacity-60"
+                      className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:bg-orange-50 ${
+                        orderForm.paymentMethod === 'cash' 
+                          ? 'border-orange-500 bg-orange-50' 
+                          : 'border-border hover:border-orange-300'
+                      }`}
                     >
                       <input
                         type="radio"
                         name="paymentMethod"
                         value="cash"
-                        disabled
+                        checked={orderForm.paymentMethod === 'cash'}
+                        onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
                         className="sr-only"
                       />
                       <div className="flex items-center gap-3 flex-1">
-                        <div className="bg-muted-foreground text-muted px-3 py-1 rounded text-sm font-semibold">
-                          💰 Efectivo
+                        <div className="bg-orange-500 text-white px-3 py-1 rounded text-sm font-semibold flex items-center gap-1">
+                          <Banknote className="h-4 w-4" />
+                          Efectivo
                         </div>
                         <div className="flex-1">
-                          <div className="font-medium text-muted-foreground">Pago contra entrega</div>
-                          <div className="text-sm text-muted-foreground/70">Proximamente disponible</div>
+                          <div className="font-medium text-foreground">Pago contra entrega</div>
+                          <div className="text-sm text-orange-600">
+                            ⚡ Requiere aprobación del cocinero
+                          </div>
                         </div>
-                        <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/30"></div>
+                        <div className={`w-4 h-4 rounded-full border-2 transition-colors duration-200 ${
+                          orderForm.paymentMethod === 'cash' 
+                            ? 'border-orange-500 bg-orange-500' 
+                            : 'border-muted-foreground/30'
+                        }`}>
+                          {orderForm.paymentMethod === 'cash' && (
+                            <div className="w-2 h-2 bg-white rounded-full mx-auto mt-0.5"></div>
+                          )}
+                        </div>
                       </div>
                     </label>
                   </div>
@@ -523,8 +528,28 @@ const CartPage = () => {
                 {orderForm.paymentMethod === 'mercadopago' && (
                   <div className="bg-primary/5 border border-primary/20 p-4 rounded-lg animate-in slide-in-from-top-2 duration-300">
                     <p className="text-sm text-foreground/80 mb-4">
-                      Serás redirigido a Mercado Pago para completar tu pago de forma segura.
+                      El cocinero debe aprobar tu orden antes de procesar el pago digital.
                     </p>
+
+                    <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-4">
+                      <div className="flex items-start gap-3">
+                        <div className="bg-blue-500 text-white p-2 rounded-full">
+                          <Shield className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-blue-900 mb-1">Proceso de Aprobación Digital</h4>
+                          <p className="text-sm text-blue-700 mb-2">
+                            Tu pago se mantendrá en espera hasta que el cocinero confirme la disponibilidad.
+                          </p>
+                          <div className="text-xs text-blue-600 space-y-1">
+                            <div>• ✅ Confirmación de disponibilidad garantizada</div>
+                            <div>• ⏰ Tiempo estimado real de preparación</div>
+                            <div>• 🔔 Notificaciones de estado en tiempo real</div>
+                            <div>• 💳 Pago seguro solo después de aprobación</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                     
                     <div className="grid grid-cols-2 gap-3 mb-4">
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -558,6 +583,45 @@ const CartPage = () => {
                           <div className="text-xs font-medium text-foreground mb-1">💰 Efectivo</div>
                           <div className="text-xs text-muted-foreground">Servipag, Sencillito</div>
                         </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Cash Payment Details */}
+                {orderForm.paymentMethod === 'cash' && (
+                  <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg animate-in slide-in-from-top-2 duration-300">
+                    <div className="flex items-start gap-3 mb-4">
+                      <div className="bg-orange-500 text-white p-2 rounded-full">
+                        <Banknote className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-orange-900 mb-1">Pago en Efectivo contra Entrega</h4>
+                        <p className="text-sm text-orange-700">
+                          El cocinero debe aprobar tu pedido antes de comenzar la preparación.
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="bg-white p-3 rounded border border-orange-200">
+                        <div className="text-sm font-medium text-orange-900 mb-2">📋 Cómo funciona:</div>
+                        <ol className="text-xs text-orange-700 space-y-1 list-decimal list-inside">
+                          <li>Enviamos tu pedido al cocinero</li>
+                          <li>El cocinero revisa y aprueba tu orden</li>
+                          <li>Una vez aprobado, comienza la preparación</li>
+                          <li>Pagas en efectivo al momento de la entrega</li>
+                        </ol>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 text-xs text-orange-600">
+                        <CheckCircle className="h-3 w-3" />
+                        <span>Sin comisiones adicionales por pago en efectivo</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 text-xs text-orange-600">
+                        <Shield className="h-3 w-3" />
+                        <span>Pago seguro en tu domicilio</span>
                       </div>
                     </div>
                   </div>
@@ -638,10 +702,19 @@ const CartPage = () => {
                   </>
                 ) : (
                   <>
-                    <div className="bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-semibold mr-2">
-                      MP
-                    </div>
-                    Pagar {formatPrice(total)}
+                    {orderForm.paymentMethod === 'cash' ? (
+                      <>
+                        <Banknote className="h-5 w-5 mr-2" />
+                        Solicitar Orden - {formatPrice(total)}
+                      </>
+                    ) : (
+                      <>
+                        <div className="bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-semibold mr-2">
+                          MP
+                        </div>
+                        Solicitar Aprobación - {formatPrice(total)}
+                      </>
+                    )}
                   </>
                 )}
               </Button>
