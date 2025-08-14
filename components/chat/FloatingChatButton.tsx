@@ -51,6 +51,9 @@ export default function FloatingChatButton({ className }: FloatingChatButtonProp
           </SheetTrigger>
           
           <SheetContent side="right" className="w-full sm:w-[800px] p-0">
+            <SheetHeader className="sr-only">
+              <SheetTitle>Chat</SheetTitle>
+            </SheetHeader>
             <div className="flex h-full">
               {/* Chat List */}
               <div className={`${selectedRoomId ? 'hidden lg:flex' : 'flex'} w-full lg:w-1/3 border-r`}>

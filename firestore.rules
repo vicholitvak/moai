@@ -135,5 +135,40 @@ service cloud.firestore {
       allow write: if request.auth != null;
     }
     
+    // Chat rooms collection - users can read/write chat rooms they're participants in
+    match /chatRooms/{roomId} {
+      allow read: if request.auth != null && 
+        request.auth.uid in resource.data.participants;
+      allow write: if request.auth != null && 
+        (request.auth.uid in resource.data.participants || 
+         request.auth.uid in request.resource.data.participants);
+      allow create: if request.auth != null && 
+        request.auth.uid in request.resource.data.participants;
+      
+      // Chat messages subcollection - nested under chat rooms
+      match /chatMessages/{messageId} {
+        allow read: if request.auth != null && 
+          request.auth.uid in get(/databases/$(database)/documents/chatRooms/$(roomId)).data.participants;
+        allow write: if request.auth != null && 
+          (request.auth.uid == resource.data.senderId || 
+           request.auth.uid == request.resource.data.senderId) &&
+          request.auth.uid in get(/databases/$(database)/documents/chatRooms/$(roomId)).data.participants;
+        allow create: if request.auth != null && 
+          request.auth.uid == request.resource.data.senderId &&
+          request.auth.uid in get(/databases/$(database)/documents/chatRooms/$(roomId)).data.participants;
+      }
+    }
+    
+    // Top-level chat messages collection (alternative structure)
+    match /chatMessages/{messageId} {
+      allow read: if request.auth != null && 
+        (request.auth.uid == resource.data.senderId || 
+         request.auth.uid in resource.data.participants);
+      allow write: if request.auth != null && 
+        request.auth.uid == resource.data.senderId;
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.senderId;
+    }
+    
   }
 }
