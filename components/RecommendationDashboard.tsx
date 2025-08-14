@@ -26,6 +26,58 @@ interface RecommendationDashboardProps {
   className?: string;
 }
 
+// Helper functions
+const getMatchTypeIcon = (matchType: string) => {
+  switch (matchType) {
+    case 'category':
+      return <Target className="h-4 w-4" />;
+    case 'ingredient':
+      return <Sparkles className="h-4 w-4" />;
+    case 'cook':
+      return <ChefHat className="h-4 w-4" />;
+    case 'trending':
+      return <TrendingUp className="h-4 w-4" />;
+    case 'similar':
+      return <Users className="h-4 w-4" />;
+    default:
+      return <Star className="h-4 w-4" />;
+  }
+};
+
+const getMatchTypeColor = (matchType: string) => {
+  switch (matchType) {
+    case 'category':
+      return 'bg-blue-100 text-blue-800';
+    case 'ingredient':
+      return 'bg-purple-100 text-purple-800';
+    case 'cook':
+      return 'bg-orange-100 text-orange-800';
+    case 'trending':
+      return 'bg-green-100 text-green-800';
+    case 'similar':
+      return 'bg-gray-100 text-gray-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+};
+
+const getMatchTypeLabel = (matchType: string) => {
+  switch (matchType) {
+    case 'category':
+      return 'Categoría Favorita';
+    case 'ingredient':
+      return 'Ingredientes Preferidos';
+    case 'cook':
+      return 'Cocinero Favorito';
+    case 'trending':
+      return 'Tendencia';
+    case 'similar':
+      return 'Similar';
+    default:
+      return 'Recomendado';
+  }
+};
+
 export default function RecommendationDashboard({ className = '' }: RecommendationDashboardProps) {
   const { user } = useAuth();
   const router = useRouter();
@@ -64,56 +116,6 @@ export default function RecommendationDashboard({ className = '' }: Recommendati
     }
   };
 
-  const getMatchTypeIcon = (matchType: string) => {
-    switch (matchType) {
-      case 'category':
-        return <Target className="h-4 w-4" />;
-      case 'ingredient':
-        return <Sparkles className="h-4 w-4" />;
-      case 'cook':
-        return <ChefHat className="h-4 w-4" />;
-      case 'trending':
-        return <TrendingUp className="h-4 w-4" />;
-      case 'similar':
-        return <Users className="h-4 w-4" />;
-      default:
-        return <Star className="h-4 w-4" />;
-    }
-  };
-
-  const getMatchTypeColor = (matchType: string) => {
-    switch (matchType) {
-      case 'category':
-        return 'bg-blue-100 text-blue-800';
-      case 'ingredient':
-        return 'bg-purple-100 text-purple-800';
-      case 'cook':
-        return 'bg-orange-100 text-orange-800';
-      case 'trending':
-        return 'bg-green-100 text-green-800';
-      case 'similar':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getMatchTypeLabel = (matchType: string) => {
-    switch (matchType) {
-      case 'category':
-        return 'Categoría Favorita';
-      case 'ingredient':
-        return 'Ingredientes Preferidos';
-      case 'cook':
-        return 'Cocinero Favorito';
-      case 'trending':
-        return 'Tendencia';
-      case 'similar':
-        return 'Similar';
-      default:
-        return 'Recomendado';
-    }
-  };
 
   if (loading) {
     return (
@@ -248,23 +250,45 @@ function DishRecommendationCard({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simular carga de datos del plato
-    // En implementación real, cargar desde Firebase
-    setTimeout(() => {
-      setDishData({
-        name: `Plato ${recommendation.dishId.slice(-4)}`,
-        price: Math.floor(Math.random() * 15000) + 5000,
-        rating: 4.2 + Math.random() * 0.8,
-        reviewCount: Math.floor(Math.random() * 100) + 10,
-        prepTime: '30 min',
-        image: '/valleluna.jpg',
-        cookerName: 'Cocinero Local'
-      });
-      setLoading(false);
-    }, 100);
+    const fetchDishData = async () => {
+      try {
+        const { doc, getDoc } = await import('firebase/firestore');
+        const { db } = await import('@/lib/firebase/client');
+        
+        const dishDoc = await getDoc(doc(db, 'dishes', recommendation.dishId));
+        
+        if (dishDoc.exists()) {
+          const dishData = dishDoc.data();
+          
+          // Get cook data
+          const cookDoc = await getDoc(doc(db, 'cooks', dishData.cookerId));
+          const cookData = cookDoc.exists() ? cookDoc.data() : null;
+          
+          setDishData({
+            name: dishData.name,
+            price: dishData.price,
+            rating: dishData.rating,
+            reviewCount: dishData.reviewCount || 0,
+            prepTime: dishData.prepTime,
+            image: dishData.image,
+            cookerName: cookData?.displayName || 'Cocinero Desconocido'
+          });
+        } else {
+          // Fallback for deleted dishes
+          setDishData(null);
+        }
+      } catch (error) {
+        console.error('Error fetching dish data:', error);
+        setDishData(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDishData();
   }, [recommendation.dishId]);
 
-  if (loading || !dishData) {
+  if (loading) {
     return (
       <Card className="animate-pulse">
         <CardContent className="p-4">
@@ -276,6 +300,10 @@ function DishRecommendationCard({
         </CardContent>
       </Card>
     );
+  }
+
+  if (!dishData) {
+    return null; // Don't render if dish doesn't exist
   }
 
   return (
@@ -361,21 +389,40 @@ function CookRecommendationCard({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simular carga de datos del cocinero
-    setTimeout(() => {
-      setCookData({
-        displayName: `Cocinero ${recommendation.cookId.slice(-4)}`,
-        rating: 4.5 + Math.random() * 0.5,
-        reviewCount: Math.floor(Math.random() * 500) + 50,
-        specialties: ['Italiana', 'Mediterránea'],
-        yearsExperience: Math.floor(Math.random() * 10) + 2,
-        avatar: '/valleluna.jpg'
-      });
-      setLoading(false);
-    }, 100);
+    const fetchCookData = async () => {
+      try {
+        const { doc, getDoc } = await import('firebase/firestore');
+        const { db } = await import('@/lib/firebase/client');
+        
+        const cookDoc = await getDoc(doc(db, 'cooks', recommendation.cookId));
+        
+        if (cookDoc.exists()) {
+          const cookData = cookDoc.data();
+          
+          setCookData({
+            displayName: cookData.displayName,
+            rating: cookData.rating,
+            reviewCount: cookData.reviewCount || 0,
+            specialties: cookData.specialties || [],
+            yearsExperience: cookData.yearsExperience || 1,
+            avatar: cookData.avatar
+          });
+        } else {
+          // Fallback for deleted cooks
+          setCookData(null);
+        }
+      } catch (error) {
+        console.error('Error fetching cook data:', error);
+        setCookData(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCookData();
   }, [recommendation.cookId]);
 
-  if (loading || !cookData) {
+  if (loading) {
     return (
       <Card className="animate-pulse">
         <CardContent className="p-4">
@@ -387,6 +434,10 @@ function CookRecommendationCard({
         </CardContent>
       </Card>
     );
+  }
+
+  if (!cookData) {
+    return null; // Don't render if cook doesn't exist
   }
 
   return (
@@ -505,8 +556,17 @@ function RecommendationInsights({ userId }: { userId: string }) {
   const [insights, setInsights] = useState<any>(null);
 
   useEffect(() => {
-    const userInsights = RecommendationService.getRecommendationInsights(userId);
-    setInsights(userInsights);
+    const fetchInsights = async () => {
+      try {
+        const userInsights = await RecommendationService.getRecommendationInsights(userId);
+        setInsights(userInsights);
+      } catch (error) {
+        console.error('Error fetching insights:', error);
+        setInsights(null);
+      }
+    };
+    
+    fetchInsights();
   }, [userId]);
 
   if (!insights) return null;

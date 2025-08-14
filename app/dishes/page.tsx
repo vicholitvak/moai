@@ -8,9 +8,13 @@ import { DishesService, CooksService } from '@/lib/firebase/dataService';
 import { OptimizedDishesService } from '@/lib/services/optimizedFirebaseService';
 import { LazyImage } from '@/components/ui/lazy-wrapper';
 import { Dish, Cook } from '@/lib/firebase/dataService';
+import DishesHeroSection from '@/components/DishesHeroSection';
+import EnhancedDishCard from '@/components/EnhancedDishCard';
+import CategoriesCarousel from '@/components/CategoriesCarousel';
+import { RecommendationService } from '@/lib/services/recommendationService';
+import { SmartBadgeService, type DishWithBadges } from '@/lib/services/smartBadgeService';
 import { 
   Search, 
-  Filter, 
   MapPin, 
   Star, 
   Clock, 
@@ -24,7 +28,9 @@ import {
   LogOut,
   Loader2,
   RefreshCw,
-  Truck
+  Truck,
+  Sparkles,
+  TrendingUp
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,20 +47,13 @@ const categories = [
   'Vegana', 'Saludable', 'Acompañamientos', 'Para Tomar'
 ];
 
-interface DishWithCook extends Dish {
-  cookerName: string;
-  cookerAvatar: string;
-  cookerRating: number;
-  distance: string;
-  isFavorite: boolean;
-  cookerSelfDelivery: boolean;
-}
+// Using DishWithBadges from SmartBadgeService instead
 
 const ClientDishesPage = () => {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { itemCount } = useCart();
-  const [dishes, setDishes] = useState<DishWithCook[]>([]);
+  const [dishes, setDishes] = useState<DishWithBadges[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -68,11 +67,41 @@ const ClientDishesPage = () => {
   // Simple pagination state
   const [hasMoreDishes, setHasMoreDishes] = useState(false);
   const pageSize = 20;
+  
+  // Intelligent features state
+  const [timeOfDay, setTimeOfDay] = useState<'desayuno' | 'almuerzo' | 'cena' | 'bajón'>('almuerzo');
+  const [recommendations, setRecommendations] = useState<any>(null);
+  const [dishCounts, setDishCounts] = useState<{ [key: string]: number }>({});
+  const [showRecommendations, setShowRecommendations] = useState(false);
 
-  // Filter and search logic - Allow browsing without authentication
+  // Initialize intelligent features
   useEffect(() => {
+    // Set current time of day
+    const currentTime = RecommendationService.getTimeOfDay();
+    setTimeOfDay(currentTime);
+    
+    // Fetch dishes
     fetchDishes();
   }, []);
+  
+  // Generate recommendations when dishes change
+  useEffect(() => {
+    if (dishes.length > 0) {
+      const filters = {
+        timeOfDay,
+        userPreferences: user?.preferences || [],
+        location: user?.location,
+        previousOrders: user?.orderHistory || []
+      };
+      
+      const recs = RecommendationService.generateRecommendations(dishes, filters);
+      setRecommendations(recs);
+      
+      // Calculate dish counts for categories carousel
+      const counts = RecommendationService.getDishCounts(dishes);
+      setDishCounts(counts);
+    }
+  }, [dishes, timeOfDay, user]);
 
   // Add refresh functionality - check for data changes periodically or on window focus
   useEffect(() => {
@@ -119,7 +148,7 @@ const ClientDishesPage = () => {
       console.log('Number of cooks found:', cooksData.length);
       
       // Combine dish data with cook information
-      const dishesWithCookInfo: DishWithCook[] = dishesResult.data
+      const dishesWithCookInfo: DishWithBadges[] = dishesResult.data
         .map(dish => {
           const cook = cooksMap.get(dish.cookerId);
           return {
@@ -151,7 +180,7 @@ const ClientDishesPage = () => {
         
         console.log('Fallback dishes found:', fallbackDishes.length);
         
-        const dishesWithCookInfo: DishWithCook[] = fallbackDishes
+        const dishesWithCookInfo: DishWithBadges[] = fallbackDishes
           .map(dish => {
             const cook = cooksMap.get(dish.cookerId);
             return {
@@ -253,6 +282,12 @@ const ClientDishesPage = () => {
     
     // User is authenticated, proceed to dish page
     router.push(`/dishes/${dishId}`);
+  };
+  
+  // Get recommendation sections based on time of day
+  const getRecommendationSections = () => {
+    if (!recommendations) return [];
+    return RecommendationService.getRecommendationSections(timeOfDay);
   };
 
   const DishCard = ({ dish, isListView = false }: { dish: Dish; isListView?: boolean }) => (
@@ -498,6 +533,122 @@ const ClientDishesPage = () => {
       </div> */}
 
       <div className="container mx-auto px-4 py-6">
+        {/* Hero Section with Time-based Recommendations */}
+        {showRecommendations && recommendations && (
+          <DishesHeroSection
+            featuredDishes={recommendations.featured}
+            onDishClick={handleDishClick}
+            onFavoriteToggle={toggleFavorite}
+            timeOfDay={timeOfDay}
+            user={user}
+          />
+        )}
+        
+        
+        
+        {/* Intelligent Recommendation Sections */}
+        {showRecommendations && recommendations && (
+          <div className="mb-8 space-y-8">
+            {getRecommendationSections().map((section) => {
+              const sectionDishes = recommendations[section.key as keyof typeof recommendations] || [];
+              if (sectionDishes.length === 0) return null;
+              
+              return (
+                <div key={section.key} className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <span className="text-2xl">{section.icon}</span>
+                      <div>
+                        <h2 className="text-xl font-bold text-gray-900">{section.title}</h2>
+                        <p className="text-sm text-gray-600">{section.subtitle}</p>
+                      </div>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => {
+                        // Scroll to main dishes section
+                        document.getElementById('main-dishes')?.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                    >
+                      Ver todos
+                      <TrendingUp className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+                  
+                  <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 auto-rows-max">
+                    {sectionDishes.slice(0, 8).map((dish: DishWithBadges, index: number) => {
+                      // Create adaptive grid with featured cards
+                      let cardSize: 'small' | 'medium' | 'large' | 'featured' = 'medium';
+                      let gridClass = '';
+                      
+                      if (section.key === 'featured') {
+                        // First card is featured (larger)
+                        if (index === 0) {
+                          cardSize = 'featured';
+                          gridClass = 'sm:col-span-2 lg:col-span-2 xl:col-span-3 lg:row-span-2';
+                        } else {
+                          cardSize = 'medium';
+                          gridClass = '';
+                        }
+                      } else if (section.key === 'trending') {
+                        // Every 3rd card is large
+                        cardSize = index % 3 === 0 ? 'large' : 'medium';
+                        gridClass = index % 3 === 0 ? 'sm:col-span-2 lg:col-span-2' : '';
+                      } else {
+                        cardSize = 'medium';
+                        gridClass = '';
+                      }
+                      
+                      return (
+                        <div key={dish.id} className={gridClass}>
+                          <EnhancedDishCard
+                            dish={dish}
+                            onDishClick={handleDishClick}
+                            onFavoriteToggle={toggleFavorite}
+                            user={user}
+                            size={cardSize}
+                            showNutrition={cardSize === 'featured' || cardSize === 'large'}
+                            hasDiscount={Math.random() < 0.1}
+                            discountPercentage={Math.floor(Math.random() * 20) + 10}
+                            popularityScore={section.key === 'trending' ? Math.floor(Math.random() * 50) + 10 : 0}
+                            recommendationContext={{
+                              isFromRecommendation: true,
+                              recommendationType: section.key
+                            }}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        
+        {/* Toggle Recommendations */}
+        <div className="mb-6 flex justify-center">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowRecommendations(!showRecommendations)}
+            className="flex items-center space-x-2"
+          >
+            <Sparkles className="h-4 w-4" />
+            <span>{showRecommendations ? 'Ocultar' : 'Mostrar'} Recomendaciones Inteligentes</span>
+          </Button>
+        </div>
+        
+        {/* Main Dishes Section */}
+        <div id="main-dishes">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Todos los Platos</h2>
+              <p className="text-gray-600">Explora nuestra selección completa</p>
+            </div>
+          </div>
+        
         {/* Search and Filters */}
         <div className="space-y-4 mb-6">
           {/* Search Bar */}
@@ -521,30 +672,15 @@ const ClientDishesPage = () => {
             )}
           </div>
 
-          {/* Category Filters - Horizontal Scrolling Slider */}
-          <div className="relative">
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 scroll-smooth">
-              <div className="flex gap-2 min-w-max">
-                {categories.map((category) => (
-                  <Button
-                    key={category}
-                    variant={selectedCategory === category ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedCategory(category)}
-                    className={`whitespace-nowrap flex-shrink-0 ${
-                      selectedCategory === category 
-                        ? 'bg-primary text-primary-foreground shadow-md' 
-                        : 'hover:bg-accent'
-                    }`}
-                  >
-                    {category}
-                  </Button>
-                ))}
-              </div>
-            </div>
-            {/* Scroll indicators */}
-            <div className="absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none" />
-          </div>
+          {/* Categories Carousel - Replaces old category filter */}
+          {Object.keys(dishCounts).length > 0 && (
+            <CategoriesCarousel
+              selectedCategory={selectedCategory}
+              onCategorySelect={setSelectedCategory}
+              dishCounts={dishCounts}
+            />
+          )}
+
 
           {/* Controls */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -650,12 +786,54 @@ const ClientDishesPage = () => {
             <>
               <div className={
                 viewMode === 'grid' 
-                  ? 'grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'
+                  ? 'grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 auto-rows-max'
                   : 'space-y-4'
               }>
-                {filteredDishes.map((dish) => (
-                  <DishCard key={dish.id} dish={dish} isListView={viewMode === 'list'} />
-                ))}
+                {filteredDishes.map((dish, index) => {
+                  if (viewMode === 'list') {
+                    return <DishCard key={dish.id} dish={dish} isListView={true} />;
+                  }
+                  
+                  // Adaptive grid for main dishes
+                  let cardSize: 'small' | 'medium' | 'large' | 'featured' = 'medium';
+                  let gridClass = '';
+                  
+                  // Every 7th dish is featured (larger)
+                  if ((index + 1) % 7 === 0) {
+                    cardSize = 'featured';
+                    gridClass = 'sm:col-span-2 lg:col-span-2 xl:col-span-2 2xl:col-span-3 lg:row-span-2';
+                  } 
+                  // Every 5th dish is large
+                  else if ((index + 1) % 5 === 0) {
+                    cardSize = 'large';
+                    gridClass = 'sm:col-span-2 lg:col-span-2 xl:col-span-2';
+                  }
+                  // High-rated dishes get medium size
+                  else if (dish.rating >= 4.7) {
+                    cardSize = 'medium';
+                    gridClass = '';
+                  }
+                  // Regular dishes
+                  else {
+                    cardSize = 'medium';
+                    gridClass = '';
+                  }
+                  
+                  return (
+                    <div key={dish.id} className={gridClass}>
+                      <EnhancedDishCard
+                        dish={dish}
+                        onDishClick={handleDishClick}
+                        onFavoriteToggle={toggleFavorite}
+                        user={user}
+                        size={cardSize}
+                        showNutrition={cardSize === 'featured' || cardSize === 'large'}
+                        hasDiscount={Math.random() < 0.08}
+                        discountPercentage={Math.floor(Math.random() * 15) + 5}
+                      />
+                    </div>
+                  );
+                })}
               </div>
               
               {/* Refresh Button - simplified without complex pagination */}
@@ -687,6 +865,8 @@ const ClientDishesPage = () => {
             </div>
           )
         )}
+        
+        </div>
       </div>
     </div>
   );

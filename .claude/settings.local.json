@@ -25,7 +25,8 @@
       "Bash(timeout 15 npm run dev)",
       "Bash(npx tsc:*)",
       "Bash(grep:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(npx next build:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"
