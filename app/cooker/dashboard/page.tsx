@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   Plus, 
   TrendingUp, 
@@ -40,9 +41,12 @@ import OrderApproval from '@/components/CashOrderApproval';
 // import LocationSetup from '@/components/LocationSetup'; // Unused import
 import { DishesService, OrdersService, CooksService, AnalyticsService, type Dish, type Order, type Cook } from '@/lib/firebase/dataService';
 import { OptimizedDishesService } from '@/lib/services/optimizedFirebaseService';
+import { toast } from 'sonner';
 
 export default function CookerDashboard() {
   const { user, role, loading: authLoading, logout } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState('overview');
   const [editingDish, setEditingDish] = useState<Dish | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -146,6 +150,47 @@ export default function CookerDashboard() {
     
     loadData();
   }, [user?.uid, authLoading, role]);
+
+  // Handle email actions (confirm/reject from email links)
+  useEffect(() => {
+    const confirmOrderId = searchParams?.get('confirm');
+    const rejectOrderId = searchParams?.get('reject');
+
+    if (confirmOrderId && user?.uid) {
+      handleOrderAction(confirmOrderId, 'accepted');
+    } else if (rejectOrderId && user?.uid) {
+      handleOrderAction(rejectOrderId, 'rejected');
+    }
+  }, [searchParams, user?.uid]);
+
+  const handleOrderAction = async (orderId: string, action: 'accepted' | 'rejected') => {
+    try {
+      // Update order status
+      await OrdersService.updateOrderStatus(orderId, action);
+      
+      // Show success message
+      const actionText = action === 'accepted' ? 'aceptado' : 'rechazado';
+      const actionEmoji = action === 'accepted' ? '✅' : '❌';
+      
+      toast.success(`${actionEmoji} Pedido ${actionText}`, {
+        description: `El pedido #${orderId.slice(-8)} ha sido ${actionText} exitosamente.`
+      });
+      
+      console.log(`Pedido ${orderId} ${actionText} desde email`);
+      
+      // Navigate to orders tab to show the updated order
+      setActiveTab('orders');
+      
+      // Clean URL parameters
+      router.replace('/cooker/dashboard');
+      
+    } catch (error) {
+      console.error(`Error ${action === 'accepted' ? 'accepting' : 'rejecting'} order:`, error);
+      toast.error('Error al procesar el pedido', {
+        description: 'No se pudo actualizar el estado del pedido. Inténtalo de nuevo.'
+      });
+    }
+  };
 
   const handleOnboardingComplete = () => {
     setShowOnboarding(false);

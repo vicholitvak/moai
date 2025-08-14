@@ -9,31 +9,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Truck, 
-  MapPin, 
-  Phone, 
-  Clock, 
-  Star, 
-  Camera, 
   ChevronRight, 
   ChevronLeft,
   CheckCircle,
-  FileText,
   CreditCard,
   Shield,
-  Calendar,
-  Navigation,
   Bike,
   Car,
-  Zap,
-  Upload,
-  AlertCircle,
-  Globe
+  Zap
 } from 'lucide-react';
 import { Timestamp, setDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
@@ -64,15 +50,7 @@ interface OnboardingData {
     insuranceProof: string; // Base64 or URL
   };
   
-  // Step 4: Working Preferences
-  workingHours: {
-    start: string;
-    end: string;
-  };
-  workingDays: string[];
-  preferredAreas: string[];
-  
-  // Step 5: Payment Information
+  // Step 3: Payment Information
   bankInfo: {
     accountHolderName: string;
     bankName: string;
@@ -84,8 +62,7 @@ interface OnboardingData {
 const STEPS = [
   { id: 1, title: 'Información Personal', description: 'Datos básicos de contacto' },
   { id: 2, title: 'Vehículo', description: 'Información de tu vehículo' },
-  { id: 3, title: 'Preferencias', description: 'Horarios y áreas de trabajo' },
-  { id: 4, title: 'Pago', description: 'Información bancaria' }
+  { id: 3, title: 'Pago', description: 'Información bancaria' }
 ];
 
 const VEHICLE_TYPES = [
@@ -112,20 +89,6 @@ const VEHICLE_TYPES = [
   }
 ];
 
-const WORKING_DAYS = [
-  { id: 'monday', label: 'Lunes' },
-  { id: 'tuesday', label: 'Martes' },
-  { id: 'wednesday', label: 'Miércoles' },
-  { id: 'thursday', label: 'Jueves' },
-  { id: 'friday', label: 'Viernes' },
-  { id: 'saturday', label: 'Sábado' },
-  { id: 'sunday', label: 'Domingo' }
-];
-
-const POPULAR_AREAS = [
-  'Centro', 'Licanantai', 'Solor', 'Sequitor', 'Yaye', 
-  'Checar',
-];
 
 const BANKS = [
   'Banco de Chile', 'BancoEstado', 'Santander', 'BCI', 'Scotiabank',
@@ -152,12 +115,6 @@ export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) 
       vehicleRegistration: '',
       insuranceProof: ''
     },
-    workingHours: {
-      start: '08:00',
-      end: '20:00'
-    },
-    workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
-    preferredAreas: [],
     bankInfo: {
       accountHolderName: user?.displayName || '',
       bankName: '',
@@ -183,23 +140,6 @@ export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) 
     }));
   };
 
-  const toggleWorkingDay = (day: string) => {
-    setData(prev => ({
-      ...prev,
-      workingDays: prev.workingDays.includes(day)
-        ? prev.workingDays.filter(d => d !== day)
-        : [...prev.workingDays, day]
-    }));
-  };
-
-  const togglePreferredArea = (area: string) => {
-    setData(prev => ({
-      ...prev,
-      preferredAreas: prev.preferredAreas.includes(area)
-        ? prev.preferredAreas.filter(a => a !== area)
-        : [...prev.preferredAreas, area]
-    }));
-  };
 
   const handleFileUpload = (documentType: keyof OnboardingData['documents'], file: File) => {
     // In a real app, you'd upload to cloud storage
@@ -220,8 +160,6 @@ export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) 
       case 2:
         return !!(data.vehicleType);
       case 3:
-        return !!(data.workingDays.length > 0);
-      case 4:
         return !!(data.bankInfo.accountHolderName && data.bankInfo.bankName && data.bankInfo.accountNumber);
       default:
         return true;
@@ -288,8 +226,11 @@ export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) 
           thisMonth: 0,
           total: 0
         },
-        workingHours: data.workingHours,
-        workingDays: data.workingDays,
+        workingHours: {
+          start: '08:00',
+          end: '20:00'
+        },
+        workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
         lastLocationUpdate: now
       };
 
@@ -506,79 +447,8 @@ export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) 
             </div>
           )}
 
-          {/* Step 3: Working Preferences */}
+          {/* Step 3: Payment Information */}
           {currentStep === 3 && (
-            <div className="space-y-6">
-              <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Preferencias de Trabajo</h2>
-                <p className="text-gray-600">Define cuándo y dónde quieres trabajar</p>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <Label>Hora de inicio</Label>
-                  <Input
-                    type="time"
-                    value={data.workingHours.start}
-                    onChange={(e) => updateNestedData('workingHours', 'start', e.target.value)}
-                  />
-                </div>
-                
-                <div>
-                  <Label>Hora de término</Label>
-                  <Input
-                    type="time"
-                    value={data.workingHours.end}
-                    onChange={(e) => updateNestedData('workingHours', 'end', e.target.value)}
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <Label>Días de trabajo *</Label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
-                  {WORKING_DAYS.map(day => (
-                    <Badge
-                      key={day.id}
-                      variant={data.workingDays.includes(day.id) ? "default" : "outline"}
-                      className={`cursor-pointer text-center justify-center py-2 ${
-                        data.workingDays.includes(day.id) 
-                          ? 'bg-blue-500 hover:bg-blue-600' 
-                          : 'hover:bg-gray-100'
-                      }`}
-                      onClick={() => toggleWorkingDay(day.id)}
-                    >
-                      {day.label}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-              
-              <div>
-                <Label>Áreas preferidas (opcional)</Label>
-                <p className="text-sm text-gray-500 mb-3">Selecciona las comunas donde prefieres trabajar</p>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {POPULAR_AREAS.map(area => (
-                    <Badge
-                      key={area}
-                      variant={data.preferredAreas.includes(area) ? "default" : "outline"}
-                      className={`cursor-pointer text-center justify-center py-2 ${
-                        data.preferredAreas.includes(area) 
-                          ? 'bg-green-500 hover:bg-green-600' 
-                          : 'hover:bg-gray-100'
-                      }`}
-                      onClick={() => togglePreferredArea(area)}
-                    >
-                      {area}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Step 4: Payment Information */}
-          {currentStep === 4 && (
             <div className="space-y-6">
               <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">Información de Pago</h2>

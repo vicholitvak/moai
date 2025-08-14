@@ -701,6 +701,26 @@ export class OrdersService {
         updatedAt: now
       });
       
+      // Send email notification to cook
+      try {
+        const cook = await CooksService.getCookById(orderData.cookerId);
+        if (cook && cook.email) {
+          const { EmailService } = await import('../services/emailService');
+          const orderWithId = {
+            id: docRef.id,
+            ...orderData,
+            createdAt: now,
+            updatedAt: now
+          } as Order;
+          
+          await EmailService.sendOrderNotificationToCook(orderWithId, cook);
+          console.log(`Email notification sent to cook ${cook.email} for order ${docRef.id}`);
+        }
+      } catch (emailError) {
+        console.error('Error sending email notification to cook:', emailError);
+        // Don't fail the order creation if email fails
+      }
+      
       // Create chat room for the order
       try {
         const { ChatService } = await import('../services/chatService');
