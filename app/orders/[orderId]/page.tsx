@@ -32,6 +32,20 @@ import { Textarea } from '@/components/ui/textarea';
 import { formatPrice } from '@/lib/utils';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import dynamic from 'next/dynamic';
+
+// Dynamically import the map component to avoid SSR issues
+const RealTimeMap = dynamic(() => import('@/components/ui/real-time-map'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-96 bg-muted rounded-lg flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+        <p className="text-muted-foreground">Cargando mapa...</p>
+      </div>
+    </div>
+  )
+});
 
 // Order status configuration
 const orderStatusConfig = {
@@ -64,6 +78,12 @@ const orderStatusConfig = {
     color: 'purple', 
     icon: Truck,
     description: 'Tu pedido está en camino hacia ti'
+  },
+  en_viaje: { 
+    label: 'En viaje', 
+    color: 'blue', 
+    icon: Truck,
+    description: 'El repartidor está en camino. Puedes seguir su ubicación en tiempo real'
   },
   delivered: { 
     label: 'Entregado', 
@@ -351,7 +371,7 @@ const OrderDetailPage = () => {
               <CardContent>
                 <Progress value={getOrderProgress()} className="mb-4" />
                 
-                {order.status === 'delivering' && (
+                {(order.status === 'delivering' || order.status === 'en_viaje') && (
                   <AnimatePresence>
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
@@ -371,6 +391,28 @@ const OrderDetailPage = () => {
                       )}
                     </motion.div>
                   </AnimatePresence>
+                )}
+
+                {/* Real-time map for tracking */}
+                {order.status === 'en_viaje' && order.deliveryInfo && (
+                  <div className="mt-4">
+                    <RealTimeMap
+                      orderId={order.id}
+                      customerLocation={{
+                        lat: -33.4489, // Santiago coordinates - you'll need to geocode the address
+                        lng: -70.6693,
+                        address: order.deliveryInfo.address
+                      }}
+                      estimatedTime={estimatedTime}
+                      onTrackingUpdate={(tracking) => {
+                        // Update estimated time based on tracking info
+                        if (tracking.route?.duration) {
+                          const minutes = parseInt(tracking.route.duration.replace(/\D/g, ''));
+                          if (minutes) setEstimatedTime(minutes);
+                        }
+                      }}
+                    />
+                  </div>
                 )}
                 
                 {order.status === 'delivered' && (

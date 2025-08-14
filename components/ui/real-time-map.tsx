@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { OrdersService } from '@/lib/firebase/dataService';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -78,10 +79,12 @@ interface Driver {
 interface RealTimeMapProps {
   orderId: string;
   customerLocation: Location;
-  cookLocation: Location;
+  cookLocation?: Location;
   driver?: Driver;
   estimatedTime?: number;
   onDriverContact?: () => void;
+  onTrackingUpdate?: (tracking: any) => void;
+  isAdmin?: boolean;
 }
 
 // Component to update map bounds automatically
@@ -120,17 +123,30 @@ function DeliveryRoute({
     
     setLoading(true);
     try {
-      // Using OpenRouteService API (free alternative to Google Maps)
-      // You'll need to register and get an API key
-      const apiKey = 'YOUR_OPENROUTESERVICE_API_KEY';
-      const response = await fetch(
-        `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${apiKey}&start=${start.lng},${start.lat}&end=${end.lng},${end.lat}`
-      );
+      // Using Google Maps Directions API
+      const response = await fetch('/api/maps/directions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          origin: `${start.lat},${start.lng}`,
+          destination: `${end.lat},${end.lng}`,
+          mode: 'driving'
+        })
+      });
       
       if (response.ok) {
         const data = await response.json();
-        const coordinates = data.features[0].geometry.coordinates;
-        setRoute(coordinates.map((coord: [number, number]) => [coord[1], coord[0]]));
+        if (data.routes && data.routes.length > 0) {
+          // Decode polyline from Google Maps response
+          const polyline = data.routes[0].overview_polyline.points;
+          const decodedRoute = decodePolyline(polyline);
+          setRoute(decodedRoute);
+        } else {
+          // Fallback: direct line
+          setRoute([[start.lat, start.lng], [end.lat, end.lng]]);
+        }
       } else {
         // Fallback: direct line
         setRoute([[start.lat, start.lng], [end.lat, end.lng]]);
@@ -142,6 +158,40 @@ function DeliveryRoute({
     } finally {
       setLoading(false);
     }
+  };
+
+  // Function to decode Google Maps polyline
+  const decodePolyline = (polyline: string): [number, number][] => {
+    const points: [number, number][] = [];
+    let index = 0;
+    const len = polyline.length;
+    let lat = 0;
+    let lng = 0;
+
+    while (index < len) {
+      let b, shift = 0, result = 0;
+      do {
+        b = polyline.charCodeAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      const dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
+      lat += dlat;
+
+      shift = 0;
+      result = 0;
+      do {
+        b = polyline.charCodeAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      const dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
+      lng += dlng;
+
+      points.push([lat / 1e5, lng / 1e5]);
+    }
+
+    return points;
   };
 
   if (route.length === 0) return null;
@@ -165,13 +215,20 @@ const RealTimeMap: React.FC<RealTimeMapProps> = ({
   cookLocation,
   driver,
   estimatedTime = 30,
-  onDriverContact
+  onDriverContact,
+  onTrackingUpdate,
+  isAdmin = false
 }) => {
   const [mapLoaded, setMapLoaded] = useState(false);
   const [driverLocation, setDriverLocation] = useState<Location | null>(
     driver?.currentLocation || null
   );
   const [refreshing, setRefreshing] = useState(false);
+  const [routeInfo, setRouteInfo] = useState<{
+    distance: string;
+    duration: string;
+    estimatedArrival: Date;
+  } | null>(null);
   const intervalRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
@@ -189,22 +246,34 @@ const RealTimeMap: React.FC<RealTimeMapProps> = ({
     };
   }, [driver]);
 
-  const startLocationTracking = () => {
-    // Update driver location every 10 seconds
-    intervalRef.current = setInterval(async () => {
-      if (!driver) return;
-      
-      try {
-        const response = await fetch(`/api/drivers/${driver.id}/location`);
-        if (response.ok) {
-          const location = await response.json();
-          setDriverLocation(location);
+  const startLocationTracking = useCallback(() => {
+    // Listen to real-time order updates for tracking info
+    const unsubscribe = OrdersService.subscribeToOrder(orderId, (order) => {
+      if (order?.tracking?.driverLocation) {
+        const newLocation = {
+          lat: order.tracking.driverLocation.latitude,
+          lng: order.tracking.driverLocation.longitude
+        };
+        setDriverLocation(newLocation);
+        
+        // Update route info if available
+        if (order.tracking.route) {
+          setRouteInfo({
+            distance: order.tracking.route.distance,
+            duration: order.tracking.route.duration,
+            estimatedArrival: order.tracking.route.estimatedArrival.toDate()
+          });
         }
-      } catch (error) {
-        console.error('Error updating driver location:', error);
+        
+        // Notify parent component of tracking updates
+        if (onTrackingUpdate) {
+          onTrackingUpdate(order.tracking);
+        }
       }
-    }, 10000);
-  };
+    });
+    
+    return unsubscribe;
+  }, [orderId, onTrackingUpdate]);
 
   const refreshLocations = async () => {
     setRefreshing(true);

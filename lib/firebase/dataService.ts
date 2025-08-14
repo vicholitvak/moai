@@ -126,7 +126,7 @@ export interface Order {
   total: number;
   paymentMethod: 'card' | 'cash_on_delivery';
   paymentStatus: 'pending' | 'paid' | 'failed' | 'cash_pending';
-  status: 'pending_approval' | 'pending' | 'accepted' | 'preparing' | 'ready' | 'delivering' | 'delivered' | 'cancelled' | 'rejected';
+  status: 'pending_approval' | 'pending' | 'accepted' | 'preparing' | 'ready' | 'delivering' | 'en_viaje' | 'delivered' | 'cancelled' | 'rejected';
   deliveryInfo: {
     address: string;
     phone: string;
@@ -143,6 +143,25 @@ export interface Order {
   orderTime?: Timestamp;
   estimatedDeliveryTime?: Timestamp;
   actualDeliveryTime?: Timestamp;
+  tracking?: {
+    driverLocation?: {
+      latitude: number;
+      longitude: number;
+      heading?: number;
+      speed?: number;
+      accuracy?: number;
+      timestamp: Timestamp;
+    };
+    route?: {
+      distance: string;
+      duration: string;
+      estimatedArrival: Timestamp;
+      polyline: string;
+    };
+    lastLocationUpdate?: Timestamp;
+    trackingStarted?: Timestamp;
+    trackingEnded?: Timestamp;
+  };
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -1029,6 +1048,152 @@ export class OrdersService {
     } catch (error) {
       console.error('Error adding order review:', error);
       return false;
+    }
+  }
+
+  /**
+   * Delete an order (admin only)
+   */
+  static async deleteOrder(orderId: string): Promise<boolean> {
+    try {
+      await deleteDoc(doc(db, this.collection, orderId));
+      return true;
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Start delivery tracking (driver starts journey to customer)
+   */
+  static async startDeliveryTracking(orderId: string, driverLocation: {
+    latitude: number;
+    longitude: number;
+    heading?: number;
+    speed?: number;
+    accuracy?: number;
+  }): Promise<boolean> {
+    try {
+      const now = Timestamp.now();
+      await updateDoc(doc(db, this.collection, orderId), {
+        status: 'en_viaje',
+        tracking: {
+          driverLocation: {
+            ...driverLocation,
+            timestamp: now
+          },
+          trackingStarted: now,
+          lastLocationUpdate: now
+        },
+        updatedAt: now
+      });
+      return true;
+    } catch (error) {
+      console.error('Error starting delivery tracking:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Update driver location during delivery
+   */
+  static async updateDriverLocation(orderId: string, location: {
+    latitude: number;
+    longitude: number;
+    heading?: number;
+    speed?: number;
+    accuracy?: number;
+  }, route?: {
+    distance: string;
+    duration: string;
+    estimatedArrival: Date;
+    polyline: string;
+  }): Promise<boolean> {
+    try {
+      const now = Timestamp.now();
+      const updateData: any = {
+        'tracking.driverLocation': {
+          ...location,
+          timestamp: now
+        },
+        'tracking.lastLocationUpdate': now,
+        updatedAt: now
+      };
+
+      if (route) {
+        updateData['tracking.route'] = {
+          ...route,
+          estimatedArrival: Timestamp.fromDate(route.estimatedArrival)
+        };
+      }
+
+      await updateDoc(doc(db, this.collection, orderId), updateData);
+      return true;
+    } catch (error) {
+      console.error('Error updating driver location:', error);
+      return false;
+    }
+  }
+
+  /**
+   * End delivery tracking when order is delivered
+   */
+  static async endDeliveryTracking(orderId: string): Promise<boolean> {
+    try {
+      const now = Timestamp.now();
+      await updateDoc(doc(db, this.collection, orderId), {
+        status: 'delivered',
+        'tracking.trackingEnded': now,
+        actualDeliveryTime: now,
+        updatedAt: now
+      });
+      return true;
+    } catch (error) {
+      console.error('Error ending delivery tracking:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get orders with detailed cook and driver information (admin only)
+   */
+  static async getOrdersWithDetails(): Promise<Array<Order & { 
+    cookInfo?: Cook; 
+    driverInfo?: Driver; 
+  }>> {
+    try {
+      const orders = await this.getAllOrders();
+      
+      // Get unique cook and driver IDs
+      const cookIds = [...new Set(orders.map(order => order.cookerId).filter(Boolean))];
+      const driverIds = [...new Set(orders.map(order => order.driverId).filter(Boolean))];
+      
+      // Fetch cook and driver data in parallel
+      const [cooks, drivers] = await Promise.all([
+        Promise.all(cookIds.map(async (cookId) => {
+          const cook = await CooksService.getCookById(cookId);
+          return { id: cookId, data: cook };
+        })),
+        Promise.all(driverIds.map(async (driverId) => {
+          const driver = await DriversService.getDriverById(driverId);
+          return { id: driverId, data: driver };
+        }))
+      ]);
+      
+      // Create lookup maps
+      const cookMap = new Map(cooks.map(c => [c.id, c.data]));
+      const driverMap = new Map(drivers.map(d => [d.id, d.data]));
+      
+      // Combine orders with detailed info
+      return orders.map(order => ({
+        ...order,
+        cookInfo: order.cookerId ? cookMap.get(order.cookerId) : undefined,
+        driverInfo: order.driverId ? driverMap.get(order.driverId) : undefined
+      }));
+    } catch (error) {
+      console.error('Error getting orders with details:', error);
+      return [];
     }
   }
 }

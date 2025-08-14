@@ -4,9 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { AdminService, OrdersService } from '@/lib/firebase/dataService';
-import { onSnapshot, query, collection, orderBy, where } from 'firebase/firestore';
+import { onSnapshot, query, collection, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
-import type { Order } from '@/lib/firebase/dataService';
+import type { Order, Cook, Driver } from '@/lib/firebase/dataService';
 import { formatPrice } from '@/lib/utils';
 import { 
   Activity,
@@ -22,13 +22,39 @@ import {
   AlertTriangle,
   CheckCircle,
   Timer,
-  MapPin,
-  Crown
+  Crown,
+  Trash2,
+  ChefHat,
+  User
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import dynamic from 'next/dynamic';
+
+// Dynamically import the map component to avoid SSR issues
+const RealTimeMap = dynamic(() => import('@/components/ui/real-time-map'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-64 bg-muted rounded-lg flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
+        <p className="text-sm text-muted-foreground">Cargando mapa...</p>
+      </div>
+    </div>
+  )
+});
 
 interface AdminStats {
   totalOrders: number;
@@ -39,14 +65,12 @@ interface AdminStats {
   activeCooks: number;
 }
 
-interface AdminDashboardProps {}
-
-const AdminDashboard: React.FC<AdminDashboardProps> = () => {
+const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const router = useRouter();
   
   // State
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<Array<Order & { cookInfo?: Cook; driverInfo?: Driver }>>([]);
   const [stats, setStats] = useState<AdminStats>({
     totalOrders: 0,
     activeOrders: 0,
@@ -58,10 +82,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminCheckLoading, setAdminCheckLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
 
   // Check admin permissions
   useEffect(() => {
-    const checkAdminStatus = async () => {
+    const checkAdminStatus = async (): Promise<void> => {
       if (!user) {
         router.push('/login');
         return;
@@ -95,21 +121,30 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
       orderBy('createdAt', 'desc')
     );
 
-    const unsubscribe = onSnapshot(ordersQuery, (snapshot) => {
+    const unsubscribe = onSnapshot(ordersQuery, async (snapshot) => {
       const ordersData = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as Order[];
       
-      setOrders(ordersData);
-      calculateStats(ordersData);
+      // Get detailed orders with cook and driver info
+      try {
+        const detailedOrders = await OrdersService.getOrdersWithDetails();
+        setOrders(detailedOrders);
+        calculateStats(ordersData);
+      } catch (error) {
+        console.error('Error fetching detailed orders:', error);
+        setOrders(ordersData as any);
+        calculateStats(ordersData);
+      }
+      
       setLoading(false);
     });
 
     return () => unsubscribe();
   }, [isAdmin]);
 
-  const calculateStats = (ordersData: Order[]) => {
+  const calculateStats = (ordersData: Order[]): void => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
@@ -138,7 +173,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
     });
   };
 
-  const getStatusColor = (status: Order['status']) => {
+  const getStatusColor = (status: Order['status']): string => {
     switch (status) {
       case 'pending_approval': return 'bg-yellow-100 text-yellow-800';
       case 'pending': return 'bg-blue-100 text-blue-800';
@@ -153,7 +188,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
     }
   };
 
-  const getStatusIcon = (status: Order['status']) => {
+  const getStatusIcon = (status: Order['status']): JSX.Element => {
     switch (status) {
       case 'pending_approval': return <Clock className="h-4 w-4" />;
       case 'pending': return <Timer className="h-4 w-4" />;
@@ -168,7 +203,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
     }
   };
 
-  const formatStatus = (status: Order['status']) => {
+  const formatStatus = (status: Order['status']): string => {
     const statusMap = {
       'pending_approval': 'Esperando Aprobación',
       'pending': 'Pendiente',
@@ -181,6 +216,31 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
       'rejected': 'Rechazada'
     };
     return statusMap[status] || status;
+  };
+
+  const handleDeleteOrder = async (): Promise<void> => {
+    if (!orderToDelete) return;
+    
+    try {
+      const success = await OrdersService.deleteOrder(orderToDelete);
+      if (success) {
+        toast.success('Pedido eliminado correctamente');
+        // Orders will be updated automatically via real-time subscription
+      } else {
+        toast.error('Error al eliminar el pedido');
+      }
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      toast.error('Error al eliminar el pedido');
+    } finally {
+      setDeleteDialogOpen(false);
+      setOrderToDelete(null);
+    }
+  };
+
+  const openDeleteDialog = (orderId: string): void => {
+    setOrderToDelete(orderId);
+    setDeleteDialogOpen(true);
   };
 
   if (adminCheckLoading) {
@@ -287,8 +347,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
 
         {/* Main Content */}
         <Tabs defaultValue="orders" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="orders">Órdenes en Tiempo Real</TabsTrigger>
+            <TabsTrigger value="tracking">Seguimiento GPS</TabsTrigger>
             <TabsTrigger value="system">Estado del Sistema</TabsTrigger>
           </TabsList>
 
@@ -315,41 +376,152 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
                 ) : (
                   <div className="space-y-4">
                     {orders.slice(0, 20).map((order) => (
-                      <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-2">
-                            {getStatusIcon(order.status)}
-                            <Badge className={getStatusColor(order.status)}>
-                              {formatStatus(order.status)}
-                            </Badge>
+                      <div key={order.id} className="p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2">
+                              {getStatusIcon(order.status)}
+                              <Badge className={getStatusColor(order.status)}>
+                                {formatStatus(order.status)}
+                              </Badge>
+                            </div>
+                            
+                            <div>
+                              <p className="font-medium">#{order.id.slice(-8)}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {order.customerName} • {order.dishes?.length || 0} items
+                              </p>
+                            </div>
                           </div>
-                          
-                          <div>
-                            <p className="font-medium">#{order.id.slice(-8)}</p>
+
+                          <div className="text-right">
+                            <p className="font-semibold">{formatPrice(order.total || 0)}</p>
                             <p className="text-sm text-muted-foreground">
-                              {order.customerName} • {order.dishes?.length || 0} items
+                              {order.createdAt?.toDate().toLocaleTimeString('es-CL', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
                             </p>
                           </div>
                         </div>
 
-                        <div className="text-right">
-                          <p className="font-semibold">{formatPrice(order.total || 0)}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {order.createdAt?.toDate().toLocaleTimeString('es-CL', {
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </p>
+                        {/* Cook and Driver Info */}
+                        <div className="flex items-center gap-6 mb-3 text-sm">
+                          {order.cookInfo && (
+                            <div className="flex items-center gap-2">
+                              <ChefHat className="h-4 w-4 text-orange-600" />
+                              <span className="text-muted-foreground">Cocinero:</span>
+                              <span className="font-medium">{order.cookInfo.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                ⭐ {order.cookInfo.rating?.toFixed(1) || 'N/A'}
+                              </span>
+                            </div>
+                          )}
+                          
+                          {order.driverInfo && (
+                            <div className="flex items-center gap-2">
+                              <Truck className="h-4 w-4 text-blue-600" />
+                              <span className="text-muted-foreground">Conductor:</span>
+                              <span className="font-medium">{order.driverInfo.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                ⭐ {order.driverInfo.rating?.toFixed(1) || 'N/A'}
+                              </span>
+                            </div>
+                          )}
                         </div>
 
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => router.push(`/orders/${order.id}`)}
-                        >
-                          <Eye className="h-4 w-4 mr-2" />
-                          Ver
-                        </Button>
+                        {/* Action Buttons */}
+                        <div className="flex items-center gap-2 justify-end">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => router.push(`/orders/${order.id}`)}
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            Ver
+                          </Button>
+                          
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => openDeleteDialog(order.id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Eliminar
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="tracking" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Truck className="h-5 w-5" />
+                  Seguimiento GPS en Tiempo Real
+                  <Badge variant="outline" className="ml-auto">
+                    {orders.filter(order => order.status === 'en_viaje').length} en viaje
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                ) : orders.filter(order => order.status === 'en_viaje').length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No hay entregas en viaje en este momento
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {orders.filter(order => order.status === 'en_viaje').map((order) => (
+                      <div key={order.id} className="border rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <h3 className="font-semibold">Pedido #{order.id.slice(-8)}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {order.customerName} • {order.dishes?.length || 0} items
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold">{formatPrice(order.total || 0)}</p>
+                            <Badge className="bg-blue-100 text-blue-800">En Viaje</Badge>
+                          </div>
+                        </div>
+
+                        {/* Driver Info */}
+                        {order.driverInfo && (
+                          <div className="mb-4 p-3 bg-muted rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <User className="h-5 w-5 text-blue-600" />
+                              <div>
+                                <p className="font-medium">{order.driverInfo.name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  ⭐ {order.driverInfo.rating?.toFixed(1) || 'N/A'} • {order.driverInfo.vehicleType || 'Vehículo'}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Real-time Map */}
+                        <RealTimeMap
+                          orderId={order.id}
+                          customerLocation={{
+                            lat: -33.4489, // You'll need to geocode the actual address
+                            lng: -70.6693,
+                            address: order.deliveryInfo?.address || 'Dirección no disponible'
+                          }}
+                          estimatedTime={30} // This should come from tracking data
+                          isAdmin={true}
+                        />
                       </div>
                     ))}
                   </div>
@@ -414,6 +586,32 @@ const AdminDashboard: React.FC<AdminDashboardProps> = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>¿Eliminar pedido?</DialogTitle>
+            <DialogDescription>
+              Esta acción no se puede deshacer. El pedido #{orderToDelete?.slice(-8)} será eliminado permanentemente.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteOrder}
+            >
+              Eliminar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

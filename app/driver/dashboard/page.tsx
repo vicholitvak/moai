@@ -127,6 +127,7 @@ export default function DriverDashboard() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [activeDeliveryOrder, setActiveDeliveryOrder] = useState<Order | null>(null);
   const [idleTracking, setIdleTracking] = useState<{ stop: () => void } | null>(null);
+  const [locationWatchId, setLocationWatchId] = useState<number | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -539,6 +540,90 @@ export default function DriverDashboard() {
     }
   };
 
+  const handleStartDeliveryTracking = async (orderId: string) => {
+    if (!user) return;
+    
+    try {
+      // Get current location using geolocation API
+      if (!navigator.geolocation) {
+        toast.error('Geolocalización no disponible');
+        return;
+      }
+
+      toast.info('Obteniendo ubicación...');
+      
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          
+          const success = await OrdersService.startDeliveryTracking(orderId, {
+            latitude,
+            longitude,
+            accuracy: position.coords.accuracy,
+            heading: position.coords.heading || undefined,
+            speed: position.coords.speed || undefined
+          });
+
+          if (success) {
+            toast.success('¡Viaje iniciado! El cliente puede seguir tu ubicación.');
+            
+            // Start continuous location tracking
+            startLocationTracking(orderId);
+          } else {
+            toast.error('Error al iniciar el seguimiento');
+          }
+        },
+        (error) => {
+          console.error('Geolocation error:', error);
+          toast.error('No se pudo obtener la ubicación. Verifica los permisos.');
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000
+        }
+      );
+    } catch (error) {
+      console.error('Error starting delivery tracking:', error);
+      toast.error('Error al iniciar el viaje');
+    }
+  };
+
+  const startLocationTracking = (orderId: string) => {
+    if (locationWatchId) {
+      navigator.geolocation.clearWatch(locationWatchId);
+    }
+
+    const watchId = navigator.geolocation.watchPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        
+        try {
+          // Update location in Firebase
+          await OrdersService.updateDriverLocation(orderId, {
+            latitude,
+            longitude,
+            accuracy: position.coords.accuracy,
+            heading: position.coords.heading || undefined,
+            speed: position.coords.speed || undefined
+          });
+        } catch (error) {
+          console.error('Error updating driver location:', error);
+        }
+      },
+      (error) => {
+        console.error('Location tracking error:', error);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 5000
+      }
+    );
+
+    setLocationWatchId(watchId);
+  };
+
   const getStatusColor = (status: Order['status']) => {
     switch (status) {
       case 'pending': return 'bg-blue-100 text-blue-800';
@@ -546,6 +631,7 @@ export default function DriverDashboard() {
       case 'preparing': return 'bg-orange-100 text-orange-800';
       case 'ready': return 'bg-purple-100 text-purple-800';
       case 'delivering': return 'bg-indigo-100 text-indigo-800';
+      case 'en_viaje': return 'bg-blue-100 text-blue-800';
       case 'delivered': return 'bg-green-100 text-green-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
@@ -559,6 +645,7 @@ export default function DriverDashboard() {
       case 'preparing': return 'Preparando';
       case 'ready': return 'Listo';
       case 'delivering': return 'Entregando';
+      case 'en_viaje': return 'En Viaje';
       case 'delivered': return 'Entregado';
       case 'cancelled': return 'Cancelado';
       default: return 'Desconocido';
@@ -568,7 +655,8 @@ export default function DriverDashboard() {
   const getNextAction = (status: Order['status']) => {
     switch (status) {
       case 'ready': return 'Recoger';
-      case 'delivering': return 'Entregar';
+      case 'delivering': return 'Iniciar Viaje';
+      case 'en_viaje': return 'Entregar';
       default: return null;
     }
   };
@@ -962,7 +1050,17 @@ export default function DriverDashboard() {
                           <Button 
                             onClick={(e) => {
                               e.stopPropagation(); // Prevent modal from opening when button is clicked
-                              handleStatusUpdate(order.id, order.status === 'ready' ? 'delivering' : 'delivered');
+                              
+                              if (order.status === 'ready') {
+                                // Change to delivering (picked up)
+                                handleStatusUpdate(order.id, 'delivering');
+                              } else if (order.status === 'delivering') {
+                                // Start tracking journey to customer
+                                handleStartDeliveryTracking(order.id);
+                              } else if (order.status === 'en_viaje') {
+                                // Mark as delivered (requires verification code)
+                                router.push('/driver/delivery-verification');
+                              }
                             }}
                             className="w-full"
                             size="sm"
