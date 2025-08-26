@@ -33,6 +33,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../../../components/ui/avat
 import { formatPrice } from '@/lib/utils';
 import { CooksService, DishesService, ReviewsService } from '@/lib/firebase/dataService';
 import type { Cook, Dish, Review } from '@/lib/firebase/dataService';
+import { ReviewSystem } from '@/components/reviews/ReviewSystem';
 
 interface CookProfile extends Cook {
   dishes: Dish[];
@@ -86,7 +87,7 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
         // Fetch cook's reviews (if ReviewsService exists)
         let cookReviews: Review[] = [];
         try {
-          cookReviews = await ReviewsService.getReviewsByCookId(cookId);
+          cookReviews = await ReviewsService.getReviewsByCook(cookId);
         } catch (error) {
           console.warn('Reviews service not available:', error);
           cookReviews = [];
@@ -557,63 +558,32 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
         )}
 
         {activeTab === 'reviews' && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold">Customer Reviews</h2>
-              <div className="flex items-center gap-2">
-                <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                <span className="font-semibold">{cook.rating}</span>
-                <span className="text-muted-foreground">({cook.reviewCount} reviews)</span>
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              {cook.reviews.map((review: Review) => (
-                <Card key={review.id}>
-                  <CardContent className="p-6">
-                    <div className="flex items-start gap-4">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={review.customerAvatar} />
-                        <AvatarFallback>
-                          <Users className="h-5 w-5" />
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold">{review.customerName}</span>
-                            {review.verified && (
-                              <Badge variant="secondary" className="text-xs">
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                Verified
-                              </Badge>
-                            )}
-                          </div>
-                          <span className="text-sm text-muted-foreground">{review.date}</span>
-                        </div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="flex items-center gap-1">
-                            {[...Array(5)].map((_, i) => (
-                              <Star 
-                                key={i} 
-                                className={`h-4 w-4 ${
-                                  i < review.rating 
-                                    ? 'fill-yellow-400 text-yellow-400' 
-                                    : 'text-gray-300'
-                                }`} 
-                              />
-                            ))}
-                          </div>
-                          <span className="text-sm text-muted-foreground">• {review.dishOrdered}</span>
-                        </div>
-                        <p className="text-muted-foreground">{review.comment}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
+          <ReviewSystem 
+            cookerId={cookId}
+            onReviewSubmit={() => {
+              // Reload cook data to update ratings
+              const fetchCookData = async () => {
+                try {
+                  const cookData = await CooksService.getCookById(cookId);
+                  if (cookData) {
+                    const cookDishes = await DishesService.getDishesByCookId(cookId);
+                    const cookReviews = await ReviewsService.getReviewsByCook(cookId);
+                    setCook({
+                      ...cookData,
+                      dishes: cookDishes,
+                      reviews: cookReviews,
+                      achievements: cook?.achievements || [],
+                      favoriteIngredients: cook?.favoriteIngredients || [],
+                      cookingStyle: cook?.cookingStyle || ''
+                    });
+                  }
+                } catch (error) {
+                  console.error('Error reloading cook data:', error);
+                }
+              };
+              fetchCookData();
+            }}
+          />
         )}
       </div>
     </div>

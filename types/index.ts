@@ -192,6 +192,7 @@ export interface Review {
   cookerId: string;
   dishId?: string;
   dishName?: string;
+  orderId?: string;
   rating: number;
   comment: string;
   verified: boolean;

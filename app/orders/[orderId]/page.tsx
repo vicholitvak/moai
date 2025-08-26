@@ -33,6 +33,7 @@ import { formatPrice } from '@/lib/utils';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
+import { ReviewSystem } from '@/components/reviews/ReviewSystem';
 
 // Dynamically import the map component to avoid SSR issues
 const RealTimeMap = dynamic(() => import('@/components/ui/real-time-map'), {
@@ -473,56 +474,18 @@ const OrderDetailPage = () => {
               </CardContent>
             </Card>
 
-            {/* Review Form */}
+            {/* Review System */}
             {showReviewForm && order.status === 'delivered' && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Califica tu experiencia</CardTitle>
-                  <CardDescription>Tu opinión nos ayuda a mejorar</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Calificación</label>
-                    <div className="flex gap-2">
-                      {[1, 2, 3, 4, 5].map((value) => (
-                        <button
-                          key={value}
-                          onClick={() => setRating(value)}
-                          className="transition-colors"
-                        >
-                          <Star 
-                            className={`h-8 w-8 ${
-                              value <= rating 
-                                ? 'fill-yellow-400 text-yellow-400' 
-                                : 'text-gray-300'
-                            }`}
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      Comentarios (opcional)
-                    </label>
-                    <Textarea
-                      value={review}
-                      onChange={(e) => setReview(e.target.value)}
-                      placeholder="Cuéntanos sobre tu experiencia..."
-                      rows={4}
-                    />
-                  </div>
-                  
-                  <Button 
-                    onClick={submitReview}
-                    disabled={!rating}
-                    className="w-full"
-                  >
-                    Enviar reseña
-                  </Button>
-                </CardContent>
-              </Card>
+              <ReviewSystem 
+                cookerId={order.cookerId}
+                orderId={order.id}
+                dishName={order.dishes?.[0]?.dishName || 'Pedido'}
+                onReviewSubmit={async () => {
+                  setShowReviewForm(false);
+                  await OrdersService.updateOrder(order.id, { reviewed: true });
+                  toast.success('¡Gracias por tu reseña!');
+                }}
+              />
             )}
           </div>
 

@@ -1293,12 +1293,94 @@ export class ReviewsService {
     }
   }
 
+  static async getReviewsByDish(dishId: string): Promise<Review[]> {
+    try {
+      const querySnapshot = await getDocs(
+        query(
+          collection(db, this.collection),
+          where('dishId', '==', dishId),
+          orderBy('createdAt', 'desc')
+        )
+      );
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Review));
+    } catch (error) {
+      console.error('Error fetching reviews by dish:', error);
+      // Fallback: fetch all reviews and filter client-side
+      try {
+        const querySnapshot = await getDocs(collection(db, this.collection));
+        const reviews = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as Review));
+        
+        return reviews
+          .filter(review => review.dishId === dishId)
+          .sort((a, b) => {
+            const aTime = a.createdAt?.toMillis() || 0;
+            const bTime = b.createdAt?.toMillis() || 0;
+            return bTime - aTime;
+          });
+      } catch (fallbackError) {
+        console.error('Error in fallback review fetch:', fallbackError);
+        return [];
+      }
+    }
+  }
+
+  static async getReviewsByOrder(orderId: string): Promise<Review[]> {
+    try {
+      const querySnapshot = await getDocs(
+        query(
+          collection(db, this.collection),
+          where('orderId', '==', orderId)
+        )
+      );
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Review));
+    } catch (error) {
+      console.error('Error fetching reviews by order:', error);
+      return [];
+    }
+  }
+
   static async createReview(reviewData: Omit<Review, 'id' | 'createdAt'>): Promise<string | null> {
     try {
       const docRef = await addDoc(collection(db, this.collection), {
         ...reviewData,
         createdAt: Timestamp.now()
       });
+
+      // Update cook's rating
+      if (reviewData.cookerId) {
+        const reviews = await this.getReviewsByCook(reviewData.cookerId);
+        const averageRating = reviews.length > 0 
+          ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length 
+          : reviewData.rating;
+        
+        await CooksService.updateCookProfile(reviewData.cookerId, {
+          rating: Number(averageRating.toFixed(1)),
+          reviewCount: reviews.length
+        });
+      }
+
+      // Update dish's rating if dishId is provided
+      if (reviewData.dishId) {
+        const dishReviews = await this.getReviewsByDish(reviewData.dishId);
+        const dishAverageRating = dishReviews.length > 0
+          ? dishReviews.reduce((sum, review) => sum + review.rating, 0) / dishReviews.length
+          : reviewData.rating;
+        
+        await DishesService.updateDish(reviewData.dishId, {
+          rating: Number(dishAverageRating.toFixed(1)),
+          reviewCount: dishReviews.length
+        });
+      }
+
       return docRef.id;
     } catch (error) {
       console.error('Error creating review:', error);

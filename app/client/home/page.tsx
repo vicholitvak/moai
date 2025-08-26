@@ -32,6 +32,8 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatPrice } from '@/lib/utils';
 import { toast } from 'sonner';
+import { AdvancedSearch } from '@/components/search/AdvancedSearch';
+import { SmartRecommendations } from '@/components/recommendations/SmartRecommendations';
 
 // Order status mapping for display
 const orderStatusMap = {
@@ -258,6 +260,25 @@ const ClientHome = () => {
       </div>
 
       <div className="container mx-auto px-4 py-6">
+        {/* Search Section */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>¿Qué se te antoja hoy?</CardTitle>
+            <CardDescription>Descubre platos increíbles cerca de ti</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AdvancedSearch 
+              compact={true}
+              onResultsChange={(results) => {
+                if (results.dishes.length > 0) {
+                  // Navigate to search results page or update the view
+                  router.push(`/search?q=${encodeURIComponent(results.dishes[0]?.name || '')}`);
+                }
+              }}
+            />
+          </CardContent>
+        </Card>
+
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <Card>
@@ -622,6 +643,13 @@ const ClientHome = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Smart Recommendations */}
+        <SmartRecommendations 
+          maxItems={6} 
+          showCategories={true}
+          userId={user?.uid}
+        />
 
         {/* Quick Actions */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">

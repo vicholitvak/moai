@@ -29,6 +29,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { Badge } from '../../../components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../../../components/ui/avatar';
 import RecommendedPairings from './recommended-pairings';
+import { ReviewSystem } from '@/components/reviews/ReviewSystem';
 
 interface DishWithCookDetails extends Dish {
   cookerBio?: string;
@@ -54,8 +55,7 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
   const [addToCartSuccess, setAddToCartSuccess] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchDishData = async () => {
+  const fetchDishData = async () => {
       try {
         setLoading(true);
         setError(null);
@@ -90,7 +90,7 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
         if (user) {
           try {
             const userFavorites = await DishesService.getUserFavorites(user.uid);
-            setIsFavorite(userFavorites.includes(dishId));
+            setIsFavorite(userFavorites.includes(resolvedParams.id));
           } catch (error) {
             console.warn('Could not load user favorites:', error);
             setIsFavorite(false);
@@ -555,63 +555,16 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
             </Card>
           </div>
 
-          {/* Reviews */}
-          <Card className="hover:shadow-md transition-shadow duration-300">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageCircle className="h-5 w-5 text-primary" />
-                Reviews ({reviews.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {reviews.length > 0 ? (
-                <div className="space-y-4">
-                  {reviews.map((review: Review, index: number) => (
-                    <div 
-                      key={review.id} 
-                      className="border-b pb-4 last:border-b-0 hover:bg-muted/30 -mx-4 px-4 py-2 rounded transition-colors duration-200 animate-in fade-in-50 slide-in-from-bottom-2"
-                      style={{ animationDelay: `${index * 150}ms` }}
-                    >
-                      <div className="flex items-start gap-3">
-                        <Avatar className="h-8 w-8 ring-2 ring-transparent hover:ring-primary/20 transition-all duration-200">
-                          <AvatarImage src={review.customerAvatar} />
-                          <AvatarFallback>
-                            <Users className="h-4 w-4" />
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-medium">{review.customerName}</span>
-                            <div className="flex items-center gap-1">
-                              {[...Array(5)].map((_, i) => (
-                                <Star 
-                                  key={i} 
-                                  className={`h-3 w-3 transition-colors duration-200 ${
-                                    i < review.rating 
-                                      ? 'fill-yellow-400 text-yellow-400' 
-                                      : 'text-gray-300'
-                                  }`} 
-                                />
-                              ))}
-                            </div>
-                            <span className="text-sm text-muted-foreground">
-                              {review.createdAt.toDate().toLocaleDateString()}
-                            </span>
-                          </div>
-                          <p className="text-sm text-muted-foreground leading-relaxed">{review.comment}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <MessageCircle className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
-                  <p className="text-muted-foreground">No reviews yet. Be the first to review this dish!</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* Reviews Section */}
+          <ReviewSystem 
+            cookerId={dish.cookerId}
+            dishId={dish.id}
+            dishName={dish.name}
+            onReviewSubmit={() => {
+              // Reload reviews after new review is submitted
+              fetchDishData();
+            }}
+          />
 
           {/* Recommended Pairings */}
           <div className="mt-8">

@@ -11,6 +11,8 @@ import NotificationInitializer from '../components/NotificationInitializer';
 import FloatingChatButton from '../components/chat/FloatingChatButton';
 import ChatNotificationHandler from '../components/ChatNotificationHandler';
 import { ThemeScript } from './theme-script';
+import { SupportButton } from '../components/support/SupportButton';
+import ServiceWorkerRegistration from '../components/ServiceWorkerRegistration';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -46,10 +48,12 @@ export default function RootLayout({
           <AuthProvider>
             <UserProfileProvider>
               <CartProvider>
+                <ServiceWorkerRegistration />
                 <NotificationInitializer />
                 <ChatNotificationHandler />
                 <AuthHandler>{children}</AuthHandler>
                 <FloatingChatButton />
+                <SupportButton />
                 <Toaster />
               </CartProvider>
             </UserProfileProvider>
