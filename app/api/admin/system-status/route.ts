@@ -9,7 +9,7 @@ import { headers } from 'next/headers'
 export async function GET(request: NextRequest) {
   try {
     // Basic auth check - in production, you'd use proper admin authentication
-    const headersList = headers()
+    const headersList = await headers()
     const authorization = headersList.get('authorization')
     
     // This is a simplified check - in production, verify Firebase Admin token
@@ -175,7 +175,7 @@ function generateAlerts(
  */
 export async function POST(request: NextRequest) {
   try {
-    const headersList = headers()
+    const headersList = await headers()
     const authorization = headersList.get('authorization')
     
     if (!authorization || !authorization.startsWith('Bearer ')) {

@@ -1,7 +1,5 @@
 'use client';
 
-import { Timestamp } from 'firebase/firestore';
-
 export interface ChileanCity {
   id: string;
   name: string;
@@ -425,12 +423,12 @@ export class ChileanCitiesService {
 
   // Get city by ID
   static getCityById(cityId: string): ChileanCity | null {
-    return this.CHILEAN_CITIES.find(city => city.id === cityId) || null;
+    return this.CHILEAN_CITIES.find(city => city.id === cityId) ?? null;
   }
 
   // Get region by code
   static getRegionByCode(regionCode: string): ChileanRegion | null {
-    return this.CHILEAN_REGIONS.find(region => region.code === regionCode) || null;
+    return this.CHILEAN_REGIONS.find(region => region.code === regionCode) ?? null;
   }
 
   // Get active cities

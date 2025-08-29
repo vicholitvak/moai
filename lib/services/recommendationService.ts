@@ -356,9 +356,8 @@ export class RecommendationService {
       const { db } = await import('@/lib/firebase/client');
       
       // Get user preferences and order history
-      const userDoc = await import('@/lib/firebase/client').then(({ doc, getDoc }) => 
-        getDoc(doc(db, 'users', userId))
-      );
+      const { doc, getDoc } = await import('firebase/firestore');
+      const userDoc = await getDoc(doc(db, 'users', userId));
       const userData = userDoc.exists() ? userDoc.data() : null;
       
       // Get recent dishes ordered by rating and availability
@@ -370,13 +369,13 @@ export class RecommendationService {
       );
       
       const dishesSnapshot = await getDocs(dishesQuery);
-      const dishes = dishesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const dishes = dishesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
       
       // Calculate recommendations based on user data
       const recommendations: DishRecommendation[] = [];
       
       for (const dish of dishes.slice(0, limit)) {
-        let score = dish.rating * 20; // Base score from rating (0-100)
+        let score = (dish.rating || 0) * 20; // Base score from rating (0-100)
         let matchType = 'similar';
         let reasons: string[] = ['Recomendado para ti'];
         
@@ -436,9 +435,8 @@ export class RecommendationService {
       const { db } = await import('@/lib/firebase/client');
       
       // Get user preferences
-      const userDoc = await import('@/lib/firebase/client').then(({ doc, getDoc }) => 
-        getDoc(doc(db, 'users', userId))
-      );
+      const { doc, getDoc } = await import('firebase/firestore');
+      const userDoc = await getDoc(doc(db, 'users', userId));
       const userData = userDoc.exists() ? userDoc.data() : null;
       
       // Get active cooks ordered by rating
@@ -450,13 +448,13 @@ export class RecommendationService {
       );
       
       const cooksSnapshot = await getDocs(cooksQuery);
-      const cooks = cooksSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const cooks = cooksSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
       
       // Calculate cook recommendations
       const recommendations: CookRecommendation[] = [];
       
       for (const cook of cooks.slice(0, limit)) {
-        let score = cook.rating * 18; // Base score from rating
+        let score = (cook.rating || 0) * 18; // Base score from rating
         let matchType = 'similar';
         let reasons: string[] = ['Recomendado para ti'];
         

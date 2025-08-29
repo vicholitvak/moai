@@ -45,7 +45,7 @@ export const deliveryAddressSchema = z.object({
 // Payment method schema
 export const paymentMethodSchema = z.object({
   type: z.enum(['cash', 'card', 'transfer'], {
-    errorMap: () => ({ message: 'Método de pago inválido' })
+    message: 'Método de pago inválido'
   }),
   cardToken: z.string().optional(), // For tokenized card payments
   transferReference: z.string().optional() // For bank transfers
@@ -106,7 +106,7 @@ export const updateOrderStatusSchema = z.object({
     'delivered',
     'cancelled'
   ], {
-    errorMap: () => ({ message: 'Estado de pedido inválido' })
+    message: 'Estado de pedido inválido'
   }),
   estimatedDeliveryTime: z.number()
     .int('El tiempo estimado debe ser un número entero')

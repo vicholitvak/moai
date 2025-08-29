@@ -35,6 +35,9 @@ interface RealTimeAlertsProps {
 interface AlertNotification extends NotificationMessage {
   showTime: number;
   isVisible: boolean;
+  body?: string;
+  actionUrl?: string;
+  createdAt?: Date;
 }
 
 const RealTimeAlerts = ({ 
@@ -77,6 +80,8 @@ const RealTimeAlerts = ({
 
       return () => clearInterval(timer);
     }
+    
+    return () => {}; // No-op cleanup when autoHide is false
   }, [autoHide, autoHideDelay]);
 
   const initializeNotifications = async () => {
@@ -84,12 +89,8 @@ const RealTimeAlerts = ({
 
     try {
       // Initialize notification service
-      const initialized = await NotificationService.initialize();
-      if (initialized) {
-        // Request permission if not already granted
-        await NotificationService.requestPermission(user.uid);
-      }
-
+      NotificationService.initialize();
+      
       // Get initial unread count
       const count = await NotificationService.getUnreadCount(user.uid);
       setUnreadCount(count);
@@ -123,7 +124,7 @@ const RealTimeAlerts = ({
           const notification = { id: change.doc.id, ...change.doc.data() } as NotificationMessage;
           
           // Only show new notifications (not from initial load)
-          const notificationTime = notification.createdAt.toDate().getTime();
+          const notificationTime = notification.createdAt?.getTime() || Date.now();
           if (notificationTime > lastNotificationTime.current) {
             showAlert(notification);
             lastNotificationTime.current = notificationTime;
@@ -216,9 +217,9 @@ const RealTimeAlerts = ({
       case 'new_dish':
         return <Utensils className={`h-4 w-4 ${iconClass}`} />;
       case 'message':
-        return <MessageCircle className={`h-4 w-4 ${iconClass}`} />;
-      case 'review':
         return <Star className={`h-4 w-4 ${iconClass}`} />;
+      case 'review':
+        return <MessageCircle className={`h-4 w-4 ${iconClass}`} />;
       default:
         return <Bell className={`h-4 w-4 ${iconClass}`} />;
     }
@@ -231,6 +232,10 @@ const RealTimeAlerts = ({
       case 'normal':
         return <Badge className="bg-blue-600 text-white">Normal</Badge>;
       case 'low':
+        return <Badge variant="outline">Info</Badge>;
+      case 'medium':
+        return <Badge className="bg-yellow-600 text-white">Medio</Badge>;
+      default:
         return <Badge variant="outline">Info</Badge>;
     }
   };

@@ -89,18 +89,17 @@ export class CashOrderService {
         currency: 'CLP'
       }).format(orderTotal);
 
-      await FCMService.sendOrderStatusNotification(
+      await FCMService.sendNotificationToUser(
         cookerId,
         {
           title: '🔔 Nueva Orden - Pago en Efectivo',
           body: `${customerName} quiere pagar ${formattedTotal} en efectivo. ¿Aceptas?`,
-          image: '/llama-icon.jpg'
-        },
-        {
-          orderId,
-          type: 'cash_order_approval',
-          actionUrl: `/cooker/dashboard?tab=orders&orderId=${orderId}`,
-          priority: 'high'
+          data: {
+            orderId,
+            type: 'cash_order_approval',
+            actionUrl: `/cooker/dashboard?tab=orders&orderId=${orderId}`,
+            priority: 'high'
+          }
         }
       );
 
@@ -137,18 +136,17 @@ export class CashOrderService {
       if (!order) return false;
 
       // Notify customer that order was approved
-      await FCMService.sendOrderStatusNotification(
+      await FCMService.sendNotificationToUser(
         order.customerId,
         {
           title: '✅ Orden Aprobada',
           body: 'Tu orden con pago en efectivo ha sido aprobada y está siendo preparada.',
-          image: '/llama-icon.jpg'
-        },
-        {
-          orderId,
-          type: 'cash_order_approved',
-          actionUrl: `/orders/${orderId}/tracking`,
-          priority: 'high'
+          data: {
+            orderId,
+            type: 'cash_order_approved',
+            actionUrl: `/orders/${orderId}/tracking`,
+            priority: 'high'
+          }
         }
       );
 
@@ -194,18 +192,17 @@ export class CashOrderService {
       if (!order) return false;
 
       // Notify customer that order was rejected
-      await FCMService.sendOrderStatusNotification(
+      await FCMService.sendNotificationToUser(
         order.customerId,
         {
           title: '❌ Orden Rechazada',
           body: `Tu orden fue rechazada. Razón: ${reason || 'No especificada'}`,
-          image: '/llama-icon.jpg'
-        },
-        {
-          orderId,
-          type: 'cash_order_rejected',
-          actionUrl: `/orders/${orderId}`,
-          priority: 'high'
+          data: {
+            orderId,
+            type: 'cash_order_rejected',
+            actionUrl: `/orders/${orderId}`,
+            priority: 'high'
+          }
         }
       );
 

@@ -40,7 +40,7 @@ export interface UserInteractionEvent {
   id?: string;
   userId?: string;
   sessionId: string;
-  eventType: 'search' | 'click' | 'view' | 'add_to_cart' | 'order' | 'filter_change';
+  eventType: 'search' | 'click' | 'view' | 'add_to_cart' | 'order' | 'filter_change' | 'signup';
   targetId?: string; // dishId, cookId, etc.
   metadata: any;
   timestamp: Timestamp;
@@ -176,7 +176,7 @@ export class AnalyticsService {
   // Track general user interactions
   static async trackUserInteraction(data: {
     userId?: string;
-    eventType: 'search' | 'click' | 'view' | 'add_to_cart' | 'order' | 'filter_change';
+    eventType: 'search' | 'click' | 'view' | 'add_to_cart' | 'order' | 'filter_change' | 'signup';
     targetId?: string;
     metadata: any;
   }): Promise<void> {
@@ -470,18 +470,18 @@ export class AnalyticsService {
   }
 
   // Get search suggestions based on analytics
-  static async getSearchSuggestions(query: string, limit: number = 5): Promise<string[]> {
+  static async getSearchSuggestions(searchQuery: string, limitCount: number = 5): Promise<string[]> {
     try {
-      if (!query || query.length < 2) {
+      if (!searchQuery || searchQuery.length < 2) {
         // Return popular queries
         const popularQueriesSnapshot = await getDocs(
-          query(collection(db, 'popularQueries'), orderBy('count', 'desc'), limit(limit))
+          query(collection(db, 'popularQueries'), orderBy('count', 'desc'), limit(limitCount))
         );
         return popularQueriesSnapshot.docs.map(doc => doc.data().query);
       }
 
       // Find similar queries
-      const queryLower = query.toLowerCase();
+      const queryLower = searchQuery.toLowerCase();
       const popularQueriesSnapshot = await getDocs(
         query(collection(db, 'popularQueries'), orderBy('count', 'desc'), limit(50))
       );
@@ -489,7 +489,7 @@ export class AnalyticsService {
       const suggestions = popularQueriesSnapshot.docs
         .map(doc => doc.data().query)
         .filter(q => q.includes(queryLower) && q !== queryLower)
-        .slice(0, limit);
+        .slice(0, limitCount);
 
       return suggestions;
 

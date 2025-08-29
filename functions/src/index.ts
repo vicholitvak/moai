@@ -1,6 +1,6 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
-import * as cors from 'cors';
+import cors from 'cors';
 import * as express from 'express';
 
 // Initialize Firebase Admin
@@ -19,43 +19,41 @@ import { loyaltyFunctions } from './loyalty';
 import { cronFunctions } from './cron';
 
 // Export all functions
-export {
-  // FCM Functions
-  saveFCMToken: fcmFunctions.saveFCMToken,
-  sendNotification: fcmFunctions.sendNotification,
-  sendToTopic: fcmFunctions.sendToTopic,
-  subscribeToTopic: fcmFunctions.subscribeToTopic,
+// FCM Functions
+export const saveFCMToken = fcmFunctions.saveFCMToken;
+export const sendNotification = fcmFunctions.sendNotification;
+export const sendToTopic = fcmFunctions.sendToTopic;
+export const subscribeToTopic = fcmFunctions.subscribeToTopic;
 
-  // Order Functions  
-  onOrderCreated: orderFunctions.onOrderCreated,
-  onOrderStatusChanged: orderFunctions.onOrderStatusChanged,
-  updateOrderStatus: orderFunctions.updateOrderStatus,
-  assignDriver: orderFunctions.assignDriver,
-  getOrderAnalytics: orderFunctions.getOrderAnalytics,
+// Order Functions
+export const onOrderCreated = orderFunctions.onOrderCreated;
+export const onOrderStatusChanged = orderFunctions.onOrderStatusChanged;
+export const updateOrderStatus = orderFunctions.updateOrderStatus;
+export const assignDriver = orderFunctions.assignDriver;
+export const getOrderAnalytics = orderFunctions.getOrderAnalytics;
 
-  // Driver Functions
-  updateDriverLocation: driverFunctions.updateDriverLocation,
-  getDriverLocation: driverFunctions.getDriverLocation,
-  getAvailableDrivers: driverFunctions.getAvailableDrivers,
-  toggleDriverStatus: driverFunctions.toggleDriverStatus,
+// Driver Functions
+export const updateDriverLocation = driverFunctions.updateDriverLocation;
+export const getDriverLocation = driverFunctions.getDriverLocation;
+export const getAvailableDrivers = driverFunctions.getAvailableDrivers;
+export const toggleDriverStatus = driverFunctions.toggleDriverStatus;
 
-  // Analytics Functions
-  getAnalytics: analyticsFunction,
+// Analytics Functions
+export const getAnalytics = analyticsFunction;
 
-  // Notification Functions
-  sendSMS: notificationFunctions.sendSMS,
-  sendEmail: notificationFunctions.sendEmail,
+// Notification Functions
+export const sendSMS = notificationFunctions.sendSMS;
+export const sendEmail = notificationFunctions.sendEmail;
 
-  // Coupon Functions
-  validateCoupon: couponFunctions.validateCoupon,
-  createPromotionalCampaign: couponFunctions.createPromotionalCampaign,
+// Coupon Functions
+export const validateCoupon = couponFunctions.validateCoupon;
+export const createPromotionalCampaign = couponFunctions.createPromotionalCampaign;
 
-  // Loyalty Functions
-  calculateLoyaltyPoints: loyaltyFunctions.calculateLoyaltyPoints,
-  processLoyaltyReward: loyaltyFunctions.processLoyaltyReward,
+// Loyalty Functions
+export const calculateLoyaltyPoints = loyaltyFunctions.calculateLoyaltyPoints;
+export const processLoyaltyReward = loyaltyFunctions.processLoyaltyReward;
 
-  // Cron Functions
-  cleanupExpiredCoupons: cronFunctions.cleanupExpiredCoupons,
-  processLoyaltyBonuses: cronFunctions.processLoyaltyBonuses,
-  sendDailyReports: cronFunctions.sendDailyReports
-};
+// Cron Functions
+export const cleanupExpiredCoupons = cronFunctions.cleanupExpiredCoupons;
+export const processLoyaltyBonuses = cronFunctions.processLoyaltyBonuses;
+export const sendDailyReports = cronFunctions.sendDailyReports;

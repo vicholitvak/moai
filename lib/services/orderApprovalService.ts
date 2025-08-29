@@ -241,19 +241,18 @@ export class OrderApprovalService {
       });
 
       // Push notification to customer
-      await FCMService.sendOrderStatusNotification(
+      await FCMService.sendNotificationToUser(
         order.customerId,
         {
           title: '✅ ¡Orden Aprobada y Aceptada!',
           body: `Tu orden ha sido aprobada. Tiempo estimado: ${estimatedPrepTime} min. Entrega aprox: ${timeString}`,
-          image: '/llama-icon.jpg'
-        },
-        {
-          orderId: order.id,
-          type: 'order_approved',
-          actionUrl: `/orders/${order.id}/tracking`,
-          priority: 'high',
-          estimatedDeliveryTime: estimatedDeliveryTime.toISOString()
+          data: {
+            orderId: order.id,
+            type: 'order_approved',
+            actionUrl: `/orders/${order.id}/tracking`,
+            priority: 'high',
+            estimatedDeliveryTime: estimatedDeliveryTime.toISOString()
+          }
         }
       );
 
@@ -294,18 +293,17 @@ export class OrderApprovalService {
   ): Promise<void> {
     try {
       // Push notification to customer
-      await FCMService.sendOrderStatusNotification(
+      await FCMService.sendNotificationToUser(
         order.customerId,
         {
           title: '❌ Orden Rechazada',
           body: `Lo sentimos, tu orden fue rechazada. Razón: ${reason}`,
-          image: '/llama-icon.jpg'
-        },
-        {
-          orderId: order.id,
-          type: 'order_rejected',
-          actionUrl: `/orders/${order.id}`,
-          priority: 'high'
+          data: {
+            orderId: order.id,
+            type: 'order_rejected',
+            actionUrl: `/orders/${order.id}`,
+            priority: 'high'
+          }
         }
       );
 
@@ -354,19 +352,18 @@ export class OrderApprovalService {
 
       const paymentText = paymentMethod === 'card' ? 'Pago Digital' : 'Pago en Efectivo';
 
-      await FCMService.sendOrderStatusNotification(
+      await FCMService.sendNotificationToUser(
         cookerId,
         {
           title: '🔔 Nueva Orden - Requiere Aprobación',
           body: `${customerName} - ${formattedTotal} (${paymentText}). ¿Aceptas la orden?`,
-          image: '/llama-icon.jpg'
-        },
-        {
-          orderId,
-          type: 'order_approval_required',
-          actionUrl: `/cooker/dashboard?tab=orders&orderId=${orderId}`,
-          priority: 'high',
-          paymentMethod
+          data: {
+            orderId,
+            type: 'order_approval_required',
+            actionUrl: `/cooker/dashboard?tab=orders&orderId=${orderId}`,
+            priority: 'high',
+            paymentMethod
+          }
         }
       );
 

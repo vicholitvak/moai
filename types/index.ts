@@ -6,6 +6,7 @@ export interface Dish {
   description: string;
   price: number;
   image: string;
+  images: string[];
   cookerId: string;
   cookerName: string;
   cookerAvatar: string;
@@ -15,21 +16,21 @@ export interface Dish {
   rating: number;
   reviewCount: number;
   prepTime: string;
-  isAvailable: boolean;
+  preparationTime: number;
+  servingSize: number;
+  status: string;
   ingredients: string[];
   allergens: string[];
-  nutritionInfo: {
-    calories: number;
-    protein: string;
-    carbs: string;
-    fat: string;
-  };
+  deliveryMode: 'cook' | 'external';
+  deliveryFee: number;
+  dietaryRestrictions: string[];
+  nutrition: Record<string, number | string>;
+  availability: boolean;
   // Location-based fields
   cityId?: string;
   cityName?: string;
   region?: string;
   cookDistance?: number;
-  deliveryFee?: number;
   estimatedDeliveryTime?: number;
   cookLocation?: {
     coordinates: {
@@ -126,6 +127,7 @@ export interface Order {
     quantity: number;
     price: number;
     prepTime?: string;
+    notes?: string;
   }>;
   subtotal: number;
   deliveryFee: number;
@@ -133,6 +135,7 @@ export interface Order {
   total: number;
   paymentMethod: 'card' | 'cash_on_delivery';
   paymentStatus: 'pending' | 'paid' | 'failed' | 'cash_pending';
+  paymentId?: string;
   status: 'pending_approval' | 'pending' | 'accepted' | 'preparing' | 'ready' | 'delivering' | 'en_viaje' | 'delivered' | 'cancelled' | 'rejected';
   deliveryInfo: {
     address: string;
@@ -141,6 +144,16 @@ export interface Order {
   };
   deliveryCode: string;
   isDelivered: boolean;
+  isSelfDelivery?: boolean;
+  driverLocation?: {
+    lat: number;
+    lng: number;
+    address?: string;
+  };
+  reviewed?: boolean;
+  cancelledAt?: Timestamp;
+  assignedAt?: Timestamp;
+  deliveredAt?: Timestamp;
   cookerApproval?: {
     approved: boolean;
     approvedAt?: Timestamp;

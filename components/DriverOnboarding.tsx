@@ -34,7 +34,7 @@ interface OnboardingData {
   phone: string;
   
   // Step 2: Vehicle Information
-  vehicleType: 'bike' | 'moto' | 'car';
+  vehicleType: 'bike' | 'motorcycle' | 'car';
   vehicleInfo: {
     make: string;
     model: string;
@@ -65,27 +65,43 @@ const STEPS = [
   { id: 3, title: 'Pago', description: 'Información bancaria' }
 ];
 
-const VEHICLE_TYPES = [
+interface VehicleType {
+  id: 'bike' | 'motorcycle' | 'car';
+  name: string;
+  icon: typeof Bike | typeof Zap | typeof Car;
+  mapIcon: string;
+  color: string;
+  description?: string;
+  benefits?: string[];
+}
+
+const VEHICLE_TYPES: VehicleType[] = [
   {
     id: 'bike' as const,
     name: 'Bici',
     icon: Bike,
     mapIcon: '🚴‍♂️',
-    color: 'bg-green-100 border-green-300 text-green-800'
+    color: 'bg-green-100 border-green-300 text-green-800',
+    description: 'Ideal para áreas urbanas',
+    benefits: ['Ecológico', 'Fácil estacionamiento', 'Sin gastos de combustible']
   },
   {
-    id: 'moto' as const,
+    id: 'motorcycle' as const,
     name: 'Moto',
     icon: Zap,
     mapIcon: '🏍️',
-    color: 'bg-blue-100 border-blue-300 text-blue-800'
+    color: 'bg-blue-100 border-blue-300 text-blue-800',
+    description: 'Rápida y eficiente',
+    benefits: ['Entrega rápida', 'Económica', 'Maniobrable']
   },
   {
     id: 'car' as const,
     name: 'Auto',
     icon: Car,
     mapIcon: '🚗',
-    color: 'bg-purple-100 border-purple-300 text-purple-800'
+    color: 'bg-purple-100 border-purple-300 text-purple-800',
+    description: 'Para pedidos grandes',
+    benefits: ['Mayor capacidad', 'Protección climática', 'Cómodo']
   }
 ];
 
@@ -102,7 +118,7 @@ export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) 
   const [data, setData] = useState<OnboardingData>({
     displayName: user?.displayName || '',
     phone: '',
-    vehicleType: 'moto',
+    vehicleType: 'motorcycle',
     vehicleInfo: {
       make: '',
       model: '',
@@ -134,7 +150,7 @@ export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) 
     setData(prev => ({
       ...prev,
       [parent]: {
-        ...prev[parent as keyof OnboardingData],
+        ...(prev[parent as keyof OnboardingData] as object || {}),
         [field]: value
       }
     }));
@@ -420,7 +436,7 @@ export default function DriverOnboarding({ onComplete }: DriverOnboardingProps) 
                           {/* Benefits */}
                           {vehicle.benefits && vehicle.benefits.length > 0 && (
                             <div className="space-y-1 sm:space-y-2 hidden sm:block">
-                              {vehicle.benefits.map((benefit, index) => (
+                              {vehicle.benefits.map((benefit: string, index: number) => (
                               <div key={index} className={`flex items-center justify-center text-xs sm:text-sm font-medium transition-colors duration-300 ${
                                 data.vehicleType === vehicle.id ? 'text-orange-600' : 'text-gray-500'
                               }`}>

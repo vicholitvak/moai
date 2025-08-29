@@ -1,6 +1,6 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
-import * as cors from 'cors';
+import cors from 'cors';
 
 const corsHandler = cors({ origin: true });
 const db = admin.firestore();
@@ -287,7 +287,7 @@ export const getOrderAnalytics = functions.https.onRequest((req, res) => {
     try {
       const { startDate, endDate, cookId, driverId } = req.query;
 
-      let query = db.collection('orders');
+      let query: any = db.collection('orders');
 
       // Apply filters
       if (startDate) {
@@ -304,15 +304,15 @@ export const getOrderAnalytics = functions.https.onRequest((req, res) => {
       }
 
       const snapshot = await query.get();
-      const orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const orders = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
 
       // Calculate analytics
       const analytics = {
         totalOrders: orders.length,
-        totalRevenue: orders.reduce((sum, order) => sum + (order.total || 0), 0),
+        totalRevenue: orders.reduce((sum: number, order: any) => sum + (order.total || 0), 0),
         avgOrderValue: orders.length > 0 ? 
-          orders.reduce((sum, order) => sum + (order.total || 0), 0) / orders.length : 0,
-        statusBreakdown: orders.reduce((acc, order) => {
+          orders.reduce((sum: number, order: any) => sum + (order.total || 0), 0) / orders.length : 0,
+        statusBreakdown: orders.reduce((acc: any, order: any) => {
           acc[order.status] = (acc[order.status] || 0) + 1;
           return acc;
         }, {} as Record<string, number>),
@@ -440,7 +440,7 @@ function getTopCooks(orders: any[]) {
   }, {} as Record<string, { orders: number; revenue: number }>);
 
   return Object.entries(cookStats)
-    .sort(([,a], [,b]) => b.revenue - a.revenue)
+    .sort(([,a]: [string, any], [,b]: [string, any]) => b.revenue - a.revenue)
     .slice(0, 10);
 }
 

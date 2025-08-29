@@ -3,10 +3,10 @@
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 
-export default function ServiceWorkerRegistration() {
+export default function ServiceWorkerRegistration(): React.ReactElement | null {
   useEffect(() => {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      const registerServiceWorker = async () => {
+      const registerServiceWorker = async (): Promise<void> => {
         try {
           const registration = await navigator.serviceWorker.register('/enhanced-sw.js', {
             scope: '/'

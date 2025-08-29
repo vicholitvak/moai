@@ -1,6 +1,6 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
-import * as cors from 'cors';
+import cors from 'cors';
 
 const corsHandler = cors({ origin: true });
 const db = admin.firestore();
@@ -155,15 +155,16 @@ export const getAvailableDrivers = functions.https.onRequest((req, res) => {
       const availableDrivers = [];
 
       for (const doc of driversSnapshot.docs) {
-        const driver = { id: doc.id, ...doc.data() };
+        const driverData = doc.data();
+        const driver = { id: doc.id, ...driverData };
         
         // If location is provided, filter by distance
-        if (latitude && longitude && driver.currentLocation) {
+        if (latitude && longitude && driverData.currentLocation) {
           const distance = calculateDistance(
             parseFloat(latitude as string),
             parseFloat(longitude as string),
-            driver.currentLocation.latitude,
-            driver.currentLocation.longitude
+            driverData.currentLocation.latitude,
+            driverData.currentLocation.longitude
           );
 
           if (distance <= parseFloat(radius as string)) {
@@ -179,7 +180,7 @@ export const getAvailableDrivers = functions.https.onRequest((req, res) => {
 
       // Sort by distance if location provided
       if (latitude && longitude) {
-        availableDrivers.sort((a, b) => parseFloat(a.distance || '0') - parseFloat(b.distance || '0'));
+        availableDrivers.sort((a: any, b: any) => parseFloat(a.distance || '0') - parseFloat(b.distance || '0'));
       }
 
       return res.status(200).json({
@@ -369,11 +370,11 @@ export const getDriverMetrics = functions.https.onRequest((req, res) => {
       const orders = ordersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
       // Calculate metrics
-      const deliveredOrders = orders.filter(o => o.status === 'delivered');
-      const totalEarnings = deliveredOrders.reduce((sum, order) => sum + (order.deliveryFee || 0), 0);
+      const deliveredOrders = orders.filter((o: any) => o.status === 'delivered');
+      const totalEarnings = deliveredOrders.reduce((sum: number, order: any) => sum + (order.deliveryFee || 0), 0);
       
       const avgDeliveryTime = deliveredOrders.length > 0 ? 
-        deliveredOrders.reduce((sum, order) => {
+        deliveredOrders.reduce((sum: number, order: any) => {
           if (order.deliveredAt && order.assignedAt) {
             return sum + (order.deliveredAt.toDate() - order.assignedAt.toDate());
           }

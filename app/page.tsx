@@ -2,6 +2,7 @@
 
   import { useState, useEffect } from 'react';
   import { useRouter } from 'next/navigation';
+  import Link from 'next/link';
   import { useAuth } from '@/context/AuthContext';
   import Head from 'next/head';
   import Hero from '../components/Hero';
@@ -300,9 +301,9 @@
               <div>
                 <h4 className="font-semibold mb-4 text-white">Para Clientes</h4>
                 <ul className="space-y-2 text-gray-300">
-                  <li><a href="/dishes" className="hover:text-moai-400 transition-colors">Explorar Platos</a></li>
-                  <li><a href="/cooks" className="hover:text-moai-400 transition-colors">Ver Cocineros</a></li>
-                  <li><a href="/orders" className="hover:text-moai-400 transition-colors">Mis Pedidos</a></li>
+                  <li><Link href="/dishes" className="hover:text-moai-400 transition-colors">Explorar Platos</Link></li>
+                  <li><Link href="/cooks" className="hover:text-moai-400 transition-colors">Ver Cocineros</Link></li>
+                  <li><Link href="/orders" className="hover:text-moai-400 transition-colors">Mis Pedidos</Link></li>
                 </ul>
               </div>
               <div>

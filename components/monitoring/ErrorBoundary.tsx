@@ -44,7 +44,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
     }
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  override componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     const { onError, level = 'component' } = this.props
     
     // Report to Sentry with enhanced context
@@ -79,7 +79,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
     })
   }
 
-  render() {
+  override render() {
     if (this.state.hasError) {
       const { fallback: Fallback, level = 'component' } = this.props
       

@@ -540,6 +540,14 @@ export class LocationService {
 
   // ==================== NEW: DISTANCE-BASED FEE CALCULATION ====================
 
+  // Calculate estimated delivery time based on distance
+  static calculateDeliveryTime(distance: number): number {
+    // Base time: 15 minutes preparation + 5 minutes per km
+    const prepTime = 15;
+    const travelTime = Math.ceil(distance * 5);
+    return prepTime + travelTime;
+  }
+
   // Calculate comprehensive delivery fee
   static calculateDeliveryFee(
     customerCoords: Coordinates,

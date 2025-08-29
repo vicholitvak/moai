@@ -19,7 +19,8 @@ const rateLimitStore = new Map<string, RateLimitEntry>();
 // Default key generator - uses IP address
 const defaultKeyGenerator = (req: NextRequest): string => {
   const forwarded = req.headers.get('x-forwarded-for');
-  const ip = forwarded ? forwarded.split(',')[0] : req.ip || 'unknown';
+  const realIp = req.headers.get('x-real-ip');
+  const ip = forwarded ? forwarded.split(',')[0] : realIp || 'unknown';
   return `rate_limit:${ip}`;
 };
 
@@ -110,7 +111,8 @@ export const authRateLimiter = createRateLimiter({
   message: 'Too many authentication attempts. Please try again in 15 minutes.',
   keyGenerator: (req) => {
     const forwarded = req.headers.get('x-forwarded-for');
-    const ip = forwarded ? forwarded.split(',')[0] : req.ip || 'unknown';
+    const realIp = req.headers.get('x-real-ip');
+    const ip = forwarded ? forwarded.split(',')[0] : realIp || 'unknown';
     return `auth_limit:${ip}`;
   }
 });
@@ -122,7 +124,8 @@ export const apiRateLimiter = createRateLimiter({
   message: 'Too many API requests. Please try again later.',
   keyGenerator: (req) => {
     const forwarded = req.headers.get('x-forwarded-for');
-    const ip = forwarded ? forwarded.split(',')[0] : req.ip || 'unknown';
+    const realIp = req.headers.get('x-real-ip');
+    const ip = forwarded ? forwarded.split(',')[0] : realIp || 'unknown';
     const userAgent = req.headers.get('user-agent') || '';
     return `api_limit:${ip}:${userAgent.slice(0, 50)}`;
   }
@@ -135,7 +138,8 @@ export const sensitiveRateLimiter = createRateLimiter({
   message: 'Too many sensitive operations. Please try again in an hour.',
   keyGenerator: (req) => {
     const forwarded = req.headers.get('x-forwarded-for');
-    const ip = forwarded ? forwarded.split(',')[0] : req.ip || 'unknown';
+    const realIp = req.headers.get('x-real-ip');
+    const ip = forwarded ? forwarded.split(',')[0] : realIp || 'unknown';
     return `sensitive_limit:${ip}`;
   }
 });
@@ -147,7 +151,8 @@ export const uploadRateLimiter = createRateLimiter({
   message: 'Too many file uploads. Please try again later.',
   keyGenerator: (req) => {
     const forwarded = req.headers.get('x-forwarded-for');
-    const ip = forwarded ? forwarded.split(',')[0] : req.ip || 'unknown';
+    const realIp = req.headers.get('x-real-ip');
+    const ip = forwarded ? forwarded.split(',')[0] : realIp || 'unknown';
     return `upload_limit:${ip}`;
   }
 });
@@ -159,7 +164,8 @@ export const searchRateLimiter = createRateLimiter({
   message: 'Too many search requests. Please try again later.',
   keyGenerator: (req) => {
     const forwarded = req.headers.get('x-forwarded-for');
-    const ip = forwarded ? forwarded.split(',')[0] : req.ip || 'unknown';
+    const realIp = req.headers.get('x-real-ip');
+    const ip = forwarded ? forwarded.split(',')[0] : realIp || 'unknown';
     return `search_limit:${ip}`;
   }
 });

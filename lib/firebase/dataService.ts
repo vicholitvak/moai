@@ -16,6 +16,7 @@ import {
   writeBatch
 } from 'firebase/firestore';
 import { db } from './client';
+import { DeliveryTracking } from '@/lib/services/deliveryTrackingService';
 
 // Types for our data structures
 export interface Dish {
@@ -49,6 +50,7 @@ export interface Dish {
 export interface Cook {
   id: string;
   displayName: string;
+  name?: string; // Optional name field for backwards compatibility
   email: string;
   avatar: string;
   coverImage: string;
@@ -119,6 +121,7 @@ export interface Order {
     quantity: number;
     price: number;
     prepTime?: string;
+    notes?: string;
   }>;
   subtotal: number;
   deliveryFee: number;
@@ -134,6 +137,16 @@ export interface Order {
   };
   deliveryCode: string;
   isDelivered: boolean;
+  paymentId?: string;
+  driverLocation?: {
+    lat: number;
+    lng: number;
+    address?: string;
+  };
+  reviewed?: boolean;
+  cancelledAt?: Timestamp;
+  assignedAt?: Timestamp;
+  deliveredAt?: Timestamp;
   cookerApproval?: {
     approved: boolean;
     approvedAt?: Timestamp;
@@ -219,6 +232,7 @@ export interface Driver {
   };
   workingDays: string[];
   lastLocationUpdate?: Timestamp;
+  distance?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -1228,6 +1242,7 @@ export class OrdersService {
           return { id: cookId, data: cook };
         })),
         Promise.all(driverIds.map(async (driverId) => {
+          if (!driverId) return { id: driverId, data: null };
           const driver = await DriversService.getDriverById(driverId);
           return { id: driverId, data: driver };
         }))
@@ -1240,8 +1255,8 @@ export class OrdersService {
       // Combine orders with detailed info
       return orders.map(order => ({
         ...order,
-        cookInfo: order.cookerId ? cookMap.get(order.cookerId) : undefined,
-        driverInfo: order.driverId ? driverMap.get(order.driverId) : undefined
+        cookInfo: order.cookerId ? cookMap.get(order.cookerId) || undefined : undefined,
+        driverInfo: order.driverId ? driverMap.get(order.driverId) || undefined : undefined
       }));
     } catch (error) {
       console.error('Error getting orders with details:', error);
@@ -1929,3 +1944,6 @@ export class AnalyticsService {
     }
   }
 }
+
+// Re-export DeliveryTracking for convenience
+export type { DeliveryTracking };

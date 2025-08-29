@@ -109,14 +109,14 @@ export function useFormValidation<T extends Record<string, any>>({
   const validateField = useCallback((field: keyof T): boolean => {
     try {
       // Create a partial schema for just this field
-      const fieldSchema = schema.pick({ [field]: true } as any);
+      const fieldSchema = (schema as any).pick({ [field]: true });
       const fieldData = { [field]: data[field] };
       const result = fieldSchema.safeParse(fieldData);
       
       if (!result.success) {
-        const fieldErrors = result.error.errors
-          .filter(err => err.path[0] === field)
-          .map(err => err.message);
+        const fieldErrors = result.error.issues
+          .filter((err: any) => err.path[0] === field)
+          .map((err: any) => err.message);
         
         if (fieldErrors.length > 0) {
           setError(field, fieldErrors[0]);
@@ -126,13 +126,13 @@ export function useFormValidation<T extends Record<string, any>>({
         clearError(field);
         return true;
       }
-    } catch (error) {
+    } catch (error: any) {
       // If schema.pick is not available or fails, validate the whole object
       const result = schema.safeParse(data);
       if (!result.success) {
-        const fieldErrors = result.error.errors
-          .filter(err => err.path[0] === field)
-          .map(err => err.message);
+        const fieldErrors = result.error.issues
+          .filter((err: any) => err.path[0] === field)
+          .map((err: any) => err.message);
         
         if (fieldErrors.length > 0) {
           setError(field, fieldErrors[0]);

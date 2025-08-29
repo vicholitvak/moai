@@ -247,22 +247,23 @@ export class OptimizedDishesService {
     category?: string;
     isAvailable?: boolean;
   }): Query<DocumentData> {
-    let q = collection(db, 'dishes');
+    const collectionRef = collection(db, 'dishes');
+    const constraints: any[] = [];
 
     // Apply filters
     if (options.cookId) {
-      q = query(q, where('cookerId', '==', options.cookId));
+      constraints.push(where('cookerId', '==', options.cookId));
     }
     
     if (options.category) {
-      q = query(q, where('category', '==', options.category));
+      constraints.push(where('category', '==', options.category));
     }
 
     if (options.isAvailable !== undefined) {
-      q = query(q, where('isAvailable', '==', options.isAvailable));
+      constraints.push(where('isAvailable', '==', options.isAvailable));
     }
 
-    return q;
+    return constraints.length > 0 ? query(collectionRef, ...constraints) : query(collectionRef);
   }
 
   // Helper method to build search query
@@ -274,31 +275,29 @@ export class OptimizedDishesService {
       minRating?: number;
     }
   ): Query<DocumentData> {
-    let q = collection(db, 'dishes');
-
-    // Basic filters
-    q = query(q, where('isAvailable', '==', true));
+    const collectionRef = collection(db, 'dishes');
+    const constraints: any[] = [where('isAvailable', '==', true)];
 
     if (options.category) {
-      q = query(q, where('category', '==', options.category));
+      constraints.push(where('category', '==', options.category));
     }
 
     if (options.maxPrice) {
-      q = query(q, where('price', '<=', options.maxPrice));
+      constraints.push(where('price', '<=', options.maxPrice));
     }
 
-    if (options.minRating > 0) {
-      q = query(q, where('rating', '>=', options.minRating));
+    if (options.minRating && options.minRating > 0) {
+      constraints.push(where('rating', '>=', options.minRating));
     }
 
     // Note: Full-text search would need to be implemented differently
     // This is a simplified version using array-contains for tags
     if (searchTerm) {
       const searchTag = searchTerm.toLowerCase();
-      q = query(q, where('tags', 'array-contains', searchTag));
+      constraints.push(where('tags', 'array-contains', searchTag));
     }
 
-    return q;
+    return query(collectionRef, ...constraints);
   }
 
   // Invalidate cache when dish is updated
@@ -435,17 +434,18 @@ export class OptimizedCooksService {
     isActive?: boolean;
     minRating?: number;
   }): Query<DocumentData> {
-    let q = collection(db, 'cooks');
+    const collectionRef = collection(db, 'cooks');
+    const constraints: any[] = [];
 
     if (options.isActive !== undefined) {
-      q = query(q, where('isActive', '==', options.isActive));
+      constraints.push(where('isActive', '==', options.isActive));
     }
 
     if (options.minRating && options.minRating > 0) {
-      q = query(q, where('rating', '>=', options.minRating));
+      constraints.push(where('rating', '>=', options.minRating));
     }
 
-    return q;
+    return constraints.length > 0 ? query(collectionRef, ...constraints) : query(collectionRef);
   }
 
   // Invalidate cache when cook is updated

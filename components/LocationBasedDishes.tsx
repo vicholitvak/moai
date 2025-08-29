@@ -3,13 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Clock, Truck, Star, ChefHat, Heart } from 'lucide-react';
 import { LocationService } from '@/lib/services/locationService';
-import { ChileanCitiesService } from '@/lib/services/chileanCitiesService';
+import { ChileanCitiesService, ChileanCity } from '@/lib/services/chileanCitiesService';
 import { CitySelector } from './CitySelector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dish } from '@/types';
+import { Timestamp } from 'firebase/firestore';
 
 interface LocationBasedDishesProps {
   onDishSelect?: (dish: Dish) => void;
@@ -22,6 +23,7 @@ export function LocationBasedDishes({ onDishSelect, className }: LocationBasedDi
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [selectedCity, setSelectedCity] = useState<ChileanCity | null>(null);
 
   useEffect(() => {
     if (selectedLocation && selectedLocation.lat && selectedLocation.lon) {
@@ -34,7 +36,7 @@ export function LocationBasedDishes({ onDishSelect, className }: LocationBasedDi
       setIsLoading(true);
       setError(null);
       // You may want to update this to use a new service that fetches dishes by lat/lon
-      const cityDishes = await LocationService.getDishesForLatLon(location.lat, location.lon);
+      const cityDishes = await LocationService.getDishesForLocation({ latitude: parseFloat(location.lat), longitude: parseFloat(location.lon), timestamp: Timestamp.now() });
       setDishes(cityDishes);
     } catch (error) {
       console.error('Error loading dishes for location:', error);
@@ -87,7 +89,7 @@ export function LocationBasedDishes({ onDishSelect, className }: LocationBasedDi
   };
 
   // Optionally, you can reverse geocode to get city info for display
-  const selectedCity = null;
+  const selectedCityInfo = null;
 
   return (
     <div className={className}>
@@ -174,7 +176,7 @@ export function LocationBasedDishes({ onDishSelect, className }: LocationBasedDi
           <h3 className="text-lg font-semibold mb-2">Error al cargar platos</h3>
           <p className="text-muted-foreground">{error}</p>
           <Button
-            onClick={() => loadDishesForCity(selectedCityId)}
+            onClick={() => selectedLocation && loadDishesForLocation(selectedLocation)}
             className="mt-4"
           >
             Reintentar
@@ -219,7 +221,7 @@ export function LocationBasedDishes({ onDishSelect, className }: LocationBasedDi
                     }`}
                   />
                 </Button>
-                {dish.isAvailable && (
+                {dish.availability && (
                   <Badge className="absolute top-2 left-2 bg-green-500">
                     Disponible
                   </Badge>

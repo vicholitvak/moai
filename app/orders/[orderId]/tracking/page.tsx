@@ -163,7 +163,7 @@ export default function OrderTrackingPage({}: OrderTrackingPageProps) {
       return deliveryTracking.totalEstimatedTime;
     }
     if (order?.estimatedDeliveryTime) {
-      return new Date(order.estimatedDeliveryTime).toLocaleTimeString('es-CL', {
+      return order.estimatedDeliveryTime.toDate().toLocaleTimeString('es-CL', {
         hour: '2-digit',
         minute: '2-digit'
       });
@@ -182,7 +182,7 @@ export default function OrderTrackingPage({}: OrderTrackingPageProps) {
       case 'preparing':
         return cook?.displayName ? `${cook.displayName} está preparando tu pedido` : 'Tu pedido se está preparando';
       case 'ready':
-        return order.selfDelivery ? 'Listo para recoger' : 'Buscando conductor para la entrega';
+        return order.isSelfDelivery ? 'Listo para recoger' : 'Buscando conductor para la entrega';
       case 'delivering':
         return driver?.displayName ? `${driver.displayName} está en camino` : 'Tu pedido está en camino';
       case 'delivered':
@@ -487,7 +487,7 @@ export default function OrderTrackingPage({}: OrderTrackingPageProps) {
                 )}
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span>Pedido realizado: {new Date(order.createdAt).toLocaleString('es-CL')}</span>
+                  <span>Pedido realizado: {order.createdAt.toDate().toLocaleString('es-CL')}</span>
                 </div>
               </CardContent>
             </Card>

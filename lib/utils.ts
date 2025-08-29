@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
-export function cn(...inputs: ClassValue[]) {
+export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs))
 }
 
@@ -25,10 +25,10 @@ export function parsePreparationTime(prepTime: string): number {
   const timeStr = prepTime.toLowerCase();
   
   if (timeStr.includes('hour')) {
-    const hours = parseFloat(timeStr.match(/(\d+(?:\.\d+)?)/)?.[1] || '1');
+    const hours = parseFloat(timeStr.match(/(\d+(?:\.\d+)?)/)?.[1] ?? '1');
     return hours * 60;
   } else if (timeStr.includes('min')) {
-    return parseInt(timeStr.match(/(\d+)/)?.[1] || '30');
+    return parseInt(timeStr.match(/(\d+)/)?.[1] ?? '30');
   }
   
   // Default fallback

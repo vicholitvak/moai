@@ -1,6 +1,6 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
-import * as cors from 'cors';
+import cors from 'cors';
 
 const corsHandler = cors({ origin: true });
 
@@ -100,7 +100,7 @@ export const sendNotification = functions.https.onRequest((req, res) => {
         messageId: response 
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending notification:', error);
       
       // Handle invalid token

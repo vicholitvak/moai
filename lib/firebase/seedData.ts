@@ -274,7 +274,11 @@ export const seedOrders: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>[] = [
       phone: '+56912345678',
       instructions: 'Departamento 501, tocar timbre'
     },
-    orderTime: Timestamp.now()
+    orderTime: Timestamp.now(),
+    paymentMethod: 'card' as const,
+    paymentStatus: 'paid' as const,
+    deliveryCode: '1234',
+    isDelivered: false
   },
   {
     customerId: 'customer-2',
@@ -292,7 +296,11 @@ export const seedOrders: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>[] = [
       address: 'Los Leones 1456, Las Condes',
       phone: '+56987654321'
     },
-    orderTime: Timestamp.now()
+    orderTime: Timestamp.now(),
+    paymentMethod: 'cash_on_delivery' as const,
+    paymentStatus: 'pending' as const,
+    deliveryCode: '5678',
+    isDelivered: false
   }
 ];
 

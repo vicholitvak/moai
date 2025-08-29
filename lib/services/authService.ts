@@ -1,6 +1,6 @@
 'use client';
 
-import { auth, db } from '@/lib/firebase/client';
+import { db } from '@/lib/firebase/client';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 
@@ -72,12 +72,12 @@ class AuthService {
       
       return {
         uid: user.uid,
-        email: user.email || '',
-        displayName: userData.displayName || user.displayName || '',
-        role: userData.role || 'customer',
+        email: user.email ?? '',
+        displayName: userData.displayName ?? user.displayName ?? '',
+        role: userData.role ?? 'customer',
         isAdmin,
-        permissions: userData.permissions || [],
-        createdAt: userData.createdAt?.toDate() || new Date(),
+        permissions: userData.permissions ?? [],
+        createdAt: userData.createdAt?.toDate() ?? new Date(),
         lastLogin: new Date()
       };
     } catch (error) {

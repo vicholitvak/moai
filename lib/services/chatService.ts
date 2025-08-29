@@ -28,6 +28,12 @@ export interface ChatMessage {
     orderId?: string;
     location?: { lat: number; lng: number; address: string };
     imageUrl?: string;
+    type?: string;
+    estimatedPrepTime?: number;
+    estimatedDeliveryTime?: string;
+    rejectionReason?: string;
+    priority?: string;
+    [key: string]: any; // Allow additional properties
   };
   readBy: string[]; // Array of user IDs who have read this message
   edited?: boolean;

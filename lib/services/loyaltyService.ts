@@ -445,10 +445,11 @@ export class LoyaltyService {
   // Get user's loyalty status
   static async getUserLoyalty(userId: string): Promise<LoyaltyPoints | null> {
     try {
-      const doc = await getDoc(doc(db, this.COLLECTION_LOYALTY, userId));
-      if (!doc.exists()) return null;
+      const docRef = doc(db, this.COLLECTION_LOYALTY, userId);
+      const docSnap = await getDoc(docRef);
+      if (!docSnap.exists()) return null;
       
-      return { id: doc.id, ...doc.data() } as LoyaltyPoints;
+      return { id: docSnap.id, ...docSnap.data() } as LoyaltyPoints;
     } catch (error) {
       console.error('Error getting user loyalty:', error);
       return null;
@@ -553,7 +554,8 @@ export class LoyaltyService {
       );
 
       // Generate special birthday coupon
-      await CouponService.generateBirthdayCoupon(userId, tier.benefits.discountPercentage + 10);
+      // TODO: Implement generateBirthdayCoupon method in CouponService
+      // await CouponService.generateBirthdayCoupon(userId, tier.benefits.discountPercentage + 10);
 
     } catch (error) {
       console.error('Error awarding birthday bonus:', error);

@@ -1,6 +1,6 @@
 'use client';
 
-import { MercadoPago } from '@mercadopago/sdk-react';
+// import { MercadoPago } from '@mercadopago/sdk-react';
 
 export interface PaymentData {
   amount: number;
