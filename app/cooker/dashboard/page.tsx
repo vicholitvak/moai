@@ -32,7 +32,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ThemeToggle } from '@/components/ui/theme-toggle';
+
 import EditDishModal from '@/components/EditDishModal';
 import CookerSettingsModal from '@/components/CookerSettingsModal';
 import { AddDishModal } from '@/components/AddDishModal';
@@ -478,10 +478,10 @@ export default function CookerDashboard() {
           <span>Total</span>
         </div>
         <div className="flex gap-2 mb-3">
-          <Button 
-            variant={dish.isAvailable ? "default" : "outline"}
-            size="sm" 
-            className="flex-1"
+          <Button
+            variant="secondary"
+            size="sm"
+            className={`flex-1 font-semibold text-white ${dish.isAvailable ? 'bg-orange-500 hover:bg-orange-600' : 'bg-orange-300 hover:bg-orange-400'} border-none`}
             onClick={() => onToggleAvailability(dish.id, !dish.isAvailable)}
           >
             {dish.isAvailable ? (
@@ -499,15 +499,19 @@ export default function CookerDashboard() {
         </div>
         <div className="flex gap-2">
           <Button 
-            variant="outline" 
+            variant="secondary" 
             size="sm" 
-            className="flex-1"
+            className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-300"
             onClick={() => onEdit(dish)}
           >
             <Edit className="h-4 w-4 mr-1" />
             Editar
           </Button>
-          <Button variant="outline" size="sm" className="flex-1">
+          <Button 
+            variant="secondary" 
+            size="sm" 
+            className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-300"
+          >
             <Eye className="h-4 w-4 mr-1" />
             Ver
           </Button>
@@ -729,7 +733,7 @@ export default function CookerDashboard() {
                 <Settings className="h-4 w-4 mr-2" />
                 <span className="hidden lg:inline">Configuración</span>
               </Button>
-              <ThemeToggle />
+
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -1162,15 +1166,17 @@ export default function CookerDashboard() {
       </div>
 
       {/* Edit Dish Modal */}
-      <EditDishModal
-        dish={editingDish}
-        isOpen={isEditModalOpen}
-        onClose={() => {
-          setIsEditModalOpen(false);
-          setEditingDish(null);
-        }}
-        onSave={handleSaveDish}
-      />
+      {editingDish && (
+        <EditDishModal
+          dish={editingDish}
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setEditingDish(null);
+          }}
+          onSave={handleSaveDish}
+        />
+      )}
 
       {/* Settings Modal */}
       <CookerSettingsModal
@@ -1179,7 +1185,7 @@ export default function CookerDashboard() {
         onSave={async (settings: Record<string, unknown>) => {
           try {
             // Update cook profile with new settings
-            await CooksService.updateCook(user?.uid || '', {
+            await CooksService.updateCookProfile(user?.uid || '', {
               displayName: settings.displayName,
               bio: settings.bio,
               avatar: settings.avatar,

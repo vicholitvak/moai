@@ -5,7 +5,7 @@ import { Star, ThumbsUp, User, Calendar, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { Review } from '@/types';
 import { ReviewsService } from '@/lib/firebase/dataService';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

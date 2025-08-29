@@ -1403,7 +1403,11 @@ export class DriversService {
         ...doc.data()
       } as Driver));
     } catch (error) {
-      console.error('Error fetching drivers:', error);
+      console.error('Error fetching drivers:', error instanceof Error ? error.message : String(error));
+      console.error('Error details:', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
       return [];
     }
   }
@@ -1421,7 +1425,12 @@ export class DriversService {
       }
       return null;
     } catch (error) {
-      console.error('Error fetching driver:', error);
+      console.error('Error fetching driver:', error instanceof Error ? error.message : String(error));
+      console.error('Error details:', {
+        error: error instanceof Error ? error.message : String(error),
+        driverId,
+        stack: error instanceof Error ? error.stack : undefined
+      });
       return null;
     }
   }
@@ -1445,10 +1454,10 @@ export class DriversService {
       console.log('Driver profile updated successfully');
       return true;
     } catch (error) {
-      console.error('Error updating driver profile:', error);
+      console.error('Error updating driver profile:', error instanceof Error ? error.message : String(error));
       console.error('Error details:', {
-        code: (error as any).code,
-        message: (error as any).message,
+        code: (error as any)?.code || 'Unknown',
+        message: error instanceof Error ? error.message : String(error),
         driverId,
         updates
       });
@@ -1482,12 +1491,13 @@ export class DriversService {
         return docRef.id;
       }
     } catch (error) {
-      console.error('Error creating driver profile:', error);
+      console.error('Error creating driver profile:', error instanceof Error ? error.message : String(error));
       console.error('Error details:', {
-        code: (error as any).code,
-        message: (error as any).message,
+        error: error instanceof Error ? error.message : String(error),
+        code: (error as any)?.code || 'Unknown',
         driverId,
-        dataKeys: Object.keys(driverData)
+        dataKeys: Object.keys(driverData),
+        stack: error instanceof Error ? error.stack : undefined
       });
       return null;
     }
@@ -1498,7 +1508,12 @@ export class DriversService {
       await deleteDoc(doc(db, this.collection, driverId));
       return true;
     } catch (error) {
-      console.error('Error deleting driver:', error);
+      console.error('Error deleting driver:', error instanceof Error ? error.message : String(error));
+      console.error('Error details:', {
+        error: error instanceof Error ? error.message : String(error),
+        driverId,
+        stack: error instanceof Error ? error.stack : undefined
+      });
       return false;
     }
   }

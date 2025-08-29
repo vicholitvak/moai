@@ -46,7 +46,7 @@ import { SearchService, type SearchFilters, type SearchResult } from '@/lib/serv
 import { LocationService } from '@/lib/services/locationService';
 import { formatPrice } from '@/lib/utils';
 import { toast } from 'sonner';
-import { debounce } from 'lodash';
+import debounce from 'lodash/debounce';
 
 interface AdvancedSearchProps {
   onResultsChange?: (results: SearchResult) => void;

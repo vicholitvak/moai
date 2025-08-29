@@ -90,7 +90,7 @@ const Testimonials = () => {
   return (
     <section className="py-20 bg-moai-beige">
       <div className="container mx-auto text-center">
-        <motion.h2 initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} transition={{ duration: 0.5 }} viewport={{ once: true }} className="text-4xl font-bold mb-12">What Our Community is Saying</motion.h2>
+        <motion.h2 initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} transition={{ duration: 0.5 }} viewport={{ once: true }} className="text-4xl font-bold mb-12">Qué Dice la Gente</motion.h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {testimonialsData.map((testimonial, index) => (
             <TestimonialCard key={index} testimonial={testimonial} />

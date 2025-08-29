@@ -277,8 +277,8 @@ export class PerformanceService {
   // Optimización de bundle
   static async lazyLoadComponent(importFn: () => Promise<any>) {
     try {
-      const module = await importFn();
-      return module.default || module;
+      const componentModule = await importFn();
+      return componentModule.default || componentModule;
     } catch (error) {
       console.error('Error lazy loading component:', error);
       return null;
@@ -325,6 +325,9 @@ export class PerformanceService {
         return;
       }
 
+      const cleanMetadata = metadata && typeof metadata === 'object'
+        ? Object.fromEntries(Object.entries(metadata).filter(([_, v]) => v !== undefined))
+        : undefined;
       const metric: PerformanceMetric = {
         type: 'page_load',
         name: pageName,
@@ -332,7 +335,7 @@ export class PerformanceService {
         timestamp: Timestamp.now(),
         sessionId: this.sessionId || this.generateSessionId(),
         userAgent: navigator.userAgent,
-        metadata
+        ...(cleanMetadata ? { metadata: cleanMetadata } : {})
       };
 
       await addDoc(collection(db, 'performanceMetrics'), metric);
@@ -379,6 +382,11 @@ export class PerformanceService {
   // Track search performance
   static async trackSearchPerformance(query: string, duration: number, resultsCount: number): Promise<void> {
     try {
+      const metadata = {
+        query,
+        resultsCount
+      };
+      const cleanMetadata = Object.fromEntries(Object.entries(metadata).filter(([_, v]) => v !== undefined));
       const metric: PerformanceMetric = {
         type: 'search',
         name: 'search_execution',
@@ -386,10 +394,7 @@ export class PerformanceService {
         timestamp: Timestamp.now(),
         sessionId: this.sessionId || this.generateSessionId(),
         userAgent: navigator.userAgent,
-        metadata: {
-          query,
-          resultsCount
-        }
+        ...(Object.keys(cleanMetadata).length ? { metadata: cleanMetadata } : {})
       };
 
       await addDoc(collection(db, 'performanceMetrics'), metric);
@@ -421,6 +426,9 @@ export class PerformanceService {
   // Track user interaction performance
   static async trackInteraction(actionName: string, duration: number, metadata?: Record<string, unknown>): Promise<void> {
     try {
+      const cleanMetadata = metadata && typeof metadata === 'object'
+        ? Object.fromEntries(Object.entries(metadata).filter(([_, v]) => v !== undefined))
+        : undefined;
       const metric: PerformanceMetric = {
         type: 'interaction',
         name: actionName,
@@ -428,7 +436,7 @@ export class PerformanceService {
         timestamp: Timestamp.now(),
         sessionId: this.sessionId || this.generateSessionId(),
         userAgent: navigator.userAgent,
-        metadata
+        ...(cleanMetadata ? { metadata: cleanMetadata } : {})
       };
 
       await addDoc(collection(db, 'performanceMetrics'), metric);
@@ -510,16 +518,16 @@ export class PerformanceService {
               const navEntry = entry as PerformanceNavigationTiming;
               
               // Validate navigation timing values
-              if (navEntry.loadEventEnd && navEntry.navigationStart && 
-                  navEntry.loadEventEnd > navEntry.navigationStart) {
+              if (navEntry.loadEventEnd && navEntry.startTime && 
+                  navEntry.loadEventEnd > navEntry.startTime) {
                 
-                const loadTime = navEntry.loadEventEnd - navEntry.navigationStart;
-                const domContentLoaded = navEntry.domContentLoadedEventEnd && navEntry.navigationStart ? 
-                  navEntry.domContentLoadedEventEnd - navEntry.navigationStart : undefined;
-                const firstPaint = navEntry.responseEnd && navEntry.navigationStart ? 
-                  navEntry.responseEnd - navEntry.navigationStart : undefined;
-                const domComplete = navEntry.domComplete && navEntry.navigationStart ? 
-                  navEntry.domComplete - navEntry.navigationStart : undefined;
+                const loadTime = navEntry.loadEventEnd - navEntry.startTime;
+                const domContentLoaded = navEntry.domContentLoadedEventEnd && navEntry.startTime ? 
+                  navEntry.domContentLoadedEventEnd - navEntry.startTime : undefined;
+                const firstPaint = navEntry.responseEnd && navEntry.startTime ? 
+                  navEntry.responseEnd - navEntry.startTime : undefined;
+                const domComplete = navEntry.domComplete && navEntry.startTime ? 
+                  navEntry.domComplete - navEntry.startTime : undefined;
                 
                 this.trackPageLoad(
                   window.location.pathname,
@@ -647,7 +655,18 @@ export class PerformanceService {
       );
 
       const aggregatesSnapshot = await getDocs(aggregatesQuery);
-      const aggregates = aggregatesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const aggregates = aggregatesSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          type: data.type || '',
+          name: data.name || '',
+          count: data.count || 0,
+          averageDuration: data.averageDuration || 0,
+          errorRate: data.errorRate || 0,
+          ...data
+        };
+      });
 
       // Calculate overview metrics
       const pageLoadMetrics = aggregates.filter(a => a.type === 'page_load');
@@ -661,7 +680,7 @@ export class PerformanceService {
       };
 
       // Group page performance
-      const pagePerformance: { [page: string]: { avgLoadTime: number; count: number; } } = {};
+      const pagePerformance: { [page: string]: { averageLoadTime: number; samples: number; p95: number; } } = {};
       pageLoadMetrics.forEach(metric => {
         if (!pagePerformance[metric.name]) {
           pagePerformance[metric.name] = {

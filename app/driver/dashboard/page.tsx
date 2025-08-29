@@ -1,4 +1,5 @@
 'use client';
+'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -10,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ThemeToggle } from '@/components/ui/theme-toggle';
+
 import { toast } from 'sonner';
 import { 
   MapPin, 
@@ -122,7 +123,8 @@ export default function DriverDashboard() {
   const [isOnline, setIsOnline] = useState(false);
   const [isTogglingStatus, setIsTogglingStatus] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<string>('Ubicación no disponible');
-  const [cooksMap, setCooksMap] = useState<Map<string, Cook>>(new Map<string, Cook>());
+  const [driverCoords, setDriverCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [cooksMap, setCooksMap] = useState<Map<string, Cook>>(new Map());
   const [dishesMap, setDishesMap] = useState<Map<string, Dish>>(new Map<string, Dish>());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -131,10 +133,21 @@ export default function DriverDashboard() {
   const [idleTracking, setIdleTracking] = useState<{ stop: () => void } | null>(null);
   const [locationWatchId, setLocationWatchId] = useState<number | null>(null);
 
+  // Get real driver location on mount and when user changes
   useEffect(() => {
-    if (user) {
-      loadDriverData();
+    if (!user) return;
+    const geoSuccess = (position: GeolocationPosition) => {
+      setDriverCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
+      setCurrentLocation(`${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`);
+    };
+    const geoError = (err: GeolocationPositionError) => {
+      setCurrentLocation('Ubicación no disponible');
+      setDriverCoords(null);
+    };
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(geoSuccess, geoError, { enableHighAccuracy: true, timeout: 10000 });
     }
+    loadDriverData();
   }, [user]);
 
   // Cleanup idle tracking when component unmounts
@@ -739,18 +752,17 @@ export default function DriverDashboard() {
       toast.error('No hay órdenes disponibles para optimizar');
       return;
     }
-
+    if (!driverCoords) {
+      toast.error('Ubicación del conductor no disponible');
+      return;
+    }
     setIsOptimizingRoute(true);
     try {
-      // Get current location (simulate for now)
-      const driverLocation = { lat: -33.4489, lng: -70.6693 }; // Santiago center
-      
       const route = await RouteOptimizationService.optimizeRoute(
         availableOrders,
-        driverLocation,
+        driverCoords,
         routeOptions
       );
-      
       setOptimizedRoute(route);
       toast.success(`Ruta optimizada para ${route.points.length} entregas`);
     } catch (error) {
@@ -877,7 +889,9 @@ export default function DriverDashboard() {
                 onClick={handleToggleOnlineStatus}
                 disabled={isTogglingStatus}
                 variant={isOnline ? "destructive" : "default"}
-                className={`${isOnline ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 hover:bg-gray-700'}`}
+                className={`font-semibold focus:ring-2 focus:ring-orange-500 focus:outline-none ${isOnline ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 hover:bg-gray-700'} text-white`}
+                aria-pressed={isOnline}
+                aria-label={isOnline ? 'Cambiar a fuera de línea' : 'Cambiar a en línea'}
               >
                 {isTogglingStatus ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -888,7 +902,7 @@ export default function DriverDashboard() {
               </Button>
               
               {/* Theme Toggle */}
-              <ThemeToggle />
+
               
               {/* User Avatar */}
               <Avatar>
@@ -962,7 +976,7 @@ export default function DriverDashboard() {
                 </div>
                 <DeliveryGuidanceFlow
                   order={activeDeliveryOrder}
-                  cook={cooksMap.get(activeDeliveryOrder.cookerId)}
+                  cook={activeDeliveryOrder ? cooksMap.get((activeDeliveryOrder as Order).cookerId) : undefined}
                   onStatusUpdate={handleStatusUpdate}
                   onStartNavigation={handleNavigateToAddress}
                   onCallCustomer={handleCallCustomer}
@@ -981,10 +995,10 @@ export default function DriverDashboard() {
                       </div>
                       <div>
                         <h3 className="font-semibold text-blue-900">
-                          Tienes una entrega activa - Pedido #{activeDeliveryOrder.id.slice(-8)}
+                          Tienes una entrega activa - Pedido #{activeDeliveryOrder ? (activeDeliveryOrder as Order).id.slice(-8) : ''}
                         </h3>
                         <p className="text-sm text-blue-700">
-                          Estado: {getStatusText(activeDeliveryOrder.status)} • Cliente: {activeDeliveryOrder.customerName}
+                          Estado: {activeDeliveryOrder ? getStatusText((activeDeliveryOrder as Order).status) : ''} • Cliente: {activeDeliveryOrder ? (activeDeliveryOrder as Order).customerName : ''}
                         </p>
                       </div>
                     </div>
@@ -1572,7 +1586,7 @@ export default function DriverDashboard() {
                   ) : (
                     <div className="space-y-3 max-h-80 overflow-y-auto">
                       {availableOrders.map((order) => {
-                        const cook = cooksMap[order.cookerId];
+                        const cook = cooksMap.get(order.cookerId);
                         return (
                           <div key={order.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                             <div className="flex items-center space-x-3">
@@ -1580,9 +1594,11 @@ export default function DriverDashboard() {
                                 <Package className="h-4 w-4 text-orange-600" />
                               </div>
                               <div>
-                                <h4 className="font-medium text-sm">#{order.id.slice(-8)}</h4>
+                                <h4 className="font-medium text-sm truncate">
+                                  #{order.id.slice(-8)}
+                                </h4>
                                 <p className="text-xs text-gray-500">
-                                  {cook ? cook.businessName : 'Cocinero'} • {order.customerName}
+                                  {cook ? cook.displayName : 'Cocinero'} • {order.customerName}
                                 </p>
                               </div>
                             </div>
@@ -1727,7 +1743,7 @@ export default function DriverDashboard() {
                     <h4 className="font-medium text-gray-900">Secuencia de Entregas:</h4>
                     {optimizedRoute.points.map((point, index) => {
                       const order = availableOrders.find(o => o.id === point.orderId);
-                      const cook = order ? cooksMap[order.cookerId] : null;
+                      const cook = order ? cooksMap.get(order.cookerId) : null;
                       
                       return (
                         <div key={point.id} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
@@ -1741,7 +1757,7 @@ export default function DriverDashboard() {
                                   Pedido #{point.orderId.slice(-8)}
                                 </h5>
                                 <p className="text-xs text-gray-500">
-                                  {cook ? cook.businessName : 'Cocinero'} → {point.customerName}
+                                  {cook ? cook.displayName : 'Cocinero'} → {point.customerName}
                                 </p>
                               </div>
                               <div className="text-right">
@@ -1924,8 +1940,7 @@ export default function DriverDashboard() {
             {/* Orders List */}
             <div className="grid gap-4">
               {(() => {
-                let filteredOrders = [];
-                
+                let filteredOrders: Order[] = [];
                 if (orderFilter === 'available') {
                   filteredOrders = availableOrders;
                 } else if (orderFilter === 'active') {
@@ -1960,9 +1975,9 @@ export default function DriverDashboard() {
                   );
                 }
 
-                return filteredOrders.map((order) => {
-                  const cook = cooksMap[order.cookerId];
-                  const totalItems = order.dishes.reduce((sum, dish) => sum + dish.quantity, 0);
+                return filteredOrders.map((order: Order) => {
+                  const cook = cooksMap.get(order.cookerId);
+                  const totalItems = order.dishes.reduce((sum: number, dish: { quantity: number }) => sum + dish.quantity, 0);
                   
                   return (
                     <Card key={order.id} className="hover:shadow-md transition-shadow">
@@ -1980,7 +1995,7 @@ export default function DriverDashboard() {
                                     Pedido #{order.id.slice(-8)}
                                   </h3>
                                   <p className="text-sm text-gray-500">
-                                    {cook ? cook.businessName : 'Cocinero desconocido'}
+                                    {cook ? cook.displayName : 'Cocinero desconocido'}
                                   </p>
                                 </div>
                               </div>
@@ -2064,7 +2079,7 @@ export default function DriverDashboard() {
                               {orderFilter === 'active' && order.status === 'preparing' && (
                                 <div className="flex flex-col gap-1">
                                   <Badge variant="outline" className="text-blue-600 border-blue-300">
-                                    Preparando ({order.estimatedReadyTime || 'Calculando...'})
+                                    Preparando
                                   </Badge>
                                   <p className="text-xs text-muted-foreground">
                                     El cocinero está preparando el pedido

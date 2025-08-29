@@ -55,7 +55,8 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
   const [addToCartSuccess, setAddToCartSuccess] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
 
-  const fetchDishData = async () => {
+  useEffect(() => {
+    const fetchDishData = async () => {
       try {
         setLoading(true);
         setError(null);

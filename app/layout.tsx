@@ -13,6 +13,7 @@ import ChatNotificationHandler from '../components/ChatNotificationHandler';
 import { ThemeScript } from './theme-script';
 import { SupportButton } from '../components/support/SupportButton';
 import ServiceWorkerRegistration from '../components/ServiceWorkerRegistration';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -44,21 +45,23 @@ export default function RootLayout({
         <ThemeScript />
       </head>
       <body className={inter.className} suppressHydrationWarning>
-        <ThemeProvider>
-          <AuthProvider>
-            <UserProfileProvider>
-              <CartProvider>
-                <ServiceWorkerRegistration />
-                <NotificationInitializer />
-                <ChatNotificationHandler />
-                <AuthHandler>{children}</AuthHandler>
-                <FloatingChatButton />
-                <SupportButton />
-                <Toaster />
-              </CartProvider>
-            </UserProfileProvider>
-          </AuthProvider>
-        </ThemeProvider>
+        <ErrorBoundary>
+          <ThemeProvider>
+            <AuthProvider>
+              <UserProfileProvider>
+                <CartProvider>
+                  <ServiceWorkerRegistration />
+                  <NotificationInitializer />
+                  <ChatNotificationHandler />
+                  <AuthHandler>{children}</AuthHandler>
+                  <FloatingChatButton />
+                  <SupportButton />
+                  <Toaster />
+                </CartProvider>
+              </UserProfileProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

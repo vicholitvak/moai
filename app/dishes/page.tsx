@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
@@ -30,7 +30,20 @@ import {
   RefreshCw,
   Truck,
   Sparkles,
-  TrendingUp
+  TrendingUp,
+  Filter,
+  X,
+  ChevronDown,
+  Zap,
+  Flame,
+  Leaf,
+  Shield,
+  Award,
+  Users,
+  Calendar,
+  DollarSign,
+  SortAsc,
+  SortDesc
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,16 +51,50 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { formatPrice } from '@/lib/utils';
-// import RoleSwitcher from '@/components/RoleSwitcher'; // Removed for testing
+import { CitySelector } from '@/components/CitySelector';
+import { LocationService } from '@/lib/services/locationService';
+import { ChileanCitiesService } from '@/lib/services/chileanCitiesService';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Slider } from '@/components/ui/slider';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 
-// Categories for filtering
+// Enhanced categories with icons and colors
 const categories = [
-  'All', 
-  'Italiana', 'Mexicana', 'Japonesa', 'India', 'Americana', 'Francesa', 'China', 'Tailandesa', 'Mediterránea', 
-  'Vegana', 'Saludable', 'Acompañamientos', 'Para Tomar'
+  { id: 'All', name: 'Todos', icon: Utensils, color: 'bg-slate-500' },
+  { id: 'Italiana', name: 'Italiana', icon: ChefHat, color: 'bg-red-500' },
+  { id: 'Mexicana', name: 'Mexicana', icon: Flame, color: 'bg-orange-500' },
+  { id: 'Japonesa', name: 'Japonesa', icon: Award, color: 'bg-pink-500' },
+  { id: 'India', name: 'India', icon: Sparkles, color: 'bg-yellow-500' },
+  { id: 'Americana', name: 'Americana', icon: Star, color: 'bg-blue-500' },
+  { id: 'Francesa', name: 'Francesa', icon: Users, color: 'bg-purple-500' },
+  { id: 'China', name: 'China', icon: Shield, color: 'bg-green-500' },
+  { id: 'Tailandesa', name: 'Tailandesa', icon: TrendingUp, color: 'bg-teal-500' },
+  { id: 'Mediterránea', name: 'Mediterránea', icon: Leaf, color: 'bg-emerald-500' },
+  { id: 'Vegana', name: 'Vegana', icon: Leaf, color: 'bg-green-600' },
+  { id: 'Saludable', name: 'Saludable', icon: Sparkles, color: 'bg-blue-600' },
+  { id: 'Acompañamientos', name: 'Acompañamientos', icon: Utensils, color: 'bg-slate-600' },
+  { id: 'Para Tomar', name: 'Para Tomar', icon: Calendar, color: 'bg-indigo-500' }
 ];
 
-// Using DishWithBadges from SmartBadgeService instead
+// Dietary preferences
+const dietaryOptions = [
+  { id: 'vegan', label: 'Vegano', icon: Leaf },
+  { id: 'healthy', label: 'Saludable', icon: Sparkles },
+  { id: 'gluten-free', label: 'Sin Gluten', icon: Shield },
+  { id: 'spicy', label: 'Picante', icon: Flame },
+  { id: 'organic', label: 'Orgánico', icon: Award }
+];
+
+// Sort options
+const sortOptions = [
+  { value: 'rating', label: 'Mejor Calificado', icon: Star },
+  { value: 'price-low', label: 'Precio: Menor a Mayor', icon: SortAsc },
+  { value: 'price-high', label: 'Precio: Mayor a Menor', icon: SortDesc },
+  { value: 'distance', label: 'Más Cercano', icon: MapPin },
+  { value: 'time', label: 'Tiempo de Preparación', icon: Clock },
+  { value: 'popularity', label: 'Más Popular', icon: TrendingUp }
+];
 
 const ClientDishesPage = () => {
   const router = useRouter();
@@ -58,11 +105,19 @@ const ClientDishesPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [sortBy, setSortBy] = useState('rating');
-  const [viewMode, setViewMode] = useState('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  
+  // Enhanced filtering state
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000]);
+  const [selectedDietary, setSelectedDietary] = useState<string[]>([]);
+  const [minRating, setMinRating] = useState(0);
+  const [maxPrepTime, setMaxPrepTime] = useState(120);
+  const [showOnlyAvailable, setShowOnlyAvailable] = useState(true);
+  const [showOnlySelfDelivery, setShowOnlySelfDelivery] = useState(false);
   
   // Simple pagination state
   const [hasMoreDishes, setHasMoreDishes] = useState(false);
@@ -72,7 +127,12 @@ const ClientDishesPage = () => {
   const [timeOfDay, setTimeOfDay] = useState<'desayuno' | 'almuerzo' | 'cena' | 'bajón'>('almuerzo');
   const [recommendations, setRecommendations] = useState<any>(null);
   const [dishCounts, setDishCounts] = useState<{ [key: string]: number }>({});
-  const [showRecommendations, setShowRecommendations] = useState(false);
+  const [showRecommendations, setShowRecommendations] = useState(true);
+
+  // Location-based state
+  const [selectedCityId, setSelectedCityId] = useState<string>('');
+  const [locationBasedDishes, setLocationBasedDishes] = useState<any[]>([]);
+  const [useLocationFilter, setUseLocationFilter] = useState(false);
 
   // Initialize intelligent features
   useEffect(() => {
@@ -103,21 +163,20 @@ const ClientDishesPage = () => {
     }
   }, [dishes, timeOfDay, user]);
 
-  // Add refresh functionality - check for data changes periodically or on window focus
+  // Add refresh functionality
   useEffect(() => {
     const handleFocus = () => {
-      // Refresh data when user returns to the tab
       fetchDishes();
     };
 
     window.addEventListener('focus', handleFocus);
     
-    // Also refresh every 2 minutes to catch any updates
+    // Refresh every 3 minutes
     const interval = setInterval(() => {
       if (!loading && !refreshing) {
         fetchDishes(true);
       }
-    }, 120000);
+    }, 180000);
 
     return () => {
       window.removeEventListener('focus', handleFocus);
@@ -132,76 +191,108 @@ const ClientDishesPage = () => {
       } else {
         setLoading(true);
       }
-      
+
       console.log('Fetching dishes...');
-      
-      // Use optimized service (simplified without pagination)
-      const dishesResult = await OptimizedDishesService.getDishes({
-        pageSize,
-        useCache: !isRefresh // Skip cache on manual refresh
-      });
-      
-      // Get cooks data (this could also be optimized)
-      const cooksData = await CooksService.getAllCooks();
-      const cooksMap = new Map(cooksData.map(cook => [cook.id, cook]));
-      
-      console.log('Number of cooks found:', cooksData.length);
-      
-      // Combine dish data with cook information
-      const dishesWithCookInfo: DishWithBadges[] = dishesResult.data
-        .map(dish => {
-          const cook = cooksMap.get(dish.cookerId);
-          return {
+
+      let dishesResult;
+
+      // Use location-based filtering if a city is selected
+      if (selectedCityId && useLocationFilter) {
+        console.log('Fetching dishes for city:', selectedCityId);
+        const locationDishes = await LocationService.getDishesForChileanCity(selectedCityId);
+        setLocationBasedDishes(locationDishes);
+
+        // Convert to DishWithBadges format
+        dishesResult = {
+          data: locationDishes.map(dish => ({
             ...dish,
-            cookerName: cook?.displayName || 'Cocinero Desconocido',
-            cookerAvatar: cook?.avatar || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNSAxNUMzMC41MjI5IDE1IDM1IDEwLjUyMjkgMzUgNUMzNSAyLjc5MDg2IDMzLjIwOTEgMSAzMSAxSDIwQzE3LjI5MDkgMSAxNS40NjA5IDIuNzkwODYgMTUgNUMxNSAxMC41MjI5IDE5LjQ3NzEgMTUgMjUgMTVaIiBmaWxsPSIjOUI5QkEzIi8+CjxwYXRoIGQ9Ik0xMCAzNUMxMCAyNi43MTU3IDE2LjcxNTcgMjAgMjUgMjBDMzMuMjg0MyAyMCA0MCAyNi43MTU3IDQwIDM1VjQ1SDBWMzVaIiBmaWxsPSIjOUI5QkEzIi8+Cjwvc3ZnPgo=',
-            cookerRating: cook?.rating || 4.0,
-            distance: cook?.distance || 'Nearby',
-            cookerSelfDelivery: cook?.settings?.selfDelivery || false,
+            cookerName: dish.cookerName || 'Cocinero Local',
+            cookerAvatar: dish.cookerAvatar || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNSAxNUMzMC41MjI5IDE1IDM1IDEwLjUyMjkgMzUgNUMzNSAyLjc5MDg2IDMzLjIwOTEgMSAzMSAxSDIwQzE3LjI5MDkgMSAxNS40NjA5IDIuNzkwODYgMTUgNUMxNSAxMC41MjI5IDE5LjQ3NzEgMTUgMjUgMTVaIiBmaWxsPSIjOUI5QkEzIi8+CjxwYXRoIGQ9Ik0xMCAzNUMxMCAyNi43MTU3IDE2LjcxNTcgMjAgMjUgMjBDMzMuMjg0MyAyMCA0MCAyNi43MTU3IDQwIDM1VjQ1SDBWMzVaIiBmaWxsPSIjOUI5QkEzIi8+Cjwvc3ZnPgo=',
+            cookerRating: dish.cookerRating || 4.0,
+            distance: dish.cookDistance ? `${dish.cookDistance.toFixed(1)} km` : 'Cerca',
+            cookerSelfDelivery: false,
             isFavorite: favorites.includes(dish.id)
-          };
+          })),
+          hasMore: false
+        };
+      } else {
+        // Use optimized service
+        dishesResult = await OptimizedDishesService.getDishes({
+          pageSize,
+          useCache: !isRefresh
         });
-      
-      setDishes(dishesWithCookInfo);
-      
+      }
+
+      // Get cooks data only if not using location-based filtering
+      if (!selectedCityId || !useLocationFilter) {
+        const cooksData = await CooksService.getAllCooks();
+        const cooksMap = new Map(cooksData.map(cook => [cook.id, cook]));
+
+        console.log('Number of cooks found:', cooksData.length);
+
+        // Combine dish data with cook information
+        const dishesWithCookInfo: DishWithBadges[] = dishesResult.data
+          .map(dish => {
+            const cook = cooksMap.get(dish.cookerId);
+            return {
+              ...dish,
+              cookerName: cook?.displayName || 'Cocinero Desconocido',
+              cookerAvatar: cook?.avatar || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1zbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNSAxNUMzMC41MjI5IDE1IDM1IDEwLjUyMjkgMzUgNUMzNSAyLjc5MDg2IDMzLjIwOTEgMSAzMSAxSDIwQzE3LjI5MDkgMSAxNS40NjA5IDIuNzkwODYgMTUgNUMxNSAxMC41MjI5IDE5LjQ3NzEgMTUgMjUgMTVaIiBmaWxsPSIjOUI5QkEzIi8+CjxwYXRoIGQ9Ik0xMCAzNUMxMCAyNi43MTU3IDE2LjcxNTcgMjAgMjUgMjBDMzMuMjg0MyAyMCA0MCAyNi43MTU3IDQwIDM1VjQ1SDBWMzVaIiBmaWxsPSIjOUI5QkEzIi8+Cjwvc3ZnPgo=',
+              cookerRating: cook?.rating || 4.0,
+              distance: 'Cerca',
+              cookerSelfDelivery: cook?.settings?.selfDelivery || false,
+              isFavorite: favorites.includes(dish.id)
+            };
+          });
+
+        setDishes(dishesWithCookInfo);
+      } else {
+        // Use location-based dishes
+        const dishesWithCookInfo: DishWithBadges[] = dishesResult.data.map(dish => ({
+          ...dish,
+          cookerSelfDelivery: false,
+        }));
+
+        setDishes(dishesWithCookInfo);
+      }
+
       setHasMoreDishes(dishesResult.hasMore);
       setLastUpdated(new Date());
-      
-      console.log(`Loaded ${dishesWithCookInfo.length} dishes`);
+
+      console.log(`Loaded ${dishesResult.data.length} dishes`);
     } catch (error) {
-      console.error('Error fetching dishes:', error);
-      
+      console.error('Error fetching dishes:', error instanceof Error ? error.message : String(error));
+
       // Fallback to regular service if optimized service fails
       try {
         console.log('Attempting fallback to regular DishesService...');
         const fallbackDishes = await DishesService.getAllDishes();
         const cooksData = await CooksService.getAllCooks();
         const cooksMap = new Map(cooksData.map(cook => [cook.id, cook]));
-        
+
         console.log('Fallback dishes found:', fallbackDishes.length);
-        
+
         const dishesWithCookInfo: DishWithBadges[] = fallbackDishes
           .map(dish => {
             const cook = cooksMap.get(dish.cookerId);
             return {
               ...dish,
               cookerName: cook?.displayName || 'Cocinero Desconocido',
-              cookerAvatar: cook?.avatar || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNSAxNUMzMC41MjI5IDE1IDM1IDEwLjUyMjkgMzUgNUMzNSAyLjc5MDg2IDMzLjIwOTEgMSAzMSAxSDIwQzE3LjI5MDkgMSAxNS40NjA5IDIuNzkwODYgMTUgNUMxNSAxMC41MjI5IDE5LjQ3NzEgMTUgMjUgMTVaIiBmaWxsPSIjOUI5QkEzIi8+CjxwYXRoIGQ9Ik0xMCAzNUMxMCAyNi43MTU3IDE2LjcxNTcgMjAgMjUgMjBDMzMuMjg0MyAyMCA0MCAyNi43MTU3IDQwIDM1VjQ1SDBWMzVaIiBmaWxsPSIjOUI5QkEzIi8+Cjwvc3ZnPgo=',
+              cookerAvatar: cook?.avatar || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1zbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNSAxNUMzMC41MjI5IDE1IDM1IDEwLjUyMjkgMzUgNUMzNSAyLjc5MDg2IDMzLjIwOTEgMSAzMSAxSDIwQzE3LjI5MDkgMSAxNS40NjA5IDIuNzkwODYgMTUgNUMxNSAxMC41MjI5IDE5LjQ3NzEgMTUgMjUgMTVaIiBmaWxsPSIjOUI5QkEzIi8+CjxwYXRoIGQ9Ik0xMCAzNUMxMCAyNi43MTU3IDE2LjcxNTcgMjAgMjUgMjBDMzMuMjg0MyAyMCA0MCAyNi43MTU3IDQwIDM1VjQ1SDBWMzVaIiBmaWxsPSIjOUI5QkEzIi8+Cjwvc3ZnPgo=',
               cookerRating: cook?.rating || 4.0,
-              distance: cook?.distance || 'Nearby',
+              distance: 'Cerca',
               cookerSelfDelivery: cook?.settings?.selfDelivery || false,
               isFavorite: favorites.includes(dish.id)
             };
           });
-        
+
         setDishes(dishesWithCookInfo);
-        
-        setHasMoreDishes(false); // No pagination for fallback
+        setHasMoreDishes(false);
         setLastUpdated(new Date());
-        
+
         console.log(`Fallback loaded ${dishesWithCookInfo.length} dishes`);
       } catch (fallbackError) {
-        console.error('Fallback also failed:', fallbackError);
+        console.error('Fallback also failed:', fallbackError instanceof Error ? fallbackError.message : String(fallbackError));
       }
     } finally {
       setLoading(false);
@@ -209,12 +300,14 @@ const ClientDishesPage = () => {
     }
   };
 
-  // Load more dishes (simplified)
+  const handleCitySelect = (city: any) => {
+    setSelectedCityId(city.id);
+    setUseLocationFilter(true);
+    fetchDishes();
+  };
+
   const loadMoreDishes = async () => {
     if (!hasMoreDishes || loading) return;
-    
-    // For now, just refresh to get more dishes
-    // In a real app, you'd implement cursor-based pagination here
     await fetchDishes(true);
   };
 
@@ -222,237 +315,201 @@ const ClientDishesPage = () => {
     fetchDishes(true);
   };
 
-  const filteredDishes = dishes
-    .filter(dish => {
-      const matchesSearch = dish.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          dish.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          dish.cookerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          (dish.ingredients && dish.ingredients.some(ingredient => 
-                            ingredient.toLowerCase().includes(searchQuery.toLowerCase())));
-      
-      const matchesCategory = selectedCategory === 'All' || dish.category === selectedCategory;
-      
-      return matchesSearch && matchesCategory;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'rating':
-          return b.rating - a.rating;
-        case 'price-low':
-          return a.price - b.price;
-        case 'price-high':
-          return b.price - a.price;
-        case 'distance':
-          return parseFloat(a.distance) - parseFloat(b.distance);
-        case 'time':
-          return parseInt(a.prepTime.toString()) - parseInt(b.prepTime.toString());
-        default:
-          return 0;
-      }
-    });
+  // Enhanced filtering logic
+  const filteredDishes = useMemo(() => {
+    return dishes
+      .filter(dish => {
+        // Search query filter
+        const matchesSearch = !searchQuery || 
+          dish.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          dish.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          dish.cookerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (dish.ingredients && dish.ingredients.some(ingredient => 
+            ingredient.toLowerCase().includes(searchQuery.toLowerCase())));
+        
+        // Category filter
+        const matchesCategory = selectedCategory === 'All' || dish.category === selectedCategory;
+        
+        // Price range filter
+        const matchesPrice = dish.price >= priceRange[0] && dish.price <= priceRange[1];
+        
+        // Dietary preferences filter
+        const matchesDietary = selectedDietary.length === 0 || selectedDietary.some(pref => {
+          switch (pref) {
+            case 'vegan': return dish.tags?.includes('vegano') || dish.tags?.includes('vegan');
+            case 'healthy': return dish.tags?.includes('saludable') || dish.tags?.includes('healthy');
+            case 'gluten-free': return dish.tags?.includes('sin gluten') || dish.tags?.includes('gluten-free');
+            case 'spicy': return dish.tags?.includes('picante') || dish.tags?.includes('spicy');
+            case 'organic': return dish.tags?.includes('orgánico') || dish.tags?.includes('organic');
+            default: return false;
+          }
+        });
+        
+        // Rating filter
+        const matchesRating = dish.rating >= minRating;
+        
+        // Prep time filter
+        const prepTimeMinutes = parseInt(dish.prepTime) || 0;
+        const matchesPrepTime = prepTimeMinutes <= maxPrepTime;
+        
+        // Availability filter
+        const matchesAvailability = !showOnlyAvailable || dish.isAvailable;
+        
+        // Self-delivery filter
+        const matchesSelfDelivery = !showOnlySelfDelivery || dish.cookerSelfDelivery;
+        
+        return matchesSearch && matchesCategory && matchesPrice && matchesDietary && 
+               matchesRating && matchesPrepTime && matchesAvailability && matchesSelfDelivery;
+      })
+      .sort((a, b) => {
+        switch (sortBy) {
+          case 'rating':
+            return b.rating - a.rating;
+          case 'price-low':
+            return a.price - b.price;
+          case 'price-high':
+            return b.price - a.price;
+          case 'distance':
+            return parseFloat(a.distance || '0') - parseFloat(b.distance || '0');
+          case 'time':
+            return parseInt(a.prepTime || '0') - parseInt(b.prepTime || '0');
+          case 'popularity':
+            return (b.reviewCount || 0) - (a.reviewCount || 0);
+          default:
+            return 0;
+        }
+      });
+  }, [
+    dishes, 
+    searchQuery, 
+    selectedCategory, 
+    priceRange, 
+    selectedDietary, 
+    minRating, 
+    maxPrepTime, 
+    showOnlyAvailable, 
+    showOnlySelfDelivery, 
+    sortBy
+  ]);
 
   const toggleFavorite = (dishId: string) => {
-    if (!user) {
-      // Redirect to login if trying to favorite without account
-      router.push(`/login?returnUrl=/dishes&action=favorite&dishId=${dishId}`);
-      return;
-    }
-    
-    const updatedFavorites = favorites.includes(dishId)
-      ? favorites.filter(id => id !== dishId)
-      : [...favorites, dishId];
-    
-    setFavorites(updatedFavorites);
-    setDishes(dishes.map(dish => 
-      dish.id === dishId ? { ...dish, isFavorite: !dish.isFavorite } : dish
-    ));
+    setFavorites(prev => 
+      prev.includes(dishId) 
+        ? prev.filter(id => id !== dishId)
+        : [...prev, dishId]
+    );
   };
 
-  // Function to handle dish clicks - redirect to login if not authenticated
   const handleDishClick = (dishId: string, e?: React.MouseEvent) => {
-    if (e) {
-      e.stopPropagation();
-    }
-    
-    if (!user) {
-      // Show a modal or redirect to login with return URL
-      router.push(`/login?returnUrl=/dishes/${dishId}`);
-      return;
-    }
-    
-    // User is authenticated, proceed to dish page
+    if (e) e.preventDefault();
     router.push(`/dishes/${dishId}`);
   };
-  
-  // Get recommendation sections based on time of day
-  const getRecommendationSections = () => {
-    if (!recommendations) return [];
-    return RecommendationService.getRecommendationSections(timeOfDay);
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setSelectedCategory('All');
+    setPriceRange([0, 100000]);
+    setSelectedDietary([]);
+    setMinRating(0);
+    setMaxPrepTime(120);
+    setShowOnlyAvailable(true);
+    setShowOnlySelfDelivery(false);
+    setSortBy('rating');
   };
 
-  const DishCard = ({ dish, isListView = false }: { dish: Dish; isListView?: boolean }) => (
-    <Card className={`overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer ${!dish.isAvailable ? 'opacity-60' : ''} ${isListView ? 'flex' : ''} border-0 shadow-sm hover:shadow-xl hover:scale-[1.02]`}
-          onClick={() => handleDishClick(dish.id)}>
-      <div className={`relative ${isListView ? 'w-48 flex-shrink-0' : 'aspect-[4/3]'}`}>
-        <LazyImage
-          src={dish.image} 
-          alt={dish.name}
-          className="w-full h-full object-cover"
-          fallback={
-            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-              <span className="text-gray-500 text-sm">Error al cargar imagen</span>
-            </div>
-          }
-        />
-        <div className="absolute top-2 right-2 flex gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 bg-white/80 hover:bg-white"
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleFavorite(dish.id);
-            }}
-          >
-            <Heart className={`h-4 w-4 ${dish.isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
-          </Button>
-        </div>
-        <div className="absolute top-2 left-2">
-          <Badge variant={dish.isAvailable ? 'default' : 'secondary'}>
-            {dish.isAvailable ? 'Disponible' : 'Agotado'}
-          </Badge>
-        </div>
-      </div>
-      
-      <CardContent className={`p-4 ${isListView ? 'flex-1' : ''}`}>
-        <div className="flex justify-between items-start mb-2">
-          <h3 className="font-semibold text-lg line-clamp-1">{dish.name}</h3>
-          <span className="text-xl font-bold text-primary">{formatPrice(dish.price)}</span>
-        </div>
-        
-        <p className="text-muted-foreground text-sm mb-3 line-clamp-2">{dish.description}</p>
-        
-        <div className="flex items-center gap-2 mb-2">
-          <Avatar className="h-6 w-6">
-            <AvatarImage src={dish.cookerAvatar} />
-            <AvatarFallback>
-              <ChefHat className="h-3 w-3" />
-            </AvatarFallback>
-          </Avatar>
-          <button 
-            className="text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer"
-            onClick={(e) => {
-              e.stopPropagation();
-              router.push(`/cooks/${dish.cookerName.toLowerCase().replace(' ', '-')}`);
-            }}
-          >
-            {dish.cookerName}
-          </button>
-        </div>
-        
-        <div className="flex items-center gap-1">
-          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-          <span className="text-sm">{dish.cookerRating}</span>
-        </div>
-        
-        <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-          <div className="flex items-center gap-1">
-            <MapPin className="h-3 w-3" />
-            <span>{dish.distance}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            <span>{dish.prepTime}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-            <span>{dish.rating} ({dish.reviewCount})</span>
-          </div>
-        </div>
-        
-        {dish.cookerSelfDelivery && (
-          <div className="flex items-center gap-1 text-sm text-green-600 mb-2">
-            <Truck className="h-4 w-4" />
-            <span>Entrega por el cocinero</span>
-          </div>
-        )}
-        
-        <div className="flex gap-2 mb-3">
-          {dish.tags.slice(0, 3).map((tag: string) => (
-            <Badge key={tag} variant="outline" className="text-xs">
-              {tag}
-            </Badge>
-          ))}
-        </div>
-        
-        <Button 
-          className="w-full" 
-          disabled={!dish.isAvailable}
-          onClick={(e) => handleDishClick(dish.id, e)}
-        >
-          <ShoppingCart className="h-4 w-4 mr-2" />
-          {dish.isAvailable ? (user ? 'View Details' : 'Crear Cuenta para Pedir') : 'Sold Out'}
-        </Button>
-      </CardContent>
-    </Card>
-  );
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (searchQuery) count++;
+    if (selectedCategory !== 'All') count++;
+    if (priceRange[0] > 0 || priceRange[1] < 100000) count++;
+    if (selectedDietary.length > 0) count++;
+    if (minRating > 0) count++;
+    if (maxPrepTime < 120) count++;
+    if (!showOnlyAvailable) count++;
+    if (showOnlySelfDelivery) count++;
+    return count;
+  }, [searchQuery, selectedCategory, priceRange, selectedDietary, minRating, maxPrepTime, showOnlyAvailable, showOnlySelfDelivery]);
+
+  // Get recommendation sections
+  const getRecommendationSections = () => {
+    return [
+      { key: 'featured', title: 'Destacados del Día', icon: Star, color: 'text-yellow-500' },
+      { key: 'trending', title: 'Tendencias', icon: TrendingUp, color: 'text-orange-500' },
+      { key: 'healthy', title: 'Opciones Saludables', icon: Leaf, color: 'text-green-500' },
+      { key: 'quick', title: 'Preparación Rápida', icon: Zap, color: 'text-blue-500' }
+    ];
+  };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 py-3">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
+      {/* Enhanced Header */}
+      <div className="sticky top-0 z-50 border-b bg-white/95 backdrop-blur-xl supports-[backdrop-filter]:bg-white/80 shadow-sm">
+        <div className="container mx-auto px-4 py-4">
           {/* Desktop Header */}
           <div className="hidden md:flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={user?.photoURL || ''} />
-                <AvatarFallback>
-                  <Utensils className="h-5 w-5" />
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <h1 className="text-xl xl:text-2xl font-bold">Discover Dishes</h1>
-                <p className="text-sm text-muted-foreground hidden lg:block">Fresh homemade food from local cooks</p>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-br from-slate-900 to-slate-700 rounded-xl">
+                  <Utensils className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+                    Explorar Platos
+                  </h1>
+                  <p className="text-sm text-slate-600">Descubre comida casera de cocineros locales</p>
+                </div>
+              </div>
+              
+              {/* Time-based greeting */}
+              <div className="hidden lg:flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-full">
+                <Calendar className="h-4 w-4 text-slate-600" />
+                <span className="text-sm text-slate-700 capitalize">
+                  {timeOfDay === 'desayuno' ? 'Buenos días' : 
+                   timeOfDay === 'almuerzo' ? 'Buen día' : 
+                   timeOfDay === 'cena' ? 'Buenas noches' : 'Buen día'}
+                </span>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            
+            <div className="flex items-center gap-3">
               <Button 
                 variant="outline" 
                 size="sm"
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="hidden lg:flex"
+                className="gap-2"
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
                 {refreshing ? 'Actualizando...' : 'Actualizar'}
               </Button>
+              
               {user ? (
                 <>
-                  <Button variant="outline" size="sm" className="hidden lg:flex">
-                    <Heart className="h-4 w-4 mr-2" />
-                    Favorites
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Heart className="h-4 w-4" />
+                    Favoritos
                   </Button>
                   <Button 
                     variant="outline" 
                     size="sm"
                     onClick={() => router.push('/cart')}
+                    className="gap-2"
                   >
-                    <ShoppingCart className="h-4 w-4 mr-2" />
-                    <span className="hidden sm:inline">Cart</span> ({itemCount})
+                    <ShoppingCart className="h-4 w-4" />
+                    <span>Carrito ({itemCount})</span>
                   </Button>
                   <Button 
                     variant="outline" 
                     size="sm" 
                     onClick={logout}
-                    className="text-muted-foreground hover:text-destructive"
+                    className="text-slate-600 hover:text-red-600 gap-2"
                   >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    <span className="hidden sm:inline">Logout</span>
+                    <LogOut className="h-4 w-4" />
+                    <span>Cerrar Sesión</span>
                   </Button>
                 </>
               ) : (
-                <>
+                <div className="flex items-center gap-2">
                   <Button 
                     variant="outline" 
                     size="sm" 
@@ -463,63 +520,56 @@ const ClientDishesPage = () => {
                   <Button 
                     size="sm" 
                     onClick={() => router.push('/login')}
-                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                    className="bg-gradient-to-r from-slate-900 to-slate-700 hover:from-slate-800 hover:to-slate-600"
                   >
                     Crear Cuenta
                   </Button>
-                </>
+                </div>
               )}
             </div>
           </div>
 
           {/* Mobile Header */}
           <div className="md:hidden">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={user?.photoURL || ''} />
-                  <AvatarFallback>
-                    <Utensils className="h-4 w-4" />
-                  </AvatarFallback>
-                </Avatar>
-                <h1 className="text-lg font-bold">Explorar Platos</h1>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-br from-slate-900 to-slate-700 rounded-lg">
+                  <Utensils className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold">Explorar Platos</h1>
+                  <p className="text-xs text-slate-600">Comida casera local</p>
+                </div>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-2">
                 {user ? (
                   <>
                     <Button 
                       variant="outline" 
                       size="sm"
                       onClick={() => router.push('/cart')}
+                      className="gap-1"
                     >
                       <ShoppingCart className="h-4 w-4" />
-                      <span className="ml-1">({itemCount})</span>
+                      <span>({itemCount})</span>
                     </Button>
                     <Button 
                       variant="outline" 
                       size="sm" 
                       onClick={logout}
-                      className="text-muted-foreground hover:text-destructive"
+                      className="text-slate-600 hover:text-red-600"
                     >
                       <LogOut className="h-4 w-4" />
                     </Button>
                   </>
                 ) : (
-                  <>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => router.push('/login')}
-                    >
-                      Login
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      onClick={() => router.push('/login')}
-                    >
-                      Sign Up
-                    </Button>
-                  </>
+                  <Button 
+                    size="sm" 
+                    onClick={() => router.push('/login')}
+                    className="bg-gradient-to-r from-slate-900 to-slate-700"
+                  >
+                    Ingresar
+                  </Button>
                 )}
               </div>
             </div>
@@ -527,12 +577,242 @@ const ClientDishesPage = () => {
         </div>
       </div>
 
-      {/* Temporary Role Switcher for Testing - Removed */}
-      {/* <div className="container mx-auto px-4 py-2">
-        <RoleSwitcher />
-      </div> */}
-
       <div className="container mx-auto px-4 py-6">
+        {/* Enhanced Search and Filters Bar */}
+        <div className="mb-8 space-y-4">
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-slate-400" />
+            <Input
+              type="text"
+              placeholder="Buscar platos, cocineros, ingredientes..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-12 pr-4 py-3 text-lg border-2 border-slate-200 rounded-2xl focus:border-slate-400 transition-colors bg-white shadow-sm"
+            />
+          </div>
+
+          {/* Filters Bar */}
+          <div className="flex flex-wrap items-center gap-4">
+            {/* Categories */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-slate-700">Categoría:</span>
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => {
+                    const Icon = category.icon;
+                    return (
+                      <SelectItem key={category.id} value={category.id}>
+                        <div className="flex items-center gap-2">
+                          <Icon className="h-4 w-4" />
+                          {category.name}
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Sort */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-slate-700">Ordenar:</span>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {sortOptions.map((option) => {
+                    const Icon = option.icon;
+                    return (
+                      <SelectItem key={option.value} value={option.value}>
+                        <div className="flex items-center gap-2">
+                          <Icon className="h-4 w-4" />
+                          {option.label}
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Advanced Filters */}
+            <Sheet open={showFilters} onOpenChange={setShowFilters}>
+              <SheetTrigger asChild>
+                <Button variant="outline" className="gap-2 relative">
+                  <SlidersHorizontal className="h-4 w-4" />
+                  Filtros Avanzados
+                  {activeFiltersCount > 0 && (
+                    <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 bg-slate-900 text-white text-xs">
+                      {activeFiltersCount}
+                    </Badge>
+                  )}
+                </Button>
+              </SheetTrigger>
+              <SheetContent className="w-full sm:max-w-md">
+                <SheetHeader>
+                  <SheetTitle>Filtros Avanzados</SheetTitle>
+                  <SheetDescription>
+                    Personaliza tu búsqueda para encontrar los platos perfectos
+                  </SheetDescription>
+                </SheetHeader>
+                
+                <div className="mt-6 space-y-6">
+                  {/* Price Range */}
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-3 block">
+                      Rango de Precio
+                    </label>
+                    <div className="px-2">
+                      <Slider
+                        value={priceRange}
+                        onValueChange={setPriceRange}
+                        max={100000}
+                        min={0}
+                        step={1000}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between text-sm text-slate-600 mt-2">
+                        <span>{formatPrice(priceRange[0])}</span>
+                        <span>{formatPrice(priceRange[1])}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Dietary Preferences */}
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-3 block">
+                      Preferencias Dietéticas
+                    </label>
+                    <div className="space-y-2">
+                      {dietaryOptions.map((option) => {
+                        const Icon = option.icon;
+                        return (
+                          <div key={option.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={option.id}
+                              checked={selectedDietary.includes(option.id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedDietary([...selectedDietary, option.id]);
+                                } else {
+                                  setSelectedDietary(selectedDietary.filter(id => id !== option.id));
+                                }
+                              }}
+                            />
+                            <label htmlFor={option.id} className="flex items-center gap-2 text-sm">
+                              <Icon className="h-4 w-4" />
+                              {option.label}
+                            </label>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Minimum Rating */}
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-3 block">
+                      Calificación Mínima
+                    </label>
+                    <Select value={minRating.toString()} onValueChange={(value) => setMinRating(Number(value))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">Todas las calificaciones</SelectItem>
+                        <SelectItem value="3">3+ estrellas</SelectItem>
+                        <SelectItem value="4">4+ estrellas</SelectItem>
+                        <SelectItem value="4.5">4.5+ estrellas</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Maximum Prep Time */}
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-3 block">
+                      Tiempo Máximo de Preparación
+                    </label>
+                    <Select value={maxPrepTime.toString()} onValueChange={(value) => setMaxPrepTime(Number(value))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="30">Hasta 30 min</SelectItem>
+                        <SelectItem value="60">Hasta 1 hora</SelectItem>
+                        <SelectItem value="120">Hasta 2 horas</SelectItem>
+                        <SelectItem value="240">Hasta 4 horas</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Additional Filters */}
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="available"
+                        checked={showOnlyAvailable}
+                        onCheckedChange={setShowOnlyAvailable}
+                      />
+                      <label htmlFor="available" className="text-sm">Solo platos disponibles</label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="self-delivery"
+                        checked={showOnlySelfDelivery}
+                        onCheckedChange={setShowOnlySelfDelivery}
+                      />
+                      <label htmlFor="self-delivery" className="text-sm">Solo entrega directa</label>
+                    </div>
+                  </div>
+
+                  {/* Clear Filters */}
+                  <Button 
+                    variant="outline" 
+                    onClick={clearFilters}
+                    className="w-full"
+                    disabled={activeFiltersCount === 0}
+                  >
+                    Limpiar Filtros ({activeFiltersCount})
+                  </Button>
+                </div>
+              </SheetContent>
+            </Sheet>
+
+            {/* View Mode Toggle */}
+            <div className="flex items-center gap-1 border rounded-lg p-1">
+              <Button
+                variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('grid')}
+                className="h-8 w-8 p-0"
+              >
+                <Grid3X3 className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('list')}
+                className="h-8 w-8 p-0"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Active Filters Count */}
+            {activeFiltersCount > 0 && (
+              <Badge variant="secondary" className="gap-1">
+                <Filter className="h-3 w-3" />
+                {activeFiltersCount} filtro{activeFiltersCount !== 1 ? 's' : ''} activo{activeFiltersCount !== 1 ? 's' : ''}
+              </Badge>
+            )}
+          </div>
+        </div>
+
         {/* Hero Section with Time-based Recommendations */}
         {showRecommendations && recommendations && (
           <DishesHeroSection
@@ -544,8 +824,6 @@ const ClientDishesPage = () => {
           />
         )}
         
-        
-        
         {/* Intelligent Recommendation Sections */}
         {showRecommendations && recommendations && (
           <div className="mb-8 space-y-8">
@@ -553,319 +831,149 @@ const ClientDishesPage = () => {
               const sectionDishes = recommendations[section.key as keyof typeof recommendations] || [];
               if (sectionDishes.length === 0) return null;
               
+              const Icon = section.icon;
+              
               return (
                 <div key={section.key} className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <span className="text-2xl">{section.icon}</span>
-                      <div>
-                        <h2 className="text-xl font-bold text-gray-900">{section.title}</h2>
-                        <p className="text-sm text-gray-600">{section.subtitle}</p>
-                      </div>
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg bg-slate-100`}>
+                      <Icon className={`h-5 w-5 ${section.color}`} />
                     </div>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => {
-                        // Scroll to main dishes section
-                        document.getElementById('main-dishes')?.scrollIntoView({ behavior: 'smooth' });
-                      }}
-                    >
-                      Ver todos
-                      <TrendingUp className="h-4 w-4 ml-1" />
-                    </Button>
+                    <h2 className="text-xl font-bold text-slate-900">{section.title}</h2>
+                    <Badge variant="outline" className="text-slate-600">
+                      {sectionDishes.length} plato{sectionDishes.length !== 1 ? 's' : ''}
+                    </Badge>
                   </div>
                   
-                  <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 auto-rows-max">
-                    {sectionDishes.slice(0, 8).map((dish: DishWithBadges, index: number) => {
-                      // Create adaptive grid with featured cards
-                      let cardSize: 'small' | 'medium' | 'large' | 'featured' = 'medium';
-                      let gridClass = '';
-                      
-                      if (section.key === 'featured') {
-                        // First card is featured (larger)
-                        if (index === 0) {
-                          cardSize = 'featured';
-                          gridClass = 'sm:col-span-2 lg:col-span-2 xl:col-span-3 lg:row-span-2';
-                        } else {
-                          cardSize = 'medium';
-                          gridClass = '';
-                        }
-                      } else if (section.key === 'trending') {
-                        // Every 3rd card is large
-                        cardSize = index % 3 === 0 ? 'large' : 'medium';
-                        gridClass = index % 3 === 0 ? 'sm:col-span-2 lg:col-span-2' : '';
-                      } else {
-                        cardSize = 'medium';
-                        gridClass = '';
-                      }
-                      
-                      return (
-                        <div key={dish.id} className={gridClass}>
-                          <EnhancedDishCard
-                            dish={dish}
-                            onDishClick={handleDishClick}
-                            onFavoriteToggle={toggleFavorite}
-                            user={user}
-                            size={cardSize}
-                            showNutrition={cardSize === 'featured' || cardSize === 'large'}
-                            hasDiscount={Math.random() < 0.1}
-                            discountPercentage={Math.floor(Math.random() * 20) + 10}
-                            popularityScore={section.key === 'trending' ? Math.floor(Math.random() * 50) + 10 : 0}
-                            recommendationContext={{
-                              isFromRecommendation: true,
-                              recommendationType: section.key
-                            }}
-                          />
-                        </div>
-                      );
-                    })}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {sectionDishes.slice(0, 4).map((dish: DishWithBadges) => (
+                      <EnhancedDishCard
+                        key={dish.id}
+                        dish={dish}
+                        onDishClick={handleDishClick}
+                        onFavoriteToggle={toggleFavorite}
+                        user={user}
+                        size="medium"
+                        recommendationContext={{
+                          isFromRecommendation: true,
+                          recommendationType: section.key
+                        }}
+                      />
+                    ))}
                   </div>
                 </div>
               );
             })}
           </div>
         )}
-        
-        {/* Toggle Recommendations */}
-        <div className="mb-6 flex justify-center">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowRecommendations(!showRecommendations)}
-            className="flex items-center space-x-2"
-          >
-            <Sparkles className="h-4 w-4" />
-            <span>{showRecommendations ? 'Ocultar' : 'Mostrar'} Recomendaciones Inteligentes</span>
-          </Button>
-        </div>
-        
-        {/* Main Dishes Section */}
-        <div id="main-dishes">
-          <div className="flex items-center justify-between mb-6">
+
+        {/* Main Dishes Grid */}
+        <div className="space-y-6">
+          {/* Results Header */}
+          <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Todos los Platos</h2>
-              <p className="text-gray-600">Explora nuestra selección completa</p>
-            </div>
-          </div>
-        
-        {/* Search and Filters */}
-        <div className="space-y-4 mb-6">
-          {/* Search Bar */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search dishes, cooks, or cuisines..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-12 text-base bg-background/50 backdrop-blur border-border/50 focus:bg-background focus:border-primary/50 transition-all"
-            />
-            {searchQuery && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-accent"
-                onClick={() => setSearchQuery('')}
-              >
-                ✕
-              </Button>
-            )}
-          </div>
-
-          {/* Categories Carousel - Replaces old category filter */}
-          {Object.keys(dishCounts).length > 0 && (
-            <CategoriesCarousel
-              selectedCategory={selectedCategory}
-              onCategorySelect={setSelectedCategory}
-              dishCounts={dishCounts}
-            />
-          )}
-
-
-          {/* Controls */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2 flex-wrap">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowFilters(!showFilters)}
-                className="flex-shrink-0"
-              >
-                <SlidersHorizontal className="h-4 w-4 mr-2" />
-                Filters
-              </Button>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="px-3 py-2 border rounded-md text-sm bg-background min-w-0 flex-1 sm:flex-initial"
-              >
-                <option value="rating">Highest Rated</option>
-                <option value="price-low">Price: Low to High</option>
-                <option value="price-high">Price: High to Low</option>
-                <option value="distance">Nearest First</option>
-                <option value="time">Fastest Prep</option>
-              </select>
-              <div className="hidden md:flex items-center gap-1 ml-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handleRefresh}
-                  disabled={refreshing}
-                >
-                  <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-                </Button>
-                {user && (
-                  <Button variant="outline" size="sm">
-                    <Heart className="h-4 w-4" />
-                  </Button>
+              <h2 className="text-2xl font-bold text-slate-900">
+                {selectedCategory === 'All' ? 'Todos los Platos' : categories.find(c => c.id === selectedCategory)?.name}
+              </h2>
+              <p className="text-slate-600">
+                {filteredDishes.length} plato{filteredDishes.length !== 1 ? 's' : ''} encontrado{filteredDishes.length !== 1 ? 's' : ''}
+                {lastUpdated && (
+                  <span className="ml-2 text-xs text-slate-500">
+                    • Actualizado {lastUpdated.toLocaleTimeString()}
+                  </span>
                 )}
-              </div>
+              </p>
             </div>
             
-            <div className="flex items-center justify-between sm:justify-end gap-1">
-              <div className="md:hidden flex items-center gap-1">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handleRefresh}
-                  disabled={refreshing}
-                >
-                  <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-                </Button>
-                {user && (
-                  <Button variant="outline" size="sm">
-                    <Heart className="h-4 w-4" />
-                  </Button>
-                )}
+            {refreshing && (
+              <div className="flex items-center gap-2 text-slate-600">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm">Actualizando...</span>
               </div>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant={viewMode === 'grid' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setViewMode('grid')}
-                >
-                  <Grid3X3 className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === 'list' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Results Count */}
-        <div className="mb-4">
-          <div className="flex justify-between items-center">
-            <p className="text-muted-foreground">
-              Showing {filteredDishes.length} of {dishes.length} dishes
-              {selectedCategory !== 'All' && ` in ${selectedCategory}`}
-              {searchQuery && ` matching "${searchQuery}"`}
-            </p>
-            {lastUpdated && (
-              <p className="text-xs text-muted-foreground">
-                Last updated: {lastUpdated.toLocaleTimeString()}
-              </p>
             )}
           </div>
-        </div>
 
-        {/* Loading State */}
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <span className="ml-2 text-muted-foreground">Cargando platos...</span>
-          </div>
-        ) : (
-          /* Dishes Grid/List */
-          filteredDishes.length > 0 ? (
+          {/* Loading State */}
+          {loading && !refreshing && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {Array.from({ length: 8 }).map((_, index) => (
+                <Card key={index} className="overflow-hidden">
+                  <div className="h-56 bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 animate-pulse rounded-t-lg"></div>
+                  <CardContent className="p-6 space-y-3">
+                    <div className="h-4 bg-slate-200 rounded animate-pulse"></div>
+                    <div className="h-4 bg-slate-200 rounded animate-pulse w-3/4"></div>
+                    <div className="h-6 bg-slate-200 rounded animate-pulse w-1/2"></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {/* Dishes Grid */}
+          {!loading && (
             <>
-              <div className={
-                viewMode === 'grid' 
-                  ? 'grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 auto-rows-max'
-                  : 'space-y-4'
-              }>
-                {filteredDishes.map((dish, index) => {
-                  if (viewMode === 'list') {
-                    return <DishCard key={dish.id} dish={dish} isListView={true} />;
-                  }
-                  
-                  // Adaptive grid for main dishes
-                  let cardSize: 'small' | 'medium' | 'large' | 'featured' = 'medium';
-                  let gridClass = '';
-                  
-                  // Every 7th dish is featured (larger)
-                  if ((index + 1) % 7 === 0) {
-                    cardSize = 'featured';
-                    gridClass = 'sm:col-span-2 lg:col-span-2 xl:col-span-2 2xl:col-span-3 lg:row-span-2';
-                  } 
-                  // Every 5th dish is large
-                  else if ((index + 1) % 5 === 0) {
-                    cardSize = 'large';
-                    gridClass = 'sm:col-span-2 lg:col-span-2 xl:col-span-2';
-                  }
-                  // High-rated dishes get medium size
-                  else if (dish.rating >= 4.7) {
-                    cardSize = 'medium';
-                    gridClass = '';
-                  }
-                  // Regular dishes
-                  else {
-                    cardSize = 'medium';
-                    gridClass = '';
-                  }
-                  
-                  return (
-                    <div key={dish.id} className={gridClass}>
-                      <EnhancedDishCard
-                        dish={dish}
-                        onDishClick={handleDishClick}
-                        onFavoriteToggle={toggleFavorite}
-                        user={user}
-                        size={cardSize}
-                        showNutrition={cardSize === 'featured' || cardSize === 'large'}
-                        hasDiscount={Math.random() < 0.08}
-                        discountPercentage={Math.floor(Math.random() * 15) + 5}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-              
-              {/* Refresh Button - simplified without complex pagination */}
-              {filteredDishes.length > 0 && hasMoreDishes && (
-                <div className="mt-8 text-center">
+              {filteredDishes.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="mb-4">
+                    <Search className="h-12 w-12 text-slate-400 mx-auto" />
+                  </div>
+                  <h3 className="text-lg font-medium text-slate-900 mb-2">No se encontraron platos</h3>
+                  <p className="text-slate-600 mb-4">
+                    Intenta ajustar tus filtros o búsqueda para encontrar más opciones.
+                  </p>
+                  <Button onClick={clearFilters} variant="outline">
+                    Limpiar Filtros
+                  </Button>
+                </div>
+              ) : (
+                <div className={`grid gap-6 ${
+                  viewMode === 'grid' 
+                    ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' 
+                    : 'grid-cols-1 max-w-4xl mx-auto'
+                }`}>
+                  {filteredDishes.map((dish) => (
+                    <EnhancedDishCard
+                      key={dish.id}
+                      dish={dish}
+                      onDishClick={handleDishClick}
+                      onFavoriteToggle={toggleFavorite}
+                      user={user}
+                      size={viewMode === 'list' ? 'large' : 'medium'}
+                      isNew={dish.tags?.includes('nuevo')}
+                      isTrending={Math.random() > 0.7} // Mock trending status
+                      deliveryTime={dish.cookerSelfDelivery ? '15-30 min' : '30-45 min'}
+                      distance={dish.distance}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Load More */}
+              {hasMoreDishes && (
+                <div className="text-center pt-8">
                   <Button 
                     onClick={loadMoreDishes}
-                    disabled={loading || refreshing}
+                    disabled={loading}
                     variant="outline"
+                    size="lg"
+                    className="gap-2"
                   >
-                    {refreshing ? 'Actualizando...' : 'Actualizar platos'}
+                    {loading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Cargando...
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="h-4 w-4" />
+                        Cargar Más Platos
+                      </>
+                    )}
                   </Button>
                 </div>
               )}
             </>
-          ) : (
-            <div className="text-center py-12">
-              <Utensils className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No se encontraron platos</h3>
-              <p className="text-muted-foreground mb-4">
-                Intenta ajustar tu búsqueda o filtros para encontrar más platos.
-              </p>
-              <Button onClick={() => {
-                setSearchQuery('');
-                setSelectedCategory('All');
-              }}>
-                Limpiar Filtros
-              </Button>
-            </div>
-          )
-        )}
-        
+          )}
         </div>
       </div>
     </div>

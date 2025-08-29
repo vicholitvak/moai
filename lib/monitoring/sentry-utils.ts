@@ -28,7 +28,7 @@ export class MoaiErrorReporter {
       scope.setTag('payment_method', paymentData.method || 'unknown')
       
       // Remove sensitive payment data but keep important context
-      const safePa ymentData = {
+      const safePaymentData = {
         method: paymentData.method,
         amount: paymentData.amount,
         currency: paymentData.currency,
@@ -171,10 +171,10 @@ export class MoaiErrorReporter {
    * Start transaction for performance monitoring
    */
   static startTransaction(name: string, operation: string) {
-    return Sentry.startTransaction({
+    return Sentry.startSpan({
       name,
       op: operation
-    })
+    }, () => {})
   }
 }
 

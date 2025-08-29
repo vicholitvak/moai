@@ -1,3 +1,14 @@
+/* Force dialog modal content and overlay to be pure white, overriding all backgrounds */
+ [data-slot=dialog-content], .dialog-content, .bg-background {
+  background: #fff !important;
+  background-color: #fff !important;
+  opacity: 1 !important;
+}
+ [data-slot=dialog-overlay], .dialog-overlay {
+  background: #fff !important;
+  background-color: #fff !important;
+  opacity: 1 !important;
+}
 @import 'tailwindcss';
 
 @layer base {
@@ -25,46 +36,269 @@
     --radius: 0.5rem;
   }
 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 6%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 24 100% 50%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 24 100% 50%;
-    --ring-offset-background: 222.2 84% 4.9%;
+
+  /* Enhanced Typography Scale */
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.025em;
+  }
+
+  h1 { font-size: clamp(2.5rem, 5vw, 4rem); }
+  h2 { font-size: clamp(2rem, 4vw, 3rem); }
+  h3 { font-size: clamp(1.5rem, 3vw, 2.25rem); }
+  h4 { font-size: clamp(1.25rem, 2.5vw, 1.875rem); }
+  h5 { font-size: clamp(1.125rem, 2vw, 1.5rem); }
+  h6 { font-size: clamp(1rem, 1.5vw, 1.25rem); }
+
+  /* Enhanced Body Text */
+  body {
+    font-size: clamp(0.875rem, 2vw, 1rem);
+    line-height: 1.6;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Modern Glassmorphism Effects */
+  .glass {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .glass-dark {
+    background: rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* Enhanced Gradient Backgrounds */
+  .gradient-moai {
+    background: linear-gradient(135deg,
+      #F97316 0%,
+      #EA580C 25%,
+      #F57C00 50%,
+      #FB923C 75%,
+      #FDBA74 100%);
+  }
+
+  .gradient-pacific {
+    background: linear-gradient(135deg,
+      #0EA5E9 0%,
+      #0284C7 25%,
+      #0369A1 50%,
+      #075985 75%,
+      #0C4A6E 100%);
+  }
+
+  .gradient-sunset {
+    background: linear-gradient(135deg,
+      #F97316 0%,
+      #F59E0B 25%,
+      #EF4444 50%,
+      #EC4899 75%,
+      #8B5CF6 100%);
+  }
+
+  /* Modern Card Shadows */
+  .shadow-moai-card {
+    box-shadow:
+      0 1px 3px rgba(249, 115, 22, 0.12),
+      0 1px 2px rgba(249, 115, 22, 0.24);
+  }
+
+  .shadow-pacific-card {
+    box-shadow:
+      0 1px 3px rgba(14, 165, 233, 0.12),
+      0 1px 2px rgba(14, 165, 233, 0.24);
+  }
+
+  .shadow-hover-lift {
+    box-shadow:
+      0 10px 25px rgba(249, 115, 22, 0.15),
+      0 4px 10px rgba(249, 115, 22, 0.1);
+  }
+
+  /* Enhanced Animations */
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+
+  @keyframes glow {
+    0%, 100% { box-shadow: 0 0 20px rgba(249, 115, 22, 0.3); }
+    50% { box-shadow: 0 0 30px rgba(249, 115, 22, 0.6); }
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideInLeft {
+    from {
+      opacity: 0;
+      transform: translateX(-30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* Utility Classes */
+  .animate-float { animation: float 3s ease-in-out infinite; }
+  .animate-glow { animation: glow 2s ease-in-out infinite; }
+  .animate-shimmer {
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+  .animate-slide-in-up { animation: slideInUp 0.6s ease-out; }
+  .animate-slide-in-left { animation: slideInLeft 0.6s ease-out; }
+  .animate-scale-in { animation: scaleIn 0.4s ease-out; }
+
+  /* Staggered Animation Delays */
+  .stagger-1 { animation-delay: 0.1s; }
+  .stagger-2 { animation-delay: 0.2s; }
+  .stagger-3 { animation-delay: 0.3s; }
+  .stagger-4 { animation-delay: 0.4s; }
+  .stagger-5 { animation-delay: 0.5s; }
+
+  /* Enhanced Hover Effects */
+  .hover-lift {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  }
+
+  .hover-glow:hover {
+    box-shadow: 0 0 30px rgba(249, 115, 22, 0.4);
+  }
+
+  /* Modern Button Styles */
+  .btn-modern {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #F97316, #EA580C);
+    border: none;
+    color: white;
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+
+  .btn-modern::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+  }
+
+  .btn-modern:hover::before {
+    left: 100%;
+  }
+
+  .btn-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(249, 115, 22, 0.3);
+  }
+
+  /* Enhanced Input Styles */
+  .input-modern {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border: 2px solid transparent;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+  }
+
+  .input-modern:focus {
+    border-color: #F97316;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+    background: rgba(255, 255, 255, 1);
+  }
+
+  /* Modern Card Styles */
+  .card-modern {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+  }
+
+  .card-modern:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Loading States */
+  .loading-shimmer {
+    background: linear-gradient(90deg,
+      rgba(255,255,255,0) 0%,
+      rgba(255,255,255,0.4) 50%,
+      rgba(255,255,255,0) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  /* Enhanced Focus States */
+  .focus-ring {
+    outline: none;
+  }
+
+  .focus-ring:focus {
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.5);
   }
 
   /* Dark mode color overrides for Atacama theme */
   .dark .bg-atacama-orange {
     background-color: #F57C00 !important;
   }
-  
+
   .dark .hover\:bg-atacama-orange\/90:hover {
     background-color: rgba(245, 124, 0, 0.9) !important;
   }
-  
+
   .dark .text-atacama-orange {
     color: #FF8F00 !important; /* Slightly brighter for dark mode */
   }
-  
+
   .dark .text-atacama-brown {
     color: #A1887F !important; /* Lighter brown for better contrast */
   }
-  
+
   .dark .border-atacama-orange {
     border-color: #FF8F00 !important;
   }
@@ -81,12 +315,6 @@
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
   }
 
-  /* Ensure proper layering and no transparency bleeding */
-  body {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-
   /* Mobile touch enhancements */
   @media (max-width: 768px) {
     /* Increase tap targets for better mobile usability */
@@ -94,18 +322,18 @@
       min-height: 44px;
       min-width: 44px;
     }
-    
+
     /* Improve scroll behavior on mobile */
     html {
       scroll-behavior: smooth;
       -webkit-overflow-scrolling: touch;
     }
-    
+
     /* Prevent zoom on input focus */
     input, select, textarea {
       font-size: 16px;
     }
-    
+
     /* Better touch feedback */
     button:active, [role="button"]:active {
       transform: scale(0.98);
@@ -132,41 +360,72 @@
     display: none;  /* Chrome, Safari and Opera */
   }
 
-  /* LicanÑam Atacama Desert Color Palette */
+  /* LicanÑam Atacama Desert Color Palette (mantenida para compatibilidad) */
   .bg-atacama-orange {
     background-color: #F57C00 !important;
   }
-  
+
   .hover\:bg-atacama-orange\/90:hover {
     background-color: rgba(245, 124, 0, 0.9) !important;
   }
-  
+
   .text-atacama-orange {
     color: #F57C00 !important;
   }
-  
+
   .text-atacama-brown {
     color: #8D6E63 !important;
   }
-  
+
   .border-atacama-orange {
     border-color: #F57C00 !important;
   }
-  
+
   .border-atacama-beige\/40 {
     border-color: rgba(215, 204, 200, 0.4) !important;
   }
-  
+
   .ring-atacama-orange {
     --tw-ring-color: #F57C00 !important;
   }
-  
+
   .focus-visible\:ring-atacama-orange:focus-visible {
     --tw-ring-color: #F57C00 !important;
   }
-  
+
   .focus-visible\:border-atacama-orange:focus-visible {
     border-color: #F57C00 !important;
   }
 
+  /* Animaciones personalizadas de Moai */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes bounceGentle {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
+  }
 }

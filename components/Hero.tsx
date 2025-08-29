@@ -1,40 +1,120 @@
-
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
+import { motion } from 'framer-motion';
+import { ChevronDown, Star, Users, Award, MapPin } from 'lucide-react';
 
 const Hero = ({ onSignUpClick, onSignInClick }: { onSignUpClick: () => void, onSignInClick: () => void }) => {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  const heroSlides = [
+    {
+      image: '/moai-food-hero.jpg',
+      title: '¡La mejor comida casera de todo Chile!',
+      subtitle: 'Descubre, ordena y disfruta platos auténticos preparados por cocineros locales en tu ciudad.',
+      cta: 'Explora platos cerca de ti'
+    },
+    {
+      image: '/valleluna.jpg',
+      title: 'Sabores únicos, entrega nacional.',
+      subtitle: 'Ahora disponible en todas las regiones de Chile. ¡Prueba especialidades locales!',
+      cta: 'Ver ciudades y cocineros'
+    },
+    {
+      image: '/llama-icon.jpg',
+      title: 'Únete a la comunidad Moai',
+      subtitle: 'Sé parte de la revolución gastronómica: pide, cocina o reparte.',
+      cta: 'Regístrate gratis'
+    }
+  ];
+
+  useEffect(() => {
+    setIsLoaded(true);
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const slideVariants = {
+    enter: { opacity: 0, scale: 1.1 },
+    center: { opacity: 1, scale: 1 },
+    exit: { opacity: 0, scale: 0.95 }
+  };
+
   return (
-    <div 
-      className="relative bg-cover bg-center min-h-screen h-screen text-white flex flex-col items-center justify-center text-center transition-all duration-500"
-      style={{ backgroundImage: `url(/valleluna.jpg)` }}
-    >
-      <div className="absolute inset-0 bg-black opacity-60"></div>
-      <div
-        className="relative z-10 px-4 max-w-4xl mx-auto"
-      >
-        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold mb-4 lg:mb-6 text-shadow-lg leading-tight">Alimentos frescos en el desierto.</h1>
-        <p className="text-base sm:text-lg md:text-xl mb-6 md:mb-8 text-shadow-md max-w-2xl mx-auto leading-relaxed">Pide platos preparados por chefs en San Pedro de Atacama.</p>
-        <div className="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-4 px-4">
-          <Button 
-            onClick={onSignUpClick} 
+    <div className="relative min-h-[80vh] md:min-h-screen h-[80vh] md:h-screen overflow-hidden flex items-center justify-center">
+      {/* Background Slideshow */}
+      <motion.div
+        key={currentSlide}
+        variants={slideVariants}
+        initial="enter"
+        animate="center"
+        exit="exit"
+        transition={{ duration: 1.5 }}
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105 blur-[1.5px] md:blur-none"
+        style={{
+          backgroundImage: `url(${heroSlides[currentSlide].image})`,
+          backgroundAttachment: 'fixed'
+        }}
+      />
+      {/* Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/30 to-transparent z-10" />
+      {/* Content */}
+      <div className="relative z-20 flex flex-col items-center justify-center h-full text-center px-4">
+        <motion.h1
+          className="text-4xl md:text-6xl font-extrabold text-white drop-shadow-2xl mb-4 tracking-tight"
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          {heroSlides[currentSlide].title}
+        </motion.h1>
+        <motion.p
+          className="text-lg md:text-2xl text-white/90 mb-8 max-w-2xl mx-auto drop-shadow-lg"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          {heroSlides[currentSlide].subtitle}
+        </motion.p>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.6 }}
+        >
+          <Button
             size="lg"
-            className="bg-atacama-orange text-white font-bold py-4 px-8 rounded-full shadow-lg hover:bg-opacity-90 transition-all duration-300 transform hover:scale-105 text-base sm:text-lg min-h-[48px] w-full sm:w-auto"
+            className="bg-white text-atacama-brown font-bold px-8 py-4 rounded-full shadow-2xl text-lg transition-all duration-200 border-2 border-atacama-orange hover:bg-atacama-orange/10 hover:text-atacama-orange"
+            onClick={onSignUpClick}
           >
-            Registrarse
+            {heroSlides[currentSlide].cta}
           </Button>
-          <Button 
-            onClick={onSignInClick} 
-            variant="outline"
+          <Button
             size="lg"
-            className="bg-atacama-brown/80 border-atacama-brown text-white font-bold py-4 px-8 rounded-full shadow-lg backdrop-blur-sm hover:bg-atacama-brown/90 transition-all duration-300 transform hover:scale-105 text-base sm:text-lg min-h-[48px] w-full sm:w-auto"
+            variant="outline"
+            className="ml-4 mt-4 md:mt-0 border-atacama-orange text-atacama-orange font-bold px-8 py-4 rounded-full shadow text-lg transition-all duration-200 hover:bg-atacama-orange/10"
+            onClick={onSignInClick}
           >
             Iniciar Sesión
           </Button>
-        </div>
+        </motion.div>
+      </div>
+      {/* Slide Controls */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-30">
+        {heroSlides.map((_, idx) => (
+          <button
+            key={idx}
+            className={`w-3 h-3 rounded-full border-2 ${currentSlide === idx ? 'bg-atacama-orange border-white' : 'bg-white/60 border-white/30'} transition-all`}
+            onClick={() => setCurrentSlide(idx)}
+            aria-label={`Ir al slide ${idx + 1}`}
+          />
+        ))}
       </div>
     </div>
   );
-};
+}
 
 export default Hero;

@@ -201,9 +201,9 @@ const ClientHome = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-moai-50 via-background to-pacific-50">
       {/* Header */}
-      <div className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
+      <div className="sticky top-0 z-50 border-b bg-gradient-moai/10 backdrop-blur-md shadow-moai-card">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -212,7 +212,7 @@ const ClientHome = () => {
                 <AvatarFallback>{user?.displayName?.[0] || 'U'}</AvatarFallback>
               </Avatar>
               <div>
-                <h1 className="text-xl font-bold">¡Hola, {user?.displayName || 'Cliente'}!</h1>
+                <h1 className="text-xl font-bold text-gradient-moai animate-fade-in">¡Hola, {user?.displayName || 'Cliente'}!</h1>
                 <p className="text-sm text-muted-foreground">Bienvenido a tu dashboard</p>
               </div>
             </div>
@@ -250,6 +250,7 @@ const ClientHome = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => router.push('/dishes')}
+                className="btn-moai-outline hover-lift"
               >
                 <Search className="h-4 w-4 mr-2" />
                 Explorar
@@ -261,10 +262,10 @@ const ClientHome = () => {
 
       <div className="container mx-auto px-4 py-6">
         {/* Search Section */}
-        <Card className="mb-6">
+        <Card className="mb-6 card-moai animate-fade-in hover-lift">
           <CardHeader>
-            <CardTitle>¿Qué se te antoja hoy?</CardTitle>
-            <CardDescription>Descubre platos increíbles cerca de ti</CardDescription>
+            <CardTitle className="text-gradient-moai">¿Qué se te antoja hoy?</CardTitle>
+            <CardDescription className="text-andes-600">Descubre platos increíbles cerca de ti</CardDescription>
           </CardHeader>
           <CardContent>
             <AdvancedSearch 
@@ -280,54 +281,54 @@ const ClientHome = () => {
         </Card>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <Card>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 animate-slide-in">
+          <Card className="card-moai hover-lift transition-all duration-300">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Total Pedidos</p>
-                  <p className="text-2xl font-bold">{stats.totalOrders}</p>
+                  <p className="text-2xl font-bold text-moai-600">{stats.totalOrders}</p>
                 </div>
-                <ShoppingBag className="h-8 w-8 text-primary opacity-20" />
+                <ShoppingBag className="h-8 w-8 text-moai-400 opacity-30 animate-pulse-soft" />
               </div>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="card-pacific hover-lift transition-all duration-300">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Total Gastado</p>
-                  <p className="text-2xl font-bold">{formatPrice(stats.totalSpent)}</p>
+                  <p className="text-2xl font-bold text-pacific-600">{formatPrice(stats.totalSpent)}</p>
                 </div>
-                <CreditCard className="h-8 w-8 text-primary opacity-20" />
+                <CreditCard className="h-8 w-8 text-pacific-400 opacity-30 animate-pulse-soft" />
               </div>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="card-moai hover-lift transition-all duration-300">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Cocina Favorita</p>
-                  <p className="text-2xl font-bold">{stats.favoriteCuisine}</p>
+                  <p className="text-2xl font-bold text-quillay-600">{stats.favoriteCuisine}</p>
                 </div>
-                <Utensils className="h-8 w-8 text-primary opacity-20" />
+                <Utensils className="h-8 w-8 text-quillay-400 opacity-30 animate-pulse-soft" />
               </div>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="card-pacific hover-lift transition-all duration-300">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Rating Promedio</p>
                   <div className="flex items-center gap-1">
-                    <p className="text-2xl font-bold">{stats.averageRating}</p>
-                    <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                    <p className="text-2xl font-bold text-andes-600">{stats.averageRating}</p>
+                    <Star className="h-5 w-5 fill-moai-400 text-moai-400" />
                   </div>
                 </div>
-                <TrendingUp className="h-8 w-8 text-primary opacity-20" />
+                <TrendingUp className="h-8 w-8 text-andes-400 opacity-30 animate-pulse-soft" />
               </div>
             </CardContent>
           </Card>
@@ -335,20 +336,20 @@ const ClientHome = () => {
 
         {/* Featured Dishes */}
         {featuredDishes.length > 0 && (
-          <Card className="mb-6">
+          <Card className="mb-6 card-moai animate-fade-in">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+              <CardTitle className="flex items-center gap-2 text-gradient-moai">
+                <Star className="h-5 w-5 fill-moai-400 text-moai-400 animate-bounce-gentle" />
                 Platos Destacados
               </CardTitle>
-              <CardDescription>Los mejores platos según nuestros clientes</CardDescription>
+              <CardDescription className="text-andes-600">Los mejores platos según nuestros clientes</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 {featuredDishes.map((dish) => (
                   <Card 
                     key={dish.id}
-                    className="cursor-pointer hover:shadow-lg transition-all hover:scale-105"
+                    className="cursor-pointer hover:shadow-hover-lift transition-all hover:scale-105 card-moai animate-fade-in"
                     onClick={() => router.push(`/dishes/${dish.id}`)}
                   >
                     <div className="aspect-square relative">
@@ -360,12 +361,12 @@ const ClientHome = () => {
                           e.currentTarget.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300&h=300&fit=crop';
                         }}
                       />
-                      <Badge className="absolute top-2 left-2 bg-yellow-500">
+                      <Badge className="absolute top-2 left-2 bg-gradient-moai border-none text-white shadow-lg">
                         <Star className="h-3 w-3 mr-1" />
                         Destacado
                       </Badge>
                       {dish.rating > 4.5 && (
-                        <Badge className="absolute top-2 right-2 bg-green-500">
+                        <Badge className="absolute top-2 right-2 bg-gradient-pacific border-none text-white shadow-lg">
                           Mejor Valorado
                         </Badge>
                       )}
@@ -395,13 +396,13 @@ const ClientHome = () => {
 
         {/* Active Orders */}
         {activeOrders.length > 0 && (
-          <Card className="mb-6">
+          <Card className="mb-6 card-pacific animate-slide-in">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5" />
+              <CardTitle className="flex items-center gap-2 text-gradient-pacific">
+                <Package className="h-5 w-5 animate-pulse-soft" />
                 Pedidos Activos
               </CardTitle>
-              <CardDescription>Seguimiento en tiempo real de tus pedidos</CardDescription>
+              <CardDescription className="text-andes-600">Seguimiento en tiempo real de tus pedidos</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -450,7 +451,7 @@ const ClientHome = () => {
         )}
 
         {/* Main Content Tabs */}
-        <Tabs defaultValue="recommendations" className="space-y-4">
+        <Tabs defaultValue="recommendations" className="space-y-4 animate-fade-in">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="recommendations">Recomendados</TabsTrigger>
             <TabsTrigger value="favorites">Favoritos</TabsTrigger>
@@ -458,10 +459,10 @@ const ClientHome = () => {
           </TabsList>
           
           <TabsContent value="recommendations" className="space-y-4">
-            <Card>
+            <Card className="card-moai">
               <CardHeader>
-                <CardTitle>Recomendados para ti</CardTitle>
-                <CardDescription>Basado en tus pedidos anteriores</CardDescription>
+                <CardTitle className="text-gradient-moai">Recomendados para ti</CardTitle>
+                <CardDescription className="text-andes-600">Basado en tus pedidos anteriores</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -502,10 +503,10 @@ const ClientHome = () => {
           </TabsContent>
           
           <TabsContent value="favorites" className="space-y-4">
-            <Card>
+            <Card className="card-pacific">
               <CardHeader>
-                <CardTitle>Tus Favoritos</CardTitle>
-                <CardDescription>Platos que has marcado como favoritos</CardDescription>
+                <CardTitle className="text-gradient-pacific">Tus Favoritos</CardTitle>
+                <CardDescription className="text-andes-600">Platos que has marcado como favoritos</CardDescription>
               </CardHeader>
               <CardContent>
                 {favoriteDishes.length > 0 ? (
@@ -548,10 +549,10 @@ const ClientHome = () => {
           </TabsContent>
           
           <TabsContent value="cooks" className="space-y-4">
-            <Card>
+            <Card className="card-moai">
               <CardHeader>
-                <CardTitle>Cocineros Destacados</CardTitle>
-                <CardDescription>Los mejores cocineros de tu zona</CardDescription>
+                <CardTitle className="text-gradient-moai">Cocineros Destacados</CardTitle>
+                <CardDescription className="text-andes-600">Los mejores cocineros de tu zona</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -601,10 +602,10 @@ const ClientHome = () => {
 
         {/* Recent Orders */}
         {recentOrders.length > 0 && (
-          <Card className="mt-6">
+          <Card className="mt-6 card-pacific animate-slide-in">
             <CardHeader>
-              <CardTitle>Pedidos Recientes</CardTitle>
-              <CardDescription>Tu historial de pedidos</CardDescription>
+              <CardTitle className="text-gradient-pacific">Pedidos Recientes</CardTitle>
+              <CardDescription className="text-andes-600">Tu historial de pedidos</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -652,37 +653,37 @@ const ClientHome = () => {
         />
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 animate-fade-in">
           <Button
             variant="outline"
-            className="h-24 flex-col gap-2"
+            className="h-24 flex-col gap-2 card-moai hover-lift btn-moai-outline"
             onClick={() => router.push('/dishes')}
           >
-            <Utensils className="h-6 w-6" />
+            <Utensils className="h-6 w-6 text-moai-500" />
             <span>Explorar Platos</span>
           </Button>
           
           <Button
             variant="outline"
-            className="h-24 flex-col gap-2"
+            className="h-24 flex-col gap-2 card-pacific hover-lift btn-moai-outline"
             onClick={() => router.push('/cart')}
           >
-            <ShoppingBag className="h-6 w-6" />
+            <ShoppingBag className="h-6 w-6 text-pacific-500" />
             <span>Mi Carrito</span>
           </Button>
           
           <Button
             variant="outline"
-            className="h-24 flex-col gap-2"
+            className="h-24 flex-col gap-2 card-moai hover-lift btn-moai-outline"
             onClick={() => router.push('/favorites')}
           >
-            <Heart className="h-6 w-6" />
+            <Heart className="h-6 w-6 text-moai-500" />
             <span>Favoritos</span>
           </Button>
           
           <Button
             variant="outline"
-            className="h-24 flex-col gap-2"
+            className="h-24 flex-col gap-2 card-pacific hover-lift btn-moai-outline"
             onClick={() => router.push('/profile')}
           >
             <Avatar className="h-6 w-6">

@@ -34,8 +34,8 @@ const FeaturedCarousel = ({ dishes = [] }: { dishes?: Dish[] }) => {
     return (
       <section className="py-20">
         <div className="container mx-auto text-center">
-          <h2 className="text-4xl font-bold mb-12">Featured Dishes</h2>
-          <p>No featured dishes available at the moment.</p>
+          <h2 className="text-4xl font-bold mb-12">Platos Destacados</h2>
+          <p>No hay platos destacados en este momento.</p>
         </div>
       </section>
     );
@@ -44,7 +44,7 @@ const FeaturedCarousel = ({ dishes = [] }: { dishes?: Dish[] }) => {
   return (
     <section className="py-20 bg-gray-50">
       <div className="container mx-auto">
-        <motion.h2 initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} transition={{ duration: 0.5 }} viewport={{ once: true }} className="text-4xl font-bold text-center mb-12">Featured Dishes</motion.h2>
+        <motion.h2 initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} transition={{ duration: 0.5 }} viewport={{ once: true }} className="text-4xl font-bold text-center mb-12">Platos Destacados</motion.h2>
         <Swiper
           modules={[Navigation, Pagination, Autoplay]}
           spaceBetween={30}

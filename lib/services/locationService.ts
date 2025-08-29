@@ -98,16 +98,32 @@ export class LocationService {
   static async getAddressFromCoordinates(lat: number, lng: number): Promise<Address> {
     // Check if OpenCage API key is available
     const apiKey = process.env.NEXT_PUBLIC_OPENCAGE_API_KEY;
-    
+
     if (!apiKey || apiKey === 'YOUR_OPENCAGE_API_KEY') {
-      // API key not configured, use fallback address silently
+      // Try to match with Chilean cities first
+      const { ChileanCitiesService } = await import('./chileanCitiesService');
+      const nearbyCities = ChileanCitiesService.getNearbyCities(lat, lng, 10);
+
+      if (nearbyCities.length > 0) {
+        const closestCity = nearbyCities[0];
+        return {
+          street: 'Dirección no disponible',
+          city: closestCity.name,
+          state: closestCity.region,
+          zipCode: '',
+          country: 'Chile',
+          fullAddress: `${closestCity.name}, ${closestCity.region}, Chile`
+        };
+      }
+
+      // Fallback address for Santiago, Chile
       return {
         street: 'Dirección no disponible',
-        city: 'San Pedro de Atacama',
-        state: 'Región de Antofagasta',
+        city: 'Santiago',
+        state: 'Región Metropolitana',
         zipCode: '',
         country: 'Chile',
-        fullAddress: 'San Pedro de Atacama, Región de Antofagasta, Chile'
+        fullAddress: 'Santiago, Región Metropolitana, Chile'
       };
     }
 
@@ -116,18 +132,18 @@ export class LocationService {
       const response = await fetch(
         `https://api.opencagedata.com/geocode/v1/json?q=${lat}+${lng}&key=${apiKey}&language=es&countrycode=cl`
       );
-      
+
       if (!response.ok) {
         console.warn('Geocoding service temporarily unavailable, using fallback address');
         throw new Error('Geocoding service unavailable');
       }
 
       const data = await response.json();
-      
+
       if (data.results && data.results.length > 0) {
         const result = data.results[0];
         const components = result.components;
-        
+
         return {
           street: `${components.house_number || ''} ${components.road || ''}`.trim(),
           city: components.city || components.town || components.village || 'Santiago',
@@ -137,29 +153,61 @@ export class LocationService {
           fullAddress: result.formatted
         };
       } else {
-        // Fallback address for San Pedro de Atacama, Chile
+        // Try Chilean cities fallback
+        const { ChileanCitiesService } = await import('./chileanCitiesService');
+        const nearbyCities = ChileanCitiesService.getNearbyCities(lat, lng, 10);
+
+        if (nearbyCities.length > 0) {
+          const closestCity = nearbyCities[0];
+          return {
+            street: 'Dirección no disponible',
+            city: closestCity.name,
+            state: closestCity.region,
+            zipCode: '',
+            country: 'Chile',
+            fullAddress: `${closestCity.name}, ${closestCity.region}, Chile`
+          };
+        }
+
+        // Final fallback
         return {
           street: 'Dirección no disponible',
-          city: 'San Pedro de Atacama',
-          state: 'Región de Antofagasta',
+          city: 'Santiago',
+          state: 'Región Metropolitana',
           zipCode: '',
           country: 'Chile',
-          fullAddress: 'San Pedro de Atacama, Región de Antofagasta, Chile'
+          fullAddress: 'Santiago, Región Metropolitana, Chile'
         };
       }
     } catch (error) {
+      // Try Chilean cities fallback
+      const { ChileanCitiesService } = await import('./chileanCitiesService');
+      const nearbyCities = ChileanCitiesService.getNearbyCities(lat, lng, 10);
+
+      if (nearbyCities.length > 0) {
+        const closestCity = nearbyCities[0];
+        return {
+          street: 'Dirección no disponible',
+          city: closestCity.name,
+          state: closestCity.region,
+          zipCode: '',
+          country: 'Chile',
+          fullAddress: `${closestCity.name}, ${closestCity.region}, Chile`
+        };
+      }
+
       // Only log unexpected errors, not expected fallback scenarios
       if (error instanceof Error && !error.message.includes('Geocoding service unavailable')) {
         console.error('Unexpected error getting address:', error);
       }
-      // Return fallback San Pedro de Atacama address
+      // Return fallback Santiago address
       return {
         street: 'Dirección no disponible',
-        city: 'San Pedro de Atacama',
-        state: 'Región de Antofagasta',
+        city: 'Santiago',
+        state: 'Región Metropolitana',
         zipCode: '',
         country: 'Chile',
-        fullAddress: 'San Pedro de Atacama, Región de Antofagasta, Chile'
+        fullAddress: 'Santiago, Región Metropolitana, Chile'
       };
     }
   }
@@ -169,15 +217,15 @@ export class LocationService {
     const R = 6371; // Earth's radius in kilometers
     const dLat = this.toRadians(lat2 - lat1);
     const dLng = this.toRadians(lng2 - lng1);
-    
-    const a = 
+
+    const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
       Math.cos(this.toRadians(lat1)) * Math.cos(this.toRadians(lat2)) *
       Math.sin(dLng / 2) * Math.sin(dLng / 2);
-    
+
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const distance = R * c;
-    
+
     return Math.round(distance * 10) / 10; // Round to 1 decimal place
   }
 
@@ -190,7 +238,7 @@ export class LocationService {
     try {
       const coordinates = await this.getCurrentPosition();
       const address = await this.getAddressFromCoordinates(
-        coordinates.latitude, 
+        coordinates.latitude,
         coordinates.longitude
       );
 
@@ -254,7 +302,7 @@ export class LocationService {
           if (position.coords.heading !== null && position.coords.heading !== undefined) {
             driverLocation.heading = position.coords.heading;
           }
-          
+
           if (position.coords.speed !== null && position.coords.speed !== undefined) {
             driverLocation.speed = position.coords.speed * 3.6; // Convert m/s to km/h
           }
@@ -325,22 +373,22 @@ export class LocationService {
     try {
       // This is a simplified version. For production, you'd want to use Firestore's geohash queries
       // or a service like Google Maps Places API for more efficient location-based queries
-      
-      const cooksSnapshot = await import('@/lib/firebase/dataService').then(module => 
+
+      const cooksSnapshot = await import('@/lib/firebase/dataService').then(module =>
         module.CooksService.getAllCooks()
       );
 
       const nearbyCooks = cooksSnapshot
         .filter(cook => {
           if (!cook.location?.coordinates) return false;
-          
+
           const distance = this.calculateDistance(
             userLat,
             userLng,
             cook.location.coordinates.latitude,
             cook.location.coordinates.longitude
           );
-          
+
           return distance <= maxDistance;
         })
         .map(cook => ({
@@ -366,7 +414,7 @@ export class LocationService {
     // Base time + travel time (assuming average speed of 25 km/h in city)
     const baseTime = 15; // 15 minutes base preparation time
     const travelTime = (distance / 25) * 60; // Convert hours to minutes
-    
+
     return Math.ceil(baseTime + travelTime);
   }
 
@@ -464,7 +512,7 @@ export class LocationService {
       zone.center.latitude,
       zone.center.longitude
     ) * 1000; // Convert km to meters
-    
+
     return distance <= zone.radius;
   }
 
@@ -482,7 +530,7 @@ export class LocationService {
     let inside = false;
     for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
       if (((polygon[i].latitude > point.latitude) !== (polygon[j].latitude > point.latitude)) &&
-          (point.longitude < (polygon[j].longitude - polygon[i].longitude) * 
+          (point.longitude < (polygon[j].longitude - polygon[i].longitude) *
            (point.latitude - polygon[i].latitude) / (polygon[j].latitude - polygon[i].latitude) + polygon[i].longitude)) {
         inside = !inside;
       }
@@ -494,7 +542,7 @@ export class LocationService {
 
   // Calculate comprehensive delivery fee
   static calculateDeliveryFee(
-    customerCoords: Coordinates, 
+    customerCoords: Coordinates,
     cookCoords: Coordinates,
     zones: DeliveryZone[] = this.getDefaultDeliveryZones()
   ): DeliveryFeeCalculation {
@@ -507,11 +555,11 @@ export class LocationService {
 
     // Find applicable delivery zone
     const zone = this.findDeliveryZone(customerCoords, zones);
-    
+
     // Base fee configuration
     const baseFee = 1500; // CLP
     const freeDeliveryThreshold = 3; // km
-    
+
     // Calculate distance-based fee
     let distanceFee = 0;
     if (distance > freeDeliveryThreshold) {
@@ -542,7 +590,7 @@ export class LocationService {
   static estimateAdvancedDeliveryTime(distance: number, zone?: DeliveryZone | null): number {
     // Base preparation time
     let baseTime = 20; // minutes
-    
+
     // Zone-specific adjustments
     if (zone) {
       baseTime = Math.min(baseTime, zone.maxDeliveryTime - 15);
@@ -551,12 +599,12 @@ export class LocationService {
     // Travel time calculation (considering Santiago traffic)
     const avgSpeed = 22; // km/h average in Santiago
     const travelTime = (distance / avgSpeed) * 60; // Convert to minutes
-    
+
     // Traffic multiplier based on time of day
     const now = new Date();
     const hour = now.getHours();
     let trafficMultiplier = 1.0;
-    
+
     if ((hour >= 7 && hour <= 9) || (hour >= 18 && hour <= 20)) {
       trafficMultiplier = 1.5; // Rush hour
     } else if (hour >= 12 && hour <= 14) {
@@ -584,7 +632,7 @@ export class LocationService {
     nearestZone?: { zone: DeliveryZone; distance: number };
   } {
     const applicableZone = this.findDeliveryZone(coordinates, zones);
-    
+
     if (applicableZone) {
       return {
         allowed: true,
@@ -647,7 +695,7 @@ export class LocationService {
             coordinates,
             cook.location.coordinates
           );
-          
+
           return {
             ...dish,
             cookDistance: cook.distance,
@@ -661,6 +709,118 @@ export class LocationService {
       return availableDishes;
     } catch (error) {
       console.error('Error getting dishes for location:', error);
+      return [];
+    }
+  }
+
+  // Get dishes for a specific Chilean city
+  static async getDishesForChileanCity(cityId: string): Promise<any[]> {
+    try {
+      const { ChileanCitiesService } = await import('./chileanCitiesService');
+      const city = ChileanCitiesService.getCityById(cityId);
+
+      if (!city) {
+        console.warn(`City ${cityId} not found`);
+        return [];
+      }
+
+      // Check if city is operating
+      if (!ChileanCitiesService.isCityOperating(cityId)) {
+        return [];
+      }
+
+      // Get nearby cooks within the city's delivery radius
+      const nearbyCooks = await this.getNearbyCooks(
+        city.coordinates.latitude,
+        city.coordinates.longitude,
+        city.maxDeliveryRadius
+      );
+
+      // Get dishes from nearby cooks
+      const { DishesService } = await import('@/lib/firebase/dataService');
+      const allDishes = await DishesService.getAllDishes();
+
+      const availableDishes = allDishes
+        .filter(dish => {
+          // Filter by cook proximity and availability
+          const cook = nearbyCooks.find(c => c.id === dish.cookerId);
+          return cook && dish.isAvailable;
+        })
+        .map(dish => {
+          const cook = nearbyCooks.find(c => c.id === dish.cookerId);
+          const deliveryFee = ChileanCitiesService.getDeliveryFeeForCity(cityId);
+
+          return {
+            ...dish,
+            cityId,
+            cityName: city.name,
+            region: city.region,
+            cookDistance: cook.distance,
+            deliveryFee,
+            estimatedDeliveryTime: this.calculateDeliveryTime(cook.distance),
+            cookLocation: cook.location,
+            localSpecialties: ChileanCitiesService.getLocalSpecialtiesForCity(cityId),
+            popularDishes: ChileanCitiesService.getPopularDishesForCity(cityId)
+          };
+        })
+        .sort((a, b) => a.cookDistance - b.cookDistance);
+
+      return availableDishes;
+    } catch (error) {
+      console.error('Error getting dishes for Chilean city:', error);
+      return [];
+    }
+  }
+
+  // Get dishes for user's current location with Chilean city detection
+  static async getDishesForCurrentLocation(): Promise<any[]> {
+    try {
+      const coordinates = await this.getCurrentPosition();
+      const address = await this.getAddressFromCoordinates(
+        coordinates.latitude,
+        coordinates.longitude
+      );
+
+      // Try to match with Chilean cities
+      const { ChileanCitiesService } = await import('./chileanCitiesService');
+      const nearbyCities = ChileanCitiesService.getNearbyCities(
+        coordinates.latitude,
+        coordinates.longitude,
+        50 // 50km radius
+      );
+
+      if (nearbyCities.length > 0) {
+        // Use the closest city
+        const closestCity = nearbyCities[0];
+        return await this.getDishesForChileanCity(closestCity.id);
+      } else {
+        // Fallback to coordinate-based search
+        return await this.getDishesForLocation(coordinates, 15);
+      }
+    } catch (error) {
+      console.error('Error getting dishes for current location:', error);
+      return [];
+    }
+  }
+
+  // Get available Chilean cities for user selection
+  static async getAvailableChileanCities(): Promise<any[]> {
+    try {
+      const { ChileanCitiesService } = await import('./chileanCitiesService');
+
+      return ChileanCitiesService.getActiveCities().map(city => ({
+        id: city.id,
+        name: city.name,
+        region: city.region,
+        coordinates: city.coordinates,
+        deliveryFee: city.deliveryFee,
+        isOperating: ChileanCitiesService.isCityOperating(city.id),
+        operatingHours: ChileanCitiesService.getOperatingHoursForCity(city.id),
+        popularDishes: city.popularDishes,
+        localSpecialties: city.localSpecialties
+      }));
+    } catch (error) {
+      console.error('Error getting available Chilean cities:', error);
       return [];
     }
   }
@@ -692,7 +852,7 @@ export class LocationService {
 
     const now = new Date();
     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-    
+
     return currentTime >= zone.operatingHours.start && currentTime <= zone.operatingHours.end;
   }
 

@@ -24,6 +24,33 @@ export interface Dish {
     carbs: string;
     fat: string;
   };
+  // Location-based fields
+  cityId?: string;
+  cityName?: string;
+  region?: string;
+  cookDistance?: number;
+  deliveryFee?: number;
+  estimatedDeliveryTime?: number;
+  cookLocation?: {
+    coordinates: {
+      latitude: number;
+      longitude: number;
+      accuracy?: number;
+      timestamp: Timestamp;
+    };
+    address: {
+      street: string;
+      city: string;
+      state: string;
+      zipCode: string;
+      country: string;
+      fullAddress: string;
+    };
+    isActive: boolean;
+    lastUpdated: Timestamp;
+  };
+  localSpecialties?: string[];
+  popularDishes?: string[];
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -106,7 +133,7 @@ export interface Order {
   total: number;
   paymentMethod: 'card' | 'cash_on_delivery';
   paymentStatus: 'pending' | 'paid' | 'failed' | 'cash_pending';
-  status: 'pending_approval' | 'pending' | 'accepted' | 'preparing' | 'ready' | 'delivering' | 'delivered' | 'cancelled' | 'rejected';
+  status: 'pending_approval' | 'pending' | 'accepted' | 'preparing' | 'ready' | 'delivering' | 'en_viaje' | 'delivered' | 'cancelled' | 'rejected';
   deliveryInfo: {
     address: string;
     phone: string;

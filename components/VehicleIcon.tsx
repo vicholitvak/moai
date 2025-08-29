@@ -14,25 +14,25 @@ const VEHICLE_CONFIG = {
     icon: Bike,
     emoji: '🚴‍♂️',
     name: 'Bicicleta',
-    color: 'text-green-600',
-    bgColor: 'bg-green-100',
-    borderColor: 'border-green-300'
+    color: 'text-moai-700',
+    bgColor: 'bg-white',
+    borderColor: 'border-moai-200'
   },
   motorcycle: {
     icon: Zap,
     emoji: '🏍️',
     name: 'Motocicleta',
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-100',
-    borderColor: 'border-blue-300'
+    color: 'text-moai-700',
+    bgColor: 'bg-white',
+    borderColor: 'border-moai-200'
   },
   car: {
     icon: Car,
     emoji: '🚗',
     name: 'Automóvil',
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-100',
-    borderColor: 'border-purple-300'
+    color: 'text-moai-700',
+    bgColor: 'bg-white',
+    borderColor: 'border-moai-200'
   }
 };
 
