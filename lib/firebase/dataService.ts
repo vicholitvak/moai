@@ -527,6 +527,11 @@ export class DishesService {
       return false;
     }
   }
+
+  // Alias method for getDishesByCook (for backward compatibility)
+  static async getDishesByCookId(cookerId: string): Promise<Dish[]> {
+    return this.getDishesByCook(cookerId);
+  }
 }
 
 // Cooks Service
