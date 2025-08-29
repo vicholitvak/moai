@@ -20,7 +20,16 @@ import {
   User,
   CheckCircle,
   Shield,
-  Save
+  Save,
+  Clock,
+  Truck,
+  Receipt,
+  Gift,
+  ArrowRight,
+  MapPin,
+  Navigation,
+  Phone,
+  MessageSquare
 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -397,15 +406,74 @@ const CartPage = () => {
                 </p>
               </div>
             </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={logout}
-              className="text-muted-foreground hover:text-destructive"
-            >
-              <User className="h-4 w-4 mr-2" />
-              Logout
-            </Button>
+            <div className="hidden md:flex items-center gap-4">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={logout}
+                className="text-muted-foreground hover:text-destructive"
+              >
+                <User className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Enhanced Hero Section */}
+      <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-background border-b">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-between">
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <div className="bg-primary text-primary-foreground p-3 rounded-full">
+                  <ShoppingCart className="h-6 w-6" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold tracking-tight">Your Cart</h1>
+                  <p className="text-muted-foreground">
+                    {cartItems.length === 0 
+                      ? "Ready to add some delicious dishes?" 
+                      : `${cartItems.length} item${cartItems.length > 1 ? 's' : ''} in your cart`
+                    }
+                  </p>
+                </div>
+              </div>
+              
+              {cartItems.length > 0 && (
+                <div className="flex items-center gap-6 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-muted-foreground">
+                      Total: <span className="font-semibold text-foreground">{formatPrice(total)}</span>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">Est. delivery: 30-45 min</span>
+                  </div>
+                  {deliveryFee === 0 && (
+                    <div className="flex items-center gap-2">
+                      <Truck className="h-4 w-4 text-green-600" />
+                      <span className="text-green-600 font-medium">Free delivery!</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            
+            <div className="hidden md:flex items-center gap-4">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={logout}
+                className="text-muted-foreground hover:text-destructive"
+              >
+                <User className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -430,60 +498,76 @@ const CartPage = () => {
                 </Card>
               ) : (
                 cartItems.map((item) => (
-                  <Card key={item.id}>
-                    <CardContent className="p-4">
-                      <div className="flex gap-4">
-                        <img 
-                          src={item.image} 
-                          alt={item.name}
-                          className="w-20 h-20 rounded-lg object-cover"
-                          onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                            e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik00MCA0MEg2MFY2MEg0MFY0MFoiIGZpbGw9IiM5QjlCQTMiLz4KPC9zdmc+';
-                          }}
-                        />
-                        <div className="flex-1">
-                          <div className="flex justify-between items-start mb-2">
-                            <h3 className="font-semibold">{item.name}</h3>
+                  <Card key={item.id} className="hover:shadow-lg transition-all duration-300 border-l-4 border-l-primary/20 hover:border-l-primary">
+                    <CardContent className="p-6">
+                      <div className="flex gap-6">
+                        <div className="relative">
+                          <img 
+                            src={item.image} 
+                            alt={item.name}
+                            className="w-24 h-24 rounded-xl object-cover shadow-sm"
+                            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                              e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik00MCA0MEg2MFY2MEg0MFY0MFoiIGZpbGw9IiM5QjlCQTMiLz4KPC9zdmc+';
+                            }}
+                          />
+                          <Badge 
+                            variant="secondary" 
+                            className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs px-2 py-1"
+                          >
+                            x{item.quantity}
+                          </Badge>
+                        </div>
+                        
+                        <div className="flex-1 space-y-3">
+                          <div className="flex justify-between items-start">
+                            <div className="space-y-1">
+                              <h3 className="font-semibold text-lg leading-tight">{item.name}</h3>
+                              <div className="flex items-center gap-2">
+                                <Avatar className="h-5 w-5">
+                                  <AvatarImage src={item.cookerAvatar} />
+                                  <AvatarFallback className="text-xs bg-primary/10">C</AvatarFallback>
+                                </Avatar>
+                                <span className="text-sm text-muted-foreground">{item.cookerName}</span>
+                                <Badge variant="outline" className="text-xs bg-primary/5 border-primary/20">
+                                  {item.category}
+                                </Badge>
+                              </div>
+                            </div>
                             <Button 
                               variant="ghost" 
                               size="sm" 
                               onClick={() => removeFromCart(item.id)}
-                              className="text-muted-foreground hover:text-destructive"
+                              className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full p-2"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                           
-                          <div className="flex items-center gap-2 mb-2">
-                            <Avatar className="h-5 w-5">
-                              <AvatarImage src={item.cookerAvatar} />
-                              <AvatarFallback className="text-xs">C</AvatarFallback>
-                            </Avatar>
-                            <span className="text-sm text-muted-foreground">{item.cookerName}</span>
-                            <Badge variant="outline" className="text-xs">{item.category}</Badge>
-                          </div>
-                          
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                disabled={item.quantity <= 1}
-                              >
-                                <Minus className="h-3 w-3" />
-                              </Button>
-                              <span className="w-8 text-center font-medium">{item.quantity}</span>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                              >
-                                <Plus className="h-3 w-3" />
-                              </Button>
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                  disabled={item.quantity <= 1}
+                                  className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </Button>
+                                <span className="w-8 text-center font-medium text-sm">{item.quantity}</span>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                  className="h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                              </div>
                             </div>
                             <div className="text-right">
-                              <p className="font-semibold">{formatPrice(item.price * item.quantity)}</p>
+                              <p className="font-bold text-lg text-primary">{formatPrice(item.price * item.quantity)}</p>
                               <p className="text-sm text-muted-foreground">{formatPrice(item.price)} each</p>
                             </div>
                           </div>
@@ -497,118 +581,201 @@ const CartPage = () => {
 
             {/* Order Summary */}
             {cartItems.length > 0 && (
-              <div className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Order Summary</CardTitle>
+              <div className="space-y-6">
+                {/* Order Summary Card */}
+                <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-background">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center gap-2 text-xl">
+                      <Receipt className="h-5 w-5 text-primary" />
+                      Order Summary
+                    </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex justify-between">
-                      <span>Subtotal</span>
-                      <span>{formatPrice(subtotal)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Delivery Fee</span>
-                      <div className="text-right">
-                        {deliveryFee === 0 ? (
-                          <div>
-                            <span className="line-through text-muted-foreground">{formatPrice(2500)}</span>
-                            <span className="ml-2 text-primary">FREE</span>
-                          </div>
-                        ) : (
-                          <span>{formatPrice(deliveryFee)}</span>
-                        )}
+                  <CardContent className="space-y-4">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Subtotal ({cartItems.length} items)</span>
+                        <span className="font-medium">{formatPrice(subtotal)}</span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <Truck className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">Delivery Fee</span>
+                        </div>
+                        <div className="text-right">
+                          {deliveryFee === 0 ? (
+                            <div className="flex items-center gap-2">
+                              <span className="line-through text-muted-foreground text-sm">{formatPrice(2500)}</span>
+                              <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs">FREE</Badge>
+                            </div>
+                          ) : (
+                            <span className="font-medium">{formatPrice(deliveryFee)}</span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Service Fee (12%)</span>
+                        <span className="font-medium">{formatPrice(serviceFee)}</span>
                       </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Service Fee (12%)</span>
-                      <span>{formatPrice(serviceFee)}</span>
-                    </div>
+                    
                     {subtotal < 25000 && deliveryFee > 0 && (
-                      <div className="text-sm text-muted-foreground bg-muted p-2 rounded">
-                        💡 Add {formatPrice(25000 - subtotal)} more for free delivery!
+                      <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 p-3 rounded-lg">
+                        <div className="flex items-center gap-2 text-orange-800">
+                          <Gift className="h-4 w-4" />
+                          <span className="text-sm font-medium">
+                            Add {formatPrice(25000 - subtotal)} more for FREE delivery!
+                          </span>
+                        </div>
                       </div>
                     )}
-                    <div className="border-t pt-3">
-                      <div className="flex justify-between font-semibold text-lg">
-                        <span>Total</span>
-                        <span>{formatPrice(total)}</span>
+                    
+                    <div className="border-t-2 border-primary/20 pt-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-lg font-semibold">Total</span>
+                        <span className="text-2xl font-bold text-primary">{formatPrice(total)}</span>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
+                {/* Progress to Free Delivery */}
+                {subtotal < 25000 && deliveryFee > 0 && (
+                  <Card className="border-orange-200 bg-gradient-to-r from-orange-50 to-yellow-50">
+                    <CardContent className="p-4">
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="font-medium text-orange-800">Progress to Free Delivery</span>
+                          <span className="text-orange-600">{formatPrice(25000 - subtotal)} to go</span>
+                        </div>
+                        <div className="w-full bg-orange-200 rounded-full h-2">
+                          <div 
+                            className="bg-orange-500 h-2 rounded-full transition-all duration-500"
+                            style={{ width: `${Math.min((subtotal / 25000) * 100, 100)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 <Button 
-                  className="w-full" 
+                  className="w-full h-14 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]" 
                   size="lg"
                   onClick={() => setCurrentStep('checkout')}
                 >
                   <CreditCard className="h-5 w-5 mr-2" />
                   Proceed to Checkout
+                  <ArrowRight className="h-5 w-5 ml-2" />
                 </Button>
               </div>
             )}
           </div>
         ) : (
-          /* Checkout Form */
-          <div className="max-w-2xl mx-auto space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Delivery Information</CardTitle>
-                <CardDescription>Where should we deliver your order?</CardDescription>
+          /* Enhanced Checkout Form */
+          <div className="max-w-4xl mx-auto space-y-8">
+            {/* Checkout Progress */}
+            <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-background">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-primary text-primary-foreground p-3 rounded-full">
+                      <CreditCard className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h1 className="text-2xl font-bold">Secure Checkout</h1>
+                      <p className="text-muted-foreground">Complete your order with confidence</p>
+                    </div>
+                  </div>
+                  <div className="hidden md:flex items-center gap-2 text-sm text-muted-foreground">
+                    <Shield className="h-4 w-4 text-green-500" />
+                    <span>SSL Encrypted</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Delivery Information */}
+            <Card className="hover:shadow-lg transition-all duration-300 border-l-4 border-l-primary/20">
+              <CardHeader className="bg-gradient-to-r from-primary/5 to-background">
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-primary" />
+                  Delivery Information
+                </CardTitle>
+                <CardDescription>Where should we deliver your delicious order?</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="address">Delivery Address</Label>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="address" className="text-sm font-medium flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    Delivery Address
+                  </Label>
                   <GoogleAddressAutocomplete
                     value={orderForm.deliveryAddress}
                     onChange={handleAddressChange}
-                    placeholder="Ingresa tu dirección de entrega..."
+                    placeholder="Enter your delivery address..."
                     userSavedAddress={profile?.address?.fullAddress}
-                    className="mt-2"
+                    className="transition-all duration-200 focus-within:ring-2 focus-within:ring-primary/20"
                   />
-                  <p className="text-sm text-muted-foreground mt-1">
-                    La dirección será detectada automáticamente para una entrega más precisa
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    <Navigation className="h-3 w-3" />
+                    We'll detect your location automatically for precise delivery
                   </p>
-                  {/* Save address button */}
+                  
+                  {/* Save address prompt */}
                   {addressToSave && (
-                    <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-4 rounded-lg animate-in slide-in-from-top-2 duration-300">
                       <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-blue-900">Nueva dirección detectada</p>
-                          <p className="text-xs text-blue-700">
-                            ¿Quieres guardar esta dirección en tu perfil para futuros pedidos?
-                          </p>
+                        <div className="flex items-center gap-3">
+                          <div className="bg-blue-500 text-white p-2 rounded-full">
+                            <Save className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-blue-900">New address detected</p>
+                            <p className="text-xs text-blue-700">
+                              Save this address for faster future orders?
+                            </p>
+                          </div>
                         </div>
                         <Button
                           size="sm"
                           onClick={saveAddressToProfile}
                           className="bg-blue-600 hover:bg-blue-700"
                         >
-                          <Save className="h-4 w-4 mr-1" />
-                          Guardar
+                          Save
                         </Button>
                       </div>
                     </div>
                   )}
                 </div>
-                <div>
-                  <Label htmlFor="phone">Phone Number</Label>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="text-sm font-medium flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    Phone Number
+                  </Label>
                   <Input
                     id="phone"
                     type="tel"
-                    placeholder="Your phone number"
+                    placeholder="Your phone number for delivery updates"
                     value={orderForm.phone}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('phone', e.target.value)}
+                    className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="instructions">Special Instructions (Optional)</Label>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="instructions" className="text-sm font-medium flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                    Special Instructions <span className="text-muted-foreground">(Optional)</span>
+                  </Label>
                   <Textarea
                     id="instructions"
-                    placeholder="Any special delivery instructions..."
+                    placeholder="Any special delivery instructions, dietary notes, or preferences..."
                     value={orderForm.specialInstructions}
                     onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange('specialInstructions', e.target.value)}
+                    className="transition-all duration-200 focus:ring-2 focus:ring-primary/20 min-h-[80px]"
                   />
                 </div>
               </CardContent>
@@ -623,16 +790,19 @@ const CartPage = () => {
                 <CardDescription>Elige tu método de pago preferido</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Payment Method Selection */}
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium">Método de Pago</Label>
-                  <div className="space-y-3">
+                {/* Enhanced Payment Method Selection */}
+                <div className="space-y-4">
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <CreditCard className="h-4 w-4 text-muted-foreground" />
+                    Payment Method
+                  </Label>
+                  <div className="space-y-4">
                     {/* MercadoPago Option */}
                     <label 
-                      className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:bg-primary/5 ${
+                      className={`relative flex items-center p-6 border-2 rounded-xl cursor-pointer transition-all duration-300 hover:shadow-lg ${
                         orderForm.paymentMethod === 'mercadopago' 
-                          ? 'border-primary bg-primary/5' 
-                          : 'border-border hover:border-primary/30'
+                          ? 'border-primary bg-gradient-to-r from-primary/5 to-primary/10 shadow-lg' 
+                          : 'border-border hover:border-primary/30 hover:bg-primary/5'
                       }`}
                     >
                       <input
@@ -643,32 +813,40 @@ const CartPage = () => {
                         onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
                         className="sr-only"
                       />
-                      <div className="flex items-center gap-3 flex-1">
-                        <div className="bg-primary text-primary-foreground px-3 py-1 rounded text-sm font-semibold">
-                          MercadoPago
+                      <div className="flex items-center gap-4 flex-1">
+                        <div className="bg-primary text-primary-foreground p-3 rounded-xl shadow-sm">
+                          <div className="bg-primary text-primary-foreground px-3 py-1 rounded text-sm font-bold">
+                            MP
+                          </div>
                         </div>
-                        <div className="flex-1">
-                          <div className="font-medium text-foreground">Pago Online Seguro</div>
-                          <div className="text-sm text-blue-600">⚡ Requiere aprobación del cocinero</div>
+                        <div className="flex-1 space-y-1">
+                          <div className="font-semibold text-lg text-foreground">Online Payment</div>
+                          <div className="text-sm text-primary font-medium">⚡ Requires cook approval</div>
+                          <div className="text-xs text-muted-foreground">Secure payment via MercadoPago</div>
                         </div>
-                        <div className={`w-4 h-4 rounded-full border-2 transition-colors duration-200 ${
+                        <div className={`w-5 h-5 rounded-full border-2 transition-all duration-200 ${
                           orderForm.paymentMethod === 'mercadopago' 
                             ? 'border-primary bg-primary' 
                             : 'border-muted-foreground/30'
                         }`}>
                           {orderForm.paymentMethod === 'mercadopago' && (
-                            <div className="w-2 h-2 bg-white rounded-full mx-auto mt-0.5"></div>
+                            <div className="w-2 h-2 bg-white rounded-full mx-auto mt-1.5"></div>
                           )}
                         </div>
                       </div>
+                      {orderForm.paymentMethod === 'mercadopago' && (
+                        <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full font-semibold">
+                          Selected
+                        </div>
+                      )}
                     </label>
 
                     {/* Cash on Delivery Option */}
                     <label 
-                      className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:bg-orange-50 ${
+                      className={`relative flex items-center p-6 border-2 rounded-xl cursor-pointer transition-all duration-300 hover:shadow-lg ${
                         orderForm.paymentMethod === 'cash' 
-                          ? 'border-orange-500 bg-orange-50' 
-                          : 'border-border hover:border-orange-300'
+                          ? 'border-orange-500 bg-gradient-to-r from-orange-50 to-yellow-50 shadow-lg' 
+                          : 'border-border hover:border-orange-300 hover:bg-orange-50'
                       }`}
                     >
                       <input
@@ -679,27 +857,30 @@ const CartPage = () => {
                         onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
                         className="sr-only"
                       />
-                      <div className="flex items-center gap-3 flex-1">
-                        <div className="bg-orange-500 text-white px-3 py-1 rounded text-sm font-semibold flex items-center gap-1">
-                          <Banknote className="h-4 w-4" />
-                          Efectivo
+                      <div className="flex items-center gap-4 flex-1">
+                        <div className="bg-orange-500 text-white p-3 rounded-xl shadow-sm">
+                          <Banknote className="h-6 w-6" />
                         </div>
-                        <div className="flex-1">
-                          <div className="font-medium text-foreground">Pago contra entrega</div>
-                          <div className="text-sm text-orange-600">
-                            ⚡ Requiere aprobación del cocinero
-                          </div>
+                        <div className="flex-1 space-y-1">
+                          <div className="font-semibold text-lg text-foreground">Cash on Delivery</div>
+                          <div className="text-sm text-orange-600 font-medium">⚡ Requires cook approval</div>
+                          <div className="text-xs text-muted-foreground">Pay when your order arrives</div>
                         </div>
-                        <div className={`w-4 h-4 rounded-full border-2 transition-colors duration-200 ${
+                        <div className={`w-5 h-5 rounded-full border-2 transition-all duration-200 ${
                           orderForm.paymentMethod === 'cash' 
                             ? 'border-orange-500 bg-orange-500' 
                             : 'border-muted-foreground/30'
                         }`}>
                           {orderForm.paymentMethod === 'cash' && (
-                            <div className="w-2 h-2 bg-white rounded-full mx-auto mt-0.5"></div>
+                            <div className="w-2 h-2 bg-white rounded-full mx-auto mt-1.5"></div>
                           )}
                         </div>
                       </div>
+                      {orderForm.paymentMethod === 'cash' && (
+                        <div className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold">
+                          Selected
+                        </div>
+                      )}
                     </label>
                   </div>
                 </div>
