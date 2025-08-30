@@ -32,6 +32,8 @@ import { formatPrice } from '@/lib/utils';
 import { CooksService, DishesService, ReviewsService } from '@/lib/firebase/dataService';
 import type { Cook, Dish, Review } from '@/lib/firebase/dataService';
 import { ReviewSystem } from '@/components/reviews/ReviewSystem';
+import { UserProfileService } from '@/lib/services/userProfileService';
+import { ChatService } from '@/lib/services/chatService';
 
 interface CookProfile extends Omit<Cook, 'cookingStyle' | 'favoriteIngredients' | 'achievements'> {
   dishes: Dish[];
@@ -48,12 +50,17 @@ interface CookProfile extends Omit<Cook, 'cookingStyle' | 'favoriteIngredients' 
 const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
   const router = useRouter();
   const { addToCart } = useCart();
+  const { user } = useAuth();
   const [cook, setCook] = useState<CookProfile | null>(null);
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [cookId, setCookId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'dishes' | 'about' | 'reviews'>('dishes');
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'main' | 'drinks' | 'sides'>('all');
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
+  const [contactLoading, setContactLoading] = useState(false);
+  const [followCounts, setFollowCounts] = useState({ followers: 0, following: 0 });
 
   useEffect(() => {
     const resolveParams = async () => {
@@ -117,6 +124,25 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
     fetchCookData();
   }, [cookId]);
 
+  // Check follow status when user and cookId are available
+  useEffect(() => {
+    if (!user || !cookId) return;
+    
+    const checkFollowStatus = async () => {
+      try {
+        const following = await UserProfileService.isFollowing(user.uid, cookId);
+        setIsFollowing(following);
+        
+        const counts = await UserProfileService.getFollowCounts(cookId);
+        setFollowCounts(counts);
+      } catch (error) {
+        console.error('Error checking follow status:', error);
+      }
+    };
+    
+    checkFollowStatus();
+  }, [user, cookId]);
+
 
   // Filter dishes by category
   const getFilteredItems = () => {
@@ -130,6 +156,59 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
   };
   
   const getAllItems = () => dishes;
+
+  const handleFollow = async () => {
+    if (followLoading || !user) return;
+    setFollowLoading(true);
+    
+    try {
+      if (isFollowing) {
+        // Unfollow logic
+        await UserProfileService.unfollowUser(user.uid, cookId);
+        toast.success('Unfollowed the cook');
+      } else {
+        // Follow logic
+        await UserProfileService.followUser(user.uid, cookId);
+        toast.success('Followed the cook');
+      }
+      
+      // Update local state
+      setIsFollowing(!isFollowing);
+      
+      // Update follow counts
+      const counts = await UserProfileService.getFollowCounts(cookId);
+      setFollowCounts(counts);
+      
+    } catch (error) {
+      console.error('Error updating follow status:', error);
+      toast.error('Failed to update follow status');
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
+  const handleContact = async () => {
+    if (contactLoading || !user) return;
+    setContactLoading(true);
+    
+    try {
+      // Create or get direct chat room with the cook
+      const roomId = await ChatService.getOrCreateDirectChatRoom(user.uid, cookId);
+      
+      if (roomId) {
+        // Navigate to chat page with the room ID
+        router.push(`/chat?roomId=${roomId}`);
+        toast.success('Chat initiated with the cook');
+      } else {
+        toast.error('Failed to create chat room');
+      }
+    } catch (error) {
+      console.error('Error initiating chat:', error);
+      toast.error('Failed to initiate chat');
+    } finally {
+      setContactLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -237,13 +316,20 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
                   </div>
                   
                   <div className="flex flex-col gap-2">
-                    <Button className="w-full md:w-auto">
-                      <MessageCircle className="h-4 w-4 mr-2" />
-                      Contact Cook
+                    <Button 
+                      className="w-full md:w-auto"
+                      onClick={handleContact}
+                      disabled={contactLoading}
+                    >
+                      {contactLoading ? 'Connecting...' : <><MessageCircle className="h-4 w-4 mr-2" /> Contact Cook</>}
                     </Button>
-                    <Button variant="outline" className="w-full md:w-auto">
-                      <Heart className="h-4 w-4 mr-2" />
-                      Follow
+                    <Button 
+                      variant="outline" 
+                      className="w-full md:w-auto"
+                      onClick={handleFollow}
+                      disabled={followLoading}
+                    >
+                      {followLoading ? (isFollowing ? 'Unfollowing...' : 'Following...') : <><Heart className="h-4 w-4 mr-2" /> {isFollowing ? 'Unfollow' : 'Follow'}</>}
                     </Button>
                   </div>
                 </div>

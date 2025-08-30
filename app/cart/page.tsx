@@ -329,41 +329,41 @@ const CartPage = () => {
           <div className="max-w-2xl mx-auto">
             <div className="text-center mb-8">
               <CheckCircle className="h-16 w-16 text-primary mx-auto mb-4" />
-              <h1 className="text-3xl font-bold mb-2">Order Confirmed!</h1>
+              <h1 className="text-3xl font-bold mb-2">¡Orden Confirmada!</h1>
               <p className="text-muted-foreground">
-                Your order has been placed successfully. You&apos;ll receive updates via email and SMS.
+                Tu orden ha sido realizada con éxito. Recibirás actualizaciones por correo electrónico y SMS.
               </p>
             </div>
 
             <Card className="mb-6">
               <CardHeader>
-                <CardTitle>Order Details</CardTitle>
+                <CardTitle>Detalles de la Orden</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex justify-between">
-                    <span>Order Total</span>
+                    <span>Total de la Orden</span>
                     <span className="font-semibold">{formatPrice(total)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Delivery Address</span>
+                    <span>Dirección de Entrega</span>
                     <span className="text-sm text-muted-foreground max-w-48 text-right">
                       {orderForm.deliveryAddress}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Phone</span>
+                    <span>Teléfono</span>
                     <span className="text-sm text-muted-foreground">{orderForm.phone}</span>
                   </div>
                   <div className="border-t pt-3">
                     <p className="text-sm text-muted-foreground">
-                      <strong>What&apos;s next?</strong>
+                      <strong>¿Qué sigue?</strong>
                     </p>
                     <ul className="text-sm text-muted-foreground mt-2 space-y-1">
-                      <li>• Your order has been sent to the cook(s)</li>
-                      <li>• You&apos;ll be notified when they accept your order</li>
-                      <li>• Track your order progress in real-time</li>
-                      <li>• Estimated delivery: 45-60 minutes</li>
+                      <li>• Tu orden ha sido enviada a los cocineros</li>
+                      <li>• Serás notificado cuando acepten tu orden</li>
+                      <li>• Sigue el progreso de tu orden en tiempo real</li>
+                      <li>• Entrega estimada: 45-60 minutos</li>
                     </ul>
                   </div>
                 </div>
@@ -372,10 +372,10 @@ const CartPage = () => {
 
             <div className="space-y-3">
               <Button className="w-full" onClick={() => router.push('/dishes')}>
-                Continue Shopping
+                Seguir Comprando
               </Button>
               <Button variant="outline" className="w-full" onClick={() => router.push('/client/home')}>
-                Go to Dashboard
+                Ir al Dashboard
               </Button>
             </div>
           </div>
@@ -393,16 +393,16 @@ const CartPage = () => {
             <div className="flex items-center gap-4">
               <Button variant="ghost" size="sm" onClick={() => router.back()}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
+                Volver
               </Button>
               <div>
                 <h1 className="text-2xl font-bold">
-                  {currentStep === 'cart' ? 'Shopping Cart' : 'Checkout'}
+                  {currentStep === 'cart' ? 'Carrito de Compras' : 'Finalizar Compra'}
                 </h1>
                 <p className="text-muted-foreground">
                   {currentStep === 'cart' 
-                    ? `${cartItems.length} items in your cart`
-                    : 'Complete your order'
+                    ? `${cartItems.length} productos en tu carrito`
+                    : 'Completa tu pedido'
                   }
                 </p>
               </div>
@@ -415,7 +415,7 @@ const CartPage = () => {
                 className="text-muted-foreground hover:text-destructive"
               >
                 <User className="h-4 w-4 mr-2" />
-                Logout
+                Cerrar Sesión
               </Button>
             </div>
           </div>
@@ -432,11 +432,13 @@ const CartPage = () => {
                   <ShoppingCart className="h-6 w-6" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold tracking-tight">Your Cart</h1>
+                  <h1 className="text-3xl font-bold tracking-tight">
+                    {currentStep === 'cart' ? 'Tu Carrito' : 'Finalizar Compra'}
+                  </h1>
                   <p className="text-muted-foreground">
                     {cartItems.length === 0 
-                      ? "Ready to add some delicious dishes?" 
-                      : `${cartItems.length} item${cartItems.length > 1 ? 's' : ''} in your cart`
+                      ? "¿Listo para agregar deliciosos platos?" 
+                      : `${cartItems.length} producto${cartItems.length > 1 ? 's' : ''} en tu carrito`
                     }
                   </p>
                 </div>
@@ -452,28 +454,16 @@ const CartPage = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Est. delivery: 30-45 min</span>
+                    <span className="text-muted-foreground">Entrega est.: 30-45 min</span>
                   </div>
                   {deliveryFee === 0 && (
                     <div className="flex items-center gap-2">
                       <Truck className="h-4 w-4 text-green-600" />
-                      <span className="text-green-600 font-medium">Free delivery!</span>
+                      <span className="text-green-600 font-medium">¡Entrega gratis!</span>
                     </div>
                   )}
                 </div>
               )}
-            </div>
-            
-            <div className="hidden md:flex items-center gap-4">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={logout}
-                className="text-muted-foreground hover:text-destructive"
-              >
-                <User className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
             </div>
           </div>
         </div>
@@ -488,12 +478,12 @@ const CartPage = () => {
                 <Card>
                   <CardContent className="p-8 text-center">
                     <ShoppingCart className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Your cart is empty</h3>
+                    <h3 className="text-lg font-semibold mb-2">Tu carrito está vacío</h3>
                     <p className="text-muted-foreground mb-4">
-                      Discover delicious dishes from local cooks
+                      Descubre deliciosos platos de cocineros locales
                     </p>
                     <Button onClick={() => router.push('/dishes')}>
-                      Browse Dishes
+                      Explorar Platos
                     </Button>
                   </CardContent>
                 </Card>
@@ -571,7 +561,7 @@ const CartPage = () => {
                             </div>
                             <div className="text-right">
                               <p className="font-bold text-lg text-primary">{formatPrice(item.price * item.quantity)}</p>
-                              <p className="text-sm text-muted-foreground">{formatPrice(item.price)} each</p>
+                              <p className="text-sm text-muted-foreground">{formatPrice(item.price)} cada uno</p>
                             </div>
                           </div>
                         </div>
@@ -590,26 +580,26 @@ const CartPage = () => {
                   <CardHeader className="pb-4">
                     <CardTitle className="flex items-center gap-2 text-xl">
                       <Receipt className="h-5 w-5 text-primary" />
-                      Order Summary
+                      Resumen de la Orden
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Subtotal ({cartItems.length} items)</span>
+                        <span className="text-muted-foreground">Subtotal ({cartItems.length} productos)</span>
                         <span className="font-medium">{formatPrice(subtotal)}</span>
                       </div>
                       
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2">
                           <Truck className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-muted-foreground">Delivery Fee</span>
+                          <span className="text-muted-foreground">Costo de Entrega</span>
                         </div>
                         <div className="text-right">
                           {deliveryFee === 0 ? (
                             <div className="flex items-center gap-2">
                               <span className="line-through text-muted-foreground text-sm">{formatPrice(2500)}</span>
-                              <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs">FREE</Badge>
+                              <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs">GRATIS</Badge>
                             </div>
                           ) : (
                             <span className="font-medium">{formatPrice(deliveryFee)}</span>
@@ -618,7 +608,7 @@ const CartPage = () => {
                       </div>
                       
                       <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Service Fee (12%)</span>
+                        <span className="text-muted-foreground">Cargo por Servicio (12%)</span>
                         <span className="font-medium">{formatPrice(serviceFee)}</span>
                       </div>
                     </div>
@@ -628,7 +618,7 @@ const CartPage = () => {
                         <div className="flex items-center gap-2 text-orange-800">
                           <Gift className="h-4 w-4" />
                           <span className="text-sm font-medium">
-                            Add {formatPrice(25000 - subtotal)} more for FREE delivery!
+                            Agrega {formatPrice(25000 - subtotal)} más para entrega GRATIS!
                           </span>
                         </div>
                       </div>
@@ -649,8 +639,8 @@ const CartPage = () => {
                     <CardContent className="p-4">
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
-                          <span className="font-medium text-orange-800">Progress to Free Delivery</span>
-                          <span className="text-orange-600">{formatPrice(25000 - subtotal)} to go</span>
+                          <span className="font-medium text-orange-800">Progreso para Entrega Gratis</span>
+                          <span className="text-orange-600">{formatPrice(25000 - subtotal)} para llegar</span>
                         </div>
                         <div className="w-full bg-orange-200 rounded-full h-2">
                           <div 
@@ -669,7 +659,7 @@ const CartPage = () => {
                   onClick={() => setCurrentStep('checkout')}
                 >
                   <CreditCard className="h-5 w-5 mr-2" />
-                  Proceed to Checkout
+                  Proceder al Pago
                   <ArrowRight className="h-5 w-5 ml-2" />
                 </Button>
               </div>
@@ -687,13 +677,13 @@ const CartPage = () => {
                       <CreditCard className="h-6 w-6" />
                     </div>
                     <div>
-                      <h1 className="text-2xl font-bold">Secure Checkout</h1>
-                      <p className="text-muted-foreground">Complete your order with confidence</p>
+                      <h1 className="text-2xl font-bold">Pago Seguro</h1>
+                      <p className="text-muted-foreground">Completa tu pedido con confianza</p>
                     </div>
                   </div>
                   <div className="hidden md:flex items-center gap-2 text-sm text-muted-foreground">
                     <Shield className="h-4 w-4 text-green-500" />
-                    <span>SSL Encrypted</span>
+                    <span>Encriptado SSL</span>
                   </div>
                 </div>
               </CardContent>
@@ -704,26 +694,26 @@ const CartPage = () => {
               <CardHeader className="bg-gradient-to-r from-primary/5 to-background">
                 <CardTitle className="flex items-center gap-2">
                   <MapPin className="h-5 w-5 text-primary" />
-                  Delivery Information
+                  Información de Entrega
                 </CardTitle>
-                <CardDescription>Where should we deliver your delicious order?</CardDescription>
+                <CardDescription>¿Dónde debemos entregar tu delicioso pedido?</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="address" className="text-sm font-medium flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-muted-foreground" />
-                    Delivery Address
+                    Dirección de Entrega
                   </Label>
                   <GoogleAddressAutocomplete
                     value={orderForm.deliveryAddress}
                     onChange={handleAddressChange}
-                    placeholder="Enter your delivery address..."
+                    placeholder="Ingresa tu dirección de entrega..."
                     userSavedAddress={profile?.address?.fullAddress}
                     className="transition-all duration-200 focus-within:ring-2 focus-within:ring-primary/20"
                   />
                   <p className="text-sm text-muted-foreground flex items-center gap-1">
                     <Navigation className="h-3 w-3" />
-                    We&apos;ll detect your location automatically for precise delivery
+                    Detectaremos tu ubicación automáticamente para una entrega precisa
                   </p>
                   
                   {/* Save address prompt */}
@@ -735,9 +725,9 @@ const CartPage = () => {
                             <Save className="h-4 w-4" />
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-blue-900">New address detected</p>
+                            <p className="text-sm font-medium text-blue-900">Nueva dirección detectada</p>
                             <p className="text-xs text-blue-700">
-                              Save this address for faster future orders?
+                              ¿Guardar esta dirección para pedidos futuros más rápidos?
                             </p>
                           </div>
                         </div>
@@ -746,7 +736,7 @@ const CartPage = () => {
                           onClick={saveAddressToProfile}
                           className="bg-blue-600 hover:bg-blue-700"
                         >
-                          Save
+                          Guardar
                         </Button>
                       </div>
                     </div>
@@ -756,12 +746,12 @@ const CartPage = () => {
                 <div className="space-y-2">
                   <Label htmlFor="phone" className="text-sm font-medium flex items-center gap-2">
                     <Phone className="h-4 w-4 text-muted-foreground" />
-                    Phone Number
+                    Número de Teléfono
                   </Label>
                   <Input
                     id="phone"
                     type="tel"
-                    placeholder="Your phone number for delivery updates"
+                    placeholder="Tu número de teléfono para actualizaciones de entrega"
                     value={orderForm.phone}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('phone', e.target.value)}
                     className="transition-all duration-200 focus:ring-2 focus:ring-primary/20"
@@ -771,11 +761,11 @@ const CartPage = () => {
                 <div className="space-y-2">
                   <Label htmlFor="instructions" className="text-sm font-medium flex items-center gap-2">
                     <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                    Special Instructions <span className="text-muted-foreground">(Optional)</span>
+                    Instrucciones Especiales <span className="text-muted-foreground">(Opcional)</span>
                   </Label>
                   <Textarea
                     id="instructions"
-                    placeholder="Any special delivery instructions, dietary notes, or preferences..."
+                    placeholder="Cualquier instrucción especial de entrega, notas dietéticas o preferencias..."
                     value={orderForm.specialInstructions}
                     onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange('specialInstructions', e.target.value)}
                     className="transition-all duration-200 focus:ring-2 focus:ring-primary/20 min-h-[80px]"
@@ -797,7 +787,7 @@ const CartPage = () => {
                 <div className="space-y-4">
                   <Label className="text-sm font-medium flex items-center gap-2">
                     <CreditCard className="h-4 w-4 text-muted-foreground" />
-                    Payment Method
+                    Método de Pago
                   </Label>
                   <div className="space-y-4">
                     {/* MercadoPago Option */}
@@ -823,9 +813,9 @@ const CartPage = () => {
                           </div>
                         </div>
                         <div className="flex-1 space-y-1">
-                          <div className="font-semibold text-lg text-foreground">Online Payment</div>
-                          <div className="text-sm text-primary font-medium">⚡ Requires cook approval</div>
-                          <div className="text-xs text-muted-foreground">Secure payment via MercadoPago</div>
+                          <div className="font-semibold text-lg text-foreground">Pago en Línea</div>
+                          <div className="text-sm text-primary font-medium">⚡ Requiere aprobación del cocinero</div>
+                          <div className="text-xs text-muted-foreground">Pago seguro a través de MercadoPago</div>
                         </div>
                         <div className={`w-5 h-5 rounded-full border-2 transition-all duration-200 ${
                           orderForm.paymentMethod === 'mercadopago' 
@@ -839,7 +829,7 @@ const CartPage = () => {
                       </div>
                       {orderForm.paymentMethod === 'mercadopago' && (
                         <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full font-semibold">
-                          Selected
+                          Seleccionado
                         </div>
                       )}
                     </label>
@@ -865,9 +855,9 @@ const CartPage = () => {
                           <Banknote className="h-6 w-6" />
                         </div>
                         <div className="flex-1 space-y-1">
-                          <div className="font-semibold text-lg text-foreground">Cash on Delivery</div>
-                          <div className="text-sm text-orange-600 font-medium">⚡ Requires cook approval</div>
-                          <div className="text-xs text-muted-foreground">Pay when your order arrives</div>
+                          <div className="font-semibold text-lg text-foreground">Efectivo contra Entrega</div>
+                          <div className="text-sm text-orange-600 font-medium">⚡ Requiere aprobación del cocinero</div>
+                          <div className="text-xs text-muted-foreground">Paga cuando llegue tu orden</div>
                         </div>
                         <div className={`w-5 h-5 rounded-full border-2 transition-all duration-200 ${
                           orderForm.paymentMethod === 'cash' 
@@ -881,7 +871,7 @@ const CartPage = () => {
                       </div>
                       {orderForm.paymentMethod === 'cash' && (
                         <div className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs px-2 py-1 rounded-full font-semibold">
-                          Selected
+                          Seleccionado
                         </div>
                       )}
                     </label>
@@ -1005,7 +995,7 @@ const CartPage = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle>Order Summary</CardTitle>
+                <CardTitle>Resumen de la Orden</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -1024,11 +1014,11 @@ const CartPage = () => {
                       <span>{formatPrice(subtotal)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Delivery Fee</span>
+                      <span>Costo de Entrega</span>
                       <span>{formatPrice(deliveryFee)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Service Fee</span>
+                      <span>Cargo por Servicio</span>
                       <span>{formatPrice(serviceFee)}</span>
                     </div>
                     <div className="flex justify-between font-semibold text-lg">
@@ -1048,7 +1038,7 @@ const CartPage = () => {
                 disabled={isProcessing}
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Cart
+                Volver al Carrito
               </Button>
               <Button 
                 className={`flex-1 relative overflow-hidden transition-all duration-300 ${

@@ -186,6 +186,71 @@ export class ChatService {
   }
 
   /**
+   * Get or create a direct chat room between two users
+   */
+  static async getOrCreateDirectChatRoom(
+    userId1: string,
+    userId2: string
+  ): Promise<string | null> {
+    try {
+      console.log('Getting or creating direct chat room between:', userId1, 'and', userId2);
+
+      // Check if direct room already exists between these users
+      const q = query(
+        collection(db, this.ROOMS_COLLECTION),
+        where('type', '==', 'direct'),
+        where('participants', 'array-contains', userId1)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      
+      // Find room that contains both users
+      for (const doc of querySnapshot.docs) {
+        const roomData = doc.data() as ChatRoom;
+        if (roomData.participants.includes(userId2) && roomData.participants.length === 2) {
+          console.log('Direct chat room already exists:', doc.id);
+          return doc.id;
+        }
+      }
+
+      // Create new direct room if it doesn't exist
+      const participants = [userId1, userId2];
+      const participantDetails: ChatRoom['participantDetails'] = {};
+      
+      for (const userId of participants) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', userId));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            participantDetails[userId] = {
+              name: userData.displayName || userData.email || 'Usuario',
+              role: userData.role?.toLowerCase() || 'customer',
+              avatar: userData.photoURL || userData.avatar
+            };
+          } else {
+            console.warn(`User document not found for ${userId}, using default details`);
+            participantDetails[userId] = {
+              name: 'Usuario',
+              role: 'customer'
+            };
+          }
+        } catch (error) {
+          console.warn(`Could not load details for user ${userId}:`, error);
+          participantDetails[userId] = {
+            name: 'Usuario',
+            role: 'customer'
+          };
+        }
+      }
+
+      return await this.createChatRoom(participants, participantDetails, 'direct');
+    } catch (error) {
+      console.error('Error getting or creating direct chat room:', error);
+      return null;
+    }
+  }
+
+  /**
    * Send a message to a chat room
    */
   static async sendMessage(

@@ -15,6 +15,8 @@ export interface UserProfile {
     fullAddress: string; // Complete formatted address
   };
   isProfileComplete: boolean;
+  following?: string[]; // Array of user IDs this user is following
+  followers?: string[]; // Array of user IDs following this user
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -232,5 +234,141 @@ export class UserProfileService {
     }
     
     return phone; // Return as-is if doesn't match expected format
+  }
+
+  // Follow a user
+  static async followUser(followerId: string, targetUserId: string): Promise<boolean> {
+    try {
+      // Update follower's following list
+      const followerRef = doc(db, this.collection, followerId);
+      const followerDoc = await getDoc(followerRef);
+      
+      if (followerDoc.exists()) {
+        const followerData = followerDoc.data();
+        const following = followerData.following || [];
+        if (!following.includes(targetUserId)) {
+          following.push(targetUserId);
+          await updateDoc(followerRef, {
+            following,
+            updatedAt: Timestamp.now()
+          });
+        }
+      } else {
+        // Create profile if it doesn't exist
+        await setDoc(followerRef, {
+          id: followerId,
+          following: [targetUserId],
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now()
+        });
+      }
+
+      // Update target's followers list
+      const targetRef = doc(db, this.collection, targetUserId);
+      const targetDoc = await getDoc(targetRef);
+      
+      if (targetDoc.exists()) {
+        const targetData = targetDoc.data();
+        const followers = targetData.followers || [];
+        if (!followers.includes(followerId)) {
+          followers.push(followerId);
+          await updateDoc(targetRef, {
+            followers,
+            updatedAt: Timestamp.now()
+          });
+        }
+      } else {
+        // Create profile if it doesn't exist
+        await setDoc(targetRef, {
+          id: targetUserId,
+          followers: [followerId],
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now()
+        });
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error following user:', error);
+      return false;
+    }
+  }
+
+  // Unfollow a user
+  static async unfollowUser(followerId: string, targetUserId: string): Promise<boolean> {
+    try {
+      // Update follower's following list
+      const followerRef = doc(db, this.collection, followerId);
+      const followerDoc = await getDoc(followerRef);
+      
+      if (followerDoc.exists()) {
+        const followerData = followerDoc.data();
+        const following = followerData.following || [];
+        const updatedFollowing = following.filter((id: string) => id !== targetUserId);
+        await updateDoc(followerRef, {
+          following: updatedFollowing,
+          updatedAt: Timestamp.now()
+        });
+      }
+
+      // Update target's followers list
+      const targetRef = doc(db, this.collection, targetUserId);
+      const targetDoc = await getDoc(targetRef);
+      
+      if (targetDoc.exists()) {
+        const targetData = targetDoc.data();
+        const followers = targetData.followers || [];
+        const updatedFollowers = followers.filter((id: string) => id !== followerId);
+        await updateDoc(targetRef, {
+          followers: updatedFollowers,
+          updatedAt: Timestamp.now()
+        });
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error unfollowing user:', error);
+      return false;
+    }
+  }
+
+  // Check if user is following another user
+  static async isFollowing(followerId: string, targetUserId: string): Promise<boolean> {
+    try {
+      const followerRef = doc(db, this.collection, followerId);
+      const followerDoc = await getDoc(followerRef);
+      
+      if (followerDoc.exists()) {
+        const followerData = followerDoc.data();
+        const following = followerData.following || [];
+        return following.includes(targetUserId);
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error checking follow status:', error);
+      return false;
+    }
+  }
+
+  // Get follower/following counts
+  static async getFollowCounts(userId: string): Promise<{ followers: number; following: number }> {
+    try {
+      const userRef = doc(db, this.collection, userId);
+      const userDoc = await getDoc(userRef);
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        return {
+          followers: userData.followers?.length || 0,
+          following: userData.following?.length || 0
+        };
+      }
+      
+      return { followers: 0, following: 0 };
+    } catch (error) {
+      console.error('Error getting follow counts:', error);
+      return { followers: 0, following: 0 };
+    }
   }
 }
