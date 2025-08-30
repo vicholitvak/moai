@@ -88,6 +88,7 @@ export default function DishesHeroSection({
       }, 5000);
       return () => clearInterval(interval);
     }
+    return undefined;
   }, [featuredDishes.length]);
 
   // Animation on mount
@@ -159,7 +160,7 @@ export default function DishesHeroSection({
                 <div className="text-xs text-gray-600">Rating promedio</div>
               </div>
               <div className="text-center bg-white/60 backdrop-blur-sm rounded-xl p-3">
-                <div className="text-xl font-bold text-gray-800">~{Math.round(featuredDishes.reduce((avg, dish) => avg + (dish.prepTime as number || 30), 0) / featuredDishes.length)} min</div>
+                <div className="text-xl font-bold text-gray-800">~{Math.round(featuredDishes.reduce((avg, dish) => avg + (parseInt(dish.prepTime as string, 10) || 30), 0) / featuredDishes.length)} min</div>
                 <div className="text-xs text-gray-600">Tiempo promedio</div>
               </div>
             </div>

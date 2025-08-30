@@ -514,7 +514,7 @@ export default function CookerDashboard() {
 
       {/* Edit Dish Modal */}
       <EditDishModal
-        dish={editingDish}
+        dish={editingDish as any}
         isOpen={isEditModalOpen}
         onClose={() => {
           setIsEditModalOpen(false);

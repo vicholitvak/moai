@@ -76,7 +76,10 @@ export function AddDishModal({
       const allImages = [validatedData.image, ...additionalImages].filter(img => img !== defaultImage);
       const dishData: Omit<Dish, 'id' | 'createdAt' | 'updatedAt'> = {
         ...validatedData,
-        images: allImages.length > 1 ? allImages : undefined,
+        image: validatedData.image,
+        // images: allImages.length > 1 ? allImages : [validatedData.image],
+        // preparationTime: parseInt(validatedData.prepTime.split(' ')[0]) || 30,
+        // servingSize: 1,
         cookerId,
         cookerName,
         cookerAvatar,
@@ -544,7 +547,6 @@ export function AddDishModal({
                       </Label>
                     </div>
                     <Switch
-                      id="nutrition-toggle"
                       checked={showNutrition}
                       onCheckedChange={setShowNutrition}
                     />

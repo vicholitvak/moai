@@ -66,6 +66,7 @@ interface OnboardingData {
     end: string;
   };
   workingDays: string[];
+  languages: string[];
   selfDelivery: boolean;
   
   // Step 5: Banking Information
@@ -131,6 +132,7 @@ export default function CookerOnboarding({ onComplete }: CookerOnboardingProps) 
       end: '20:00'
     },
     workingDays: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+    languages: ['Español'],
     selfDelivery: false,
     bankInfo: {
       accountHolderName: user?.displayName || '',
@@ -151,7 +153,7 @@ export default function CookerOnboarding({ onComplete }: CookerOnboardingProps) 
     setData(prev => ({
       ...prev,
       [parent]: {
-        ...prev[parent as keyof OnboardingData],
+        ...(prev[parent as keyof OnboardingData] as object || {}),
         [field]: value
       }
     }));
@@ -182,7 +184,7 @@ export default function CookerOnboarding({ onComplete }: CookerOnboardingProps) 
     setData(prev => ({
       ...prev,
       languages: prev.languages.includes(language)
-        ? prev.languages.filter(l => l !== language)
+        ? prev.languages.filter((l: string) => l !== language)
         : [...prev.languages, language]
     }));
   };
@@ -257,7 +259,7 @@ export default function CookerOnboarding({ onComplete }: CookerOnboardingProps) 
     try {
       const now = Timestamp.now();
       
-      const cookProfile: Omit<Cook, 'id' | 'createdAt' | 'updatedAt'> = {
+      const cookProfile = {
         displayName: data.displayName,
         email: user.email || '',
         avatar: user.photoURL || '',

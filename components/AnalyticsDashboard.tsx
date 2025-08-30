@@ -71,6 +71,7 @@ const AnalyticsDashboard = ({
       const interval = setInterval(loadRealTimeStats, 30000); // Update every 30 seconds
       return () => clearInterval(interval);
     }
+    return undefined;
   }, [timeRange, role]);
 
   const loadAnalytics = async () => {

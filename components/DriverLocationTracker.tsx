@@ -74,11 +74,27 @@ export default function DriverLocationTracker({
 
       // Start location tracking
       const success = LocationService.startDriverTracking(user.uid, (location) => {
-        setCurrentLocation(location);
-        setLocationHistory(prev => [...prev.slice(-9), location]); // Keep last 10 locations
+        const transformedLocation = {
+          lat: location.coordinates.latitude,
+          lng: location.coordinates.longitude,
+          address: {
+            fullAddress: location.address.fullAddress,
+            city: location.address.city
+          },
+          speed: location.speed,
+          heading: location.heading,
+          lastUpdated: location.lastUpdated,
+          coordinates: location.coordinates
+        };
+        setCurrentLocation(transformedLocation);
+        setLocationHistory(prev => [...prev.slice(-9), transformedLocation]); // Keep last 10 locations
         
         if (onLocationUpdate) {
-          onLocationUpdate(location);
+          onLocationUpdate({
+            lat: location.coordinates.latitude,
+            lng: location.coordinates.longitude,
+            address: location.address.fullAddress
+          });
         }
       });
 
@@ -91,7 +107,19 @@ export default function DriverLocationTracker({
         // Subscribe to location updates from Firestore
         unsubscribeRef.current = LocationService.subscribeToDriverLocation(user.uid, (location) => {
           if (location) {
-            setCurrentLocation(location);
+            const transformedLocation = {
+              lat: location.coordinates.latitude,
+              lng: location.coordinates.longitude,
+              address: {
+                fullAddress: location.address.fullAddress,
+                city: location.address.city
+              },
+              speed: location.speed,
+              heading: location.heading,
+              lastUpdated: location.lastUpdated,
+              coordinates: location.coordinates
+            };
+            setCurrentLocation(transformedLocation);
           }
         });
       } else {

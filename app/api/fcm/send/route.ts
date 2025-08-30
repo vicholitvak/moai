@@ -27,6 +27,9 @@ export async function POST(request: NextRequest) {
     }
 
     const userData = userDoc.data();
+    if (!userData) {
+      return NextResponse.json({ error: 'User data not found' }, { status: 404 });
+    }
     const fcmTokens = userData.fcmTokens || {};
     
     // Get all available tokens for the user

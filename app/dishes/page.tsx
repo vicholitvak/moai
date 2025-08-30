@@ -149,9 +149,9 @@ const ClientDishesPage = () => {
     if (dishes.length > 0) {
       const filters = {
         timeOfDay,
-        userPreferences: user?.preferences || [],
-        location: user?.location,
-        previousOrders: user?.orderHistory || []
+        userPreferences: (user as any)?.preferences || [],
+        location: (user as any)?.location,
+        previousOrders: (user as any)?.orderHistory || []
       };
       
       const recs = RecommendationService.generateRecommendations(dishes, filters);
@@ -670,7 +670,7 @@ const ClientDishesPage = () => {
                     <div className="px-2">
                       <Slider
                         value={priceRange}
-                        onValueChange={setPriceRange}
+                        onValueChange={(value: number[]) => setPriceRange(value as [number, number])}
                         max={100000}
                         min={0}
                         step={1000}
@@ -756,7 +756,10 @@ const ClientDishesPage = () => {
                       <Checkbox
                         id="available"
                         checked={showOnlyAvailable}
-                        onCheckedChange={setShowOnlyAvailable}
+                        onCheckedChange={(checked) => {
+                          if (checked === 'indeterminate') return;
+                          setShowOnlyAvailable(checked === true);
+                        }}
                       />
                       <label htmlFor="available" className="text-sm">Solo platos disponibles</label>
                     </div>
@@ -764,7 +767,7 @@ const ClientDishesPage = () => {
                       <Checkbox
                         id="self-delivery"
                         checked={showOnlySelfDelivery}
-                        onCheckedChange={setShowOnlySelfDelivery}
+                        onCheckedChange={(checked) => setShowOnlySelfDelivery(checked === true)}
                       />
                       <label htmlFor="self-delivery" className="text-sm">Solo entrega directa</label>
                     </div>

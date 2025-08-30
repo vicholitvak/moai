@@ -72,7 +72,7 @@ const RecommendedPairings: React.FC<RecommendedPairingsProps> = ({ cookId, onAdd
       category: item.category
     };
     
-    onAddToCart(cartItem);
+    onAddToCart(cartItem as any);
     setAddedItems(prev => new Set([...prev, item.id]));
     
     // Remove from added items after 2 seconds to allow re-adding

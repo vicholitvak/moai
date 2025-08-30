@@ -47,6 +47,7 @@ import CookerOnboarding from '@/components/CookerOnboarding';
 import OrderApproval from '@/components/CashOrderApproval';
 // import LocationSetup from '@/components/LocationSetup'; // Unused import
 import { DishesService, OrdersService, CooksService, AnalyticsService, type Dish, type Order, type Cook } from '@/lib/firebase/dataService';
+import { Timestamp } from 'firebase/firestore';
 import { OptimizedDishesService } from '@/lib/services/optimizedFirebaseService';
 import { toast } from 'sonner';
 
@@ -1168,7 +1169,7 @@ export default function CookerDashboard() {
       {/* Edit Dish Modal */}
       {editingDish && (
         <EditDishModal
-          dish={editingDish}
+          dish={editingDish as any}
           isOpen={isEditModalOpen}
           onClose={() => {
             setIsEditModalOpen(false);
@@ -1186,29 +1187,39 @@ export default function CookerDashboard() {
           try {
             // Update cook profile with new settings
             await CooksService.updateCookProfile(user?.uid || '', {
-              displayName: settings.displayName,
-              bio: settings.bio,
-              avatar: settings.avatar,
-              coverImage: settings.coverImage,
+              displayName: settings.displayName as string | undefined,
+              bio: settings.bio as string | undefined,
+              avatar: settings.avatar as string | undefined,
+              coverImage: settings.coverImage as string | undefined,
               location: {
-                ...cookProfile?.location,
+                coordinates: cookProfile?.location?.coordinates || {
+                  latitude: 0,
+                  longitude: 0,
+                  timestamp: Timestamp.now()
+                },
                 address: {
-                  ...cookProfile?.location?.address,
-                  fullAddress: settings.location
-                }
+                  street: cookProfile?.location?.address?.street || '',
+                  city: cookProfile?.location?.address?.city || '',
+                  state: cookProfile?.location?.address?.state || '',
+                  zipCode: cookProfile?.location?.address?.zipCode || '',
+                  country: cookProfile?.location?.address?.country || '',
+                  fullAddress: settings.location as string
+                },
+                isActive: cookProfile?.location?.isActive ?? true,
+                lastUpdated: Timestamp.now()
               },
-              deliveryRadius: settings.deliveryRadius,
-              specialties: settings.specialties,
-              languages: settings.languages,
+              deliveryRadius: settings.deliveryRadius as number,
+              specialties: settings.specialties as string[],
+              languages: settings.languages as string[],
               settings: {
-                autoAcceptOrders: settings.autoAcceptOrders,
-                maxOrdersPerDay: settings.maxOrdersPerDay,
-                selfDelivery: settings.selfDelivery,
-                workingHours: settings.workingHours,
-                workingDays: settings.workingDays,
-                currency: settings.currency,
-                timezone: settings.timezone,
-                language: settings.language
+                autoAcceptOrders: settings.autoAcceptOrders as boolean,
+                maxOrdersPerDay: settings.maxOrdersPerDay as number,
+                selfDelivery: settings.selfDelivery as boolean,
+                workingHours: settings.workingHours as { start: string; end: string; },
+                workingDays: settings.workingDays as string[],
+                currency: settings.currency as string,
+                timezone: settings.timezone as string,
+                language: settings.language as string
               }
             });
             

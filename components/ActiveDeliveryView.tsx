@@ -209,7 +209,7 @@ const ActiveDeliveryView = ({ activeOrder, onBackToDashboard }: ActiveDeliveryVi
           delivered: 'Entrega completada exitosamente'
         };
         
-        toast.success(statusMessages[newStatus] || 'Estado actualizado');
+        toast.success(statusMessages[newStatus as keyof typeof statusMessages] || 'Estado actualizado');
         
         if (newStatus === 'delivered') {
           setTimeout(() => {

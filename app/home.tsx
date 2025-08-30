@@ -66,7 +66,7 @@ export default function Home() {
       <main>
         <Hero onSignUpClick={() => setIsSignUpModalOpen(true)} onSignInClick={() => setIsSignInModalOpen(true)} />
         <HowItWorks />
-        <FeaturedCarousel dishes={featuredDishes} />
+        <FeaturedCarousel dishes={featuredDishes as any} />
         <Testimonials />
       </main>
 

@@ -35,16 +35,16 @@ import { CooksService, DishesService, ReviewsService } from '@/lib/firebase/data
 import type { Cook, Dish, Review } from '@/lib/firebase/dataService';
 import { ReviewSystem } from '@/components/reviews/ReviewSystem';
 
-interface CookProfile extends Cook {
+interface CookProfile extends Omit<Cook, 'cookingStyle' | 'favoriteIngredients' | 'achievements'> {
   dishes: Dish[];
   reviews: Review[];
+  cookingStyle?: string;
   achievements?: Array<{
     title: string;
     description: string;
     icon: string;
   }>;
   favoriteIngredients?: string[];
-  cookingStyle?: string;
 }
 
 const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
@@ -127,7 +127,7 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
       dishId: item.id,
       name: item.name,
       price: item.price,
-      image: item.image || 'placeholder.jpg',
+      image: (item.image && item.image.trim() !== '') ? item.image : 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik00MCA0MEg2MFY2MEg0MFY0MFoiIGZpbGw9IiM5QjlCQTMiLz4KPC9zdmc+',
       cookerName: cook?.name || 'Unknown Cook',
       cookerId: cookId,
       cookerAvatar: cook?.avatar || '',
@@ -214,14 +214,16 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
       {/* Cover Image & Profile Header */}
       <div className="relative">
         <div className="h-64 bg-gradient-to-r from-orange-400 to-red-500 relative overflow-hidden">
-          <img 
-            src={cook.coverImage} 
-            alt={`${cook.name} kitchen`}
-            className="w-full h-full object-cover opacity-80"
-            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-              e.currentTarget.style.display = 'none';
-            }}
-          />
+          {cook.coverImage && cook.coverImage.trim() !== '' && (
+            <img 
+              src={cook.coverImage} 
+              alt={`${cook.name} kitchen`}
+              className="w-full h-full object-cover opacity-80"
+              onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          )}
           <div className="absolute inset-0 bg-black/20"></div>
         </div>
         
@@ -229,7 +231,7 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
           <div className="relative -mt-16 pb-6">
             <div className="flex flex-col md:flex-row gap-6 items-start">
               <Avatar className="h-32 w-32 border-4 border-background shadow-lg">
-                <AvatarImage src={cook.avatar} />
+                <AvatarImage src={cook.avatar && cook.avatar.trim() !== '' ? cook.avatar : undefined} />
                 <AvatarFallback className="text-2xl">
                   <ChefHat className="h-12 w-12" />
                 </AvatarFallback>
@@ -247,7 +249,7 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
                       </div>
                       <div className="flex items-center gap-1">
                         <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">{cook.location}</span>
+                        <span className="text-muted-foreground">{cook.location?.address?.fullAddress || 'Ubicación no disponible'}</span>
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2 mb-3">
@@ -365,14 +367,14 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
                 size="sm"
                 onClick={() => setSelectedCategory('drinks')}
               >
-                Drinks ({cook.drinks.length})
+                Drinks ({(cook as any).drinks?.length || 0})
               </Button>
               <Button
                 variant={selectedCategory === 'sides' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setSelectedCategory('sides')}
               >
-                Sides ({cook.sides.length})
+                Sides ({(cook as any).sides?.length || 0})
               </Button>
             </div>
             
@@ -390,7 +392,7 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
                       alt={item.name}
                       className="w-full h-full object-cover"
                       onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                        e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDMwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMjUgNzVIMTc1VjEyNUgxMjVWNzVaIiBmaWxsPSIjOUI5QkEzIi8+PC9zdmc+';
+                        e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik00MCA0MEg2MFY2MEg0MFY0MFoiIGZpbGw9IiM5QjlCQTMiLz4KPC9zdmc+';
                       }}
                     />
                     <div className="absolute top-2 left-2">
@@ -409,8 +411,8 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
                       <h3 className="font-semibold text-lg line-clamp-1">{item.name}</h3>
                       <div className="text-right">
                         <span className="text-xl font-bold text-primary">{formatPrice(item.price)}</span>
-                        {item.size && (
-                          <div className="text-xs text-muted-foreground">{item.size}</div>
+                        {(item as any).size && (
+                          <div className="text-xs text-muted-foreground">{(item as any).size}</div>
                         )}
                       </div>
                     </div>
@@ -430,7 +432,16 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
                       disabled={!item.isAvailable}
                       onClick={(e) => {
                         e.stopPropagation();
-                        addToCart(item);
+                        addToCart({
+                          dishId: item.id,
+                          name: item.name,
+                          price: item.price,
+                          quantity: 1,
+                          cookerName: cook.displayName,
+                          cookerId: cook.id,
+                          image: item.image || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik00MCA0MEg2MFY2MEg0MFY0MFoiIGZpbGw9IiM5QjlCQTMiLz4KPC9zdmc+',
+                          prepTime: item.prepTime || '30 min'
+                        } as any);
                       }}
                     >
                       <ShoppingCart className="h-4 w-4 mr-2" />
@@ -523,7 +534,7 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
               </CardHeader>
               <CardContent>
                 <div className="grid md:grid-cols-2 gap-4">
-                  {cook.achievements.map((achievement: { title: string; description: string; icon: string }, index: number) => (
+                  {(cook.achievements || []).map((achievement: { title: string; description: string; icon: string }, index: number) => (
                     <div key={index} className="flex items-start gap-3 p-3 bg-muted rounded-lg">
                       <div className="text-2xl">{achievement.icon}</div>
                       <div>
@@ -546,7 +557,7 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2">
-                  {cook.favoriteIngredients.map((ingredient: string) => (
+                  {cook.favoriteIngredients?.map((ingredient: string) => (
                     <Badge key={ingredient} variant="outline">
                       {ingredient}
                     </Badge>

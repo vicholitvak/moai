@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
       }
     })
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('System status check failed:', error)
     
     return NextResponse.json({

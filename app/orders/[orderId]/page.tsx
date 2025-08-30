@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { OrdersService, DishesService } from '@/lib/firebase/dataService';
+import { Timestamp } from 'firebase/firestore';
 import { NotificationService } from '@/lib/services/notificationService';
 import { 
   ArrowLeft,
@@ -171,7 +172,7 @@ const OrderDetailPage = () => {
       setOrder(updatedOrder);
       
       // Show notification on status change
-      if (updatedOrder.status !== order?.status) {
+      if (updatedOrder && updatedOrder.status !== order?.status) {
         NotificationService.notifyOrderStatusChange(
           updatedOrder.id,
           updatedOrder.status,
@@ -183,7 +184,7 @@ const OrderDetailPage = () => {
       }
       
       // Update driver location if delivering
-      if (updatedOrder.status === 'delivering' && updatedOrder.driverLocation) {
+      if (updatedOrder && updatedOrder.status === 'delivering' && updatedOrder.driverLocation) {
         setDriverLocation(updatedOrder.driverLocation);
       }
     });
@@ -259,8 +260,7 @@ const OrderDetailPage = () => {
     try {
       await OrdersService.updateOrder(order.id, { 
         status: 'cancelled',
-        cancelledAt: new Date(),
-        cancelledBy: user?.uid
+        cancelledAt: Timestamp.now()
       });
       
       toast.success('Pedido cancelado exitosamente');

@@ -351,7 +351,7 @@ export default function DeliveryGuidanceFlow({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Button
               variant="outline"
-              onClick={() => onStartNavigation(cook?.address || 'Dirección del cocinero')}
+              onClick={() => onStartNavigation(cook?.location?.address?.fullAddress || 'Dirección del cocinero')}
               className="flex items-center justify-center"
               disabled={!['ready', 'delivering'].includes(order.status)}
             >

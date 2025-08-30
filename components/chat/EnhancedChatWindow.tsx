@@ -193,7 +193,7 @@ export default function EnhancedChatWindow({ roomId, onClose, className }: Enhan
           }]
         };
 
-        await ChatService.sendMessage(roomId, user.uid, messageData.content, 'attachment', {
+        await ChatService.sendMessage(roomId, user!.uid, messageData.content, type === 'image' ? 'image' : 'text', {
           imageUrl: type === 'image' ? fileUrl : undefined,
           location: undefined
         });
@@ -256,7 +256,11 @@ export default function EnhancedChatWindow({ roomId, onClose, className }: Enhan
           }]
         };
 
-        await ChatService.sendMessage(roomId, user.uid, messageData);
+        await ChatService.sendMessage(roomId, user!.uid, JSON.stringify(messageData), 'text', {
+          orderId: undefined,
+          location: undefined,
+          imageUrl: undefined
+        });
         
         // Clean up stream
         stream.getTracks().forEach(track => track.stop());
@@ -341,10 +345,10 @@ export default function EnhancedChatWindow({ roomId, onClose, className }: Enhan
       );
     }
 
-    if (message.type === 'attachment' && message.attachments && message.attachments.length > 0) {
+    if ((message as any).attachments && (message as any).attachments.length > 0) {
       return (
         <div className="space-y-2">
-          {message.attachments.map((attachment, index) => (
+          {message.attachments && message.attachments.map((attachment, index) => (
             <div key={index} className="max-w-sm">
               {attachment.type === 'image' && (
                 <div className="relative group">
@@ -439,14 +443,14 @@ export default function EnhancedChatWindow({ roomId, onClose, className }: Enhan
             {room && (
               <>
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={room.participants[0]?.avatar} />
-                  <AvatarFallback>{room.participants[0]?.name?.[0]}</AvatarFallback>
+                  <AvatarImage src={(room.participants[0] as any)?.avatar || ''} />
+                  <AvatarFallback>{(room.participants[0] as any)?.name?.[0] || 'U'}</AvatarFallback>
                 </Avatar>
                 <div>
-                  <CardTitle className="text-base">{room.participants[0]?.name}</CardTitle>
+                  <CardTitle className="text-base">{(room.participants[0] as any)?.name || 'Unknown'}</CardTitle>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className={getRoleColor(room.participants[0]?.role || '')}>
-                      {getRoleLabel(room.participants[0]?.role || '')}
+                    <Badge variant="outline" className={getRoleColor((room.participants[0] as any)?.role || '')}>
+                      {getRoleLabel((room.participants[0] as any)?.role || '')}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
                       {room.lastMessage?.timestamp ? getMessageTime(room.lastMessage.timestamp) : 'Hace tiempo'}
@@ -487,7 +491,7 @@ export default function EnhancedChatWindow({ roomId, onClose, className }: Enhan
         <div className="flex-1 overflow-y-auto space-y-4 mb-4">
           {messages.map((message) => {
             const isOwn = message.senderId === user?.uid;
-            const senderInfo = room?.participants.find(p => p.id === message.senderId);
+            const senderInfo = room?.participants.find((p: any) => (typeof p === 'object' ? p.id : p) === message.senderId);
             
             return (
               <div
@@ -499,8 +503,8 @@ export default function EnhancedChatWindow({ roomId, onClose, className }: Enhan
               >
                 {!isOwn && (
                   <Avatar className="h-8 w-8 flex-shrink-0">
-                    <AvatarImage src={senderInfo?.avatar} />
-                    <AvatarFallback>{senderInfo?.name?.[0]}</AvatarFallback>
+                    <AvatarImage src={(senderInfo as any)?.avatar || ''} />
+                    <AvatarFallback>{(senderInfo as any)?.name?.[0] || 'U'}</AvatarFallback>
                   </Avatar>
                 )}
                 

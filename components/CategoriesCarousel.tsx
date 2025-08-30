@@ -141,6 +141,7 @@ export default function CategoriesCarousel({
       container.addEventListener('scroll', updateScrollButtons);
       return () => container.removeEventListener('scroll', updateScrollButtons);
     }
+    return undefined;
   }, [categories]);
 
   const scroll = (direction: 'left' | 'right') => {

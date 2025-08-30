@@ -894,7 +894,16 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
           <RecommendedPairings
             cookId={dish.cookerId}
             onAddToCart={(item) => {
-              addToCart(item);
+              addToCart({
+                dishId: item.id,
+                name: item.name,
+                price: item.price,
+                quantity: 1,
+                cookerName: item.cookerName || 'Unknown',
+                cookerId: item.cookerId || '',
+                image: item.image || '',
+                prepTime: item.prepTime || '30 min'
+              } as any);
               toast.success(`¡${item.name} agregado al carrito!`, {
                 action: {
                   label: 'Ver Carrito',

@@ -111,6 +111,12 @@ export interface Cook {
     language: string;
     lastLocationUpdate?: Timestamp;
   };
+  bankInfo?: {
+    accountHolderName: string;
+    bankName: string;
+    accountNumber: string;
+    routingNumber: string;
+  };
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

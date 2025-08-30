@@ -303,7 +303,7 @@ export async function GET() {
       }
     })
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error serving API documentation:', error)
     
     return NextResponse.json({

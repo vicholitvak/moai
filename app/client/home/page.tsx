@@ -78,7 +78,8 @@ const ClientHome = () => {
     // Load notifications
     NotificationService.loadPersistedNotifications();
     const unsubscribe = NotificationService.subscribe((notifications) => {
-      setUnreadNotifications(NotificationService.getUnreadCount());
+      const count = NotificationService.getUnreadCountSync();
+      setUnreadNotifications(count);
     });
 
     return () => {
