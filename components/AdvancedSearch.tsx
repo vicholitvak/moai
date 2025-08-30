@@ -496,7 +496,7 @@ export default function AdvancedSearch({
           )}
           {filters.maxPrepTime < 60 && (
             <Badge variant="secondary" className="flex items-center gap-1">
-              &lt; {filters.maxPrepTime} min
+              < {filters.maxPrepTime} min
               <X
                 className="h-3 w-3 cursor-pointer"
                 onClick={() => updateFilter('maxPrepTime', 60)}

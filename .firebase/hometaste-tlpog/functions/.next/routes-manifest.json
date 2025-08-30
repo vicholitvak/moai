@@ -1,0 +1,202 @@
+{
+  "version": 3,
+  "pages404": true,
+  "caseSensitive": false,
+  "basePath": "",
+  "redirects": [
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "internal": true,
+      "statusCode": 308,
+      "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$"
+    }
+  ],
+  "headers": [],
+  "rewrites": {
+    "beforeFiles": [],
+    "afterFiles": [],
+    "fallback": []
+  },
+  "dynamicRoutes": [
+    {
+      "page": "/api/mercadopago/payment-status/[id]",
+      "regex": "^/api/mercadopago/payment\\-status/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/mercadopago/payment\\-status/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/cooks/[id]",
+      "regex": "^/cooks/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/cooks/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/dishes/[id]",
+      "regex": "^/dishes/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/dishes/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/orders/[orderId]",
+      "regex": "^/orders/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPorderId": "nxtPorderId"
+      },
+      "namedRegex": "^/orders/(?<nxtPorderId>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/orders/[orderId]/tracking",
+      "regex": "^/orders/([^/]+?)/tracking(?:/)?$",
+      "routeKeys": {
+        "nxtPorderId": "nxtPorderId"
+      },
+      "namedRegex": "^/orders/(?<nxtPorderId>[^/]+?)/tracking(?:/)?$"
+    }
+  ],
+  "staticRoutes": [
+    {
+      "page": "/",
+      "regex": "^/(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/(?:/)?$"
+    },
+    {
+      "page": "/_not-found",
+      "regex": "^/_not\\-found(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_not\\-found(?:/)?$"
+    },
+    {
+      "page": "/admin",
+      "regex": "^/admin(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin(?:/)?$"
+    },
+    {
+      "page": "/admin/dashboard",
+      "regex": "^/admin/dashboard(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/dashboard(?:/)?$"
+    },
+    {
+      "page": "/admin/monitoring",
+      "regex": "^/admin/monitoring(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/monitoring(?:/)?$"
+    },
+    {
+      "page": "/admin/verify",
+      "regex": "^/admin/verify(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/admin/verify(?:/)?$"
+    },
+    {
+      "page": "/cart",
+      "regex": "^/cart(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/cart(?:/)?$"
+    },
+    {
+      "page": "/client/home",
+      "regex": "^/client/home(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/client/home(?:/)?$"
+    },
+    {
+      "page": "/client/orders",
+      "regex": "^/client/orders(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/client/orders(?:/)?$"
+    },
+    {
+      "page": "/cooker/dashboard",
+      "regex": "^/cooker/dashboard(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/cooker/dashboard(?:/)?$"
+    },
+    {
+      "page": "/dishes",
+      "regex": "^/dishes(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/dishes(?:/)?$"
+    },
+    {
+      "page": "/driver/dashboard",
+      "regex": "^/driver/dashboard(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/driver/dashboard(?:/)?$"
+    },
+    {
+      "page": "/driver/delivery-verification",
+      "regex": "^/driver/delivery\\-verification(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/driver/delivery\\-verification(?:/)?$"
+    },
+    {
+      "page": "/login",
+      "regex": "^/login(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/login(?:/)?$"
+    },
+    {
+      "page": "/offline",
+      "regex": "^/offline(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/offline(?:/)?$"
+    },
+    {
+      "page": "/payment/failure",
+      "regex": "^/payment/failure(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/payment/failure(?:/)?$"
+    },
+    {
+      "page": "/payment/pending",
+      "regex": "^/payment/pending(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/payment/pending(?:/)?$"
+    },
+    {
+      "page": "/payment/success",
+      "regex": "^/payment/success(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/payment/success(?:/)?$"
+    },
+    {
+      "page": "/search",
+      "regex": "^/search(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/search(?:/)?$"
+    },
+    {
+      "page": "/support",
+      "regex": "^/support(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/support(?:/)?$"
+    }
+  ],
+  "dataRoutes": [],
+  "rsc": {
+    "header": "RSC",
+    "varyHeader": "RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch",
+    "prefetchHeader": "Next-Router-Prefetch",
+    "didPostponeHeader": "x-nextjs-postponed",
+    "contentTypeHeader": "text/x-component",
+    "suffix": ".rsc",
+    "prefetchSuffix": ".prefetch.rsc",
+    "prefetchSegmentHeader": "Next-Router-Segment-Prefetch",
+    "prefetchSegmentSuffix": ".segment.rsc",
+    "prefetchSegmentDirSuffix": ".segments"
+  },
+  "rewriteHeaders": {
+    "pathHeader": "x-nextjs-rewritten-path",
+    "queryHeader": "x-nextjs-rewritten-query"
+  }
+}

@@ -27,13 +27,14 @@ import {
   MessageCircle,
   ArrowRight,
   Utensils,
-  Package
+  Package,
+  XCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import EditDishModal from '@/components/EditDishModal';
 import CookerSettingsModal from '@/components/CookerSettingsModal';
 import { AddDishModal } from '@/components/AddDishModal';
@@ -51,6 +52,9 @@ import { DishesService, OrdersService, CooksService, AnalyticsService, type Dish
 import { Timestamp } from 'firebase/firestore';
 import { OptimizedDishesService } from '@/lib/services/optimizedFirebaseService';
 import { toast } from 'sonner';
+
+// Fallback image for dish images that fail to load
+const FALLBACK_DISH_IMAGE = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1zbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNSAxNUMzMC41MjI5IDE1IDM1IDEwLjUyMjkgMzUgNUMzNSAyLjc5MDg2IDMzLjIwOTEgMSAzMSAxSDIwQzE3LjI5MDkgMSAxNS40NjA5IDIuNzkwODYgMTUgNUMxNSAxMC41MjI5IDE5LjQ3NzEgMTUgMjUgMTVaIiBmaWxsPSIjOUI5QkEzIi8+CjxwYXRoIGQ9Ik0xMCAzNUMxMCAyNi43MTU3IDE2LjcxNTcgMjAgMjUgMjBDMzMuMjg0MyAyMCA0MCAyNi43MTU3IDQwIDM1VjQ1SDBWMzVaIiBmaWxsPSIjOUI5QkEzIi8+Cjwvc3ZnPgo=';
 
 export default function CookerDashboard() {
   const { user, role, loading: authLoading, logout } = useAuth();
@@ -228,7 +232,7 @@ export default function CookerDashboard() {
           totalEarnings,
           activeDishes,
           pendingOrders,
-          averageRating: profile?.rating ?? 0
+          averageRating: profile?.rating || 0
         });
       };
       
@@ -259,7 +263,7 @@ export default function CookerDashboard() {
       const success = await DishesService.updateDish(editingDish.id, updatedDish);
       if (success) {
         // Refresh dishes data
-        const dishesData = await DishesService.getDishesByCook(user?.uid ?? '');
+        const dishesData = await DishesService.getDishesByCook(user?.uid || '');
         setDishes(dishesData);
         console.log('Dish updated successfully');
       }
@@ -426,16 +430,22 @@ export default function CookerDashboard() {
     trend?: string;
     description?: string;
   }) => (
-    <Card>
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">{title}</CardTitle>
-          <Icon className="h-4 w-4 text-muted-foreground" />
+    <Card className="relative overflow-hidden bg-gradient-to-br from-white to-gray-50 border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+      <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-atacama-orange/10 to-atacama-orange/5 rounded-full -mr-10 -mt-10"></div>
+      <CardContent className="p-6 relative">
+        <div className="flex items-center justify-between space-y-0 pb-3">
+          <CardTitle className="text-sm font-semibold text-gray-700">{title}</CardTitle>
+          <div className="p-2 bg-atacama-orange/10 rounded-lg">
+            <Icon className="h-5 w-5 text-atacama-orange" />
+          </div>
         </div>
         <div>
-          <div className="text-2xl font-bold">{value}</div>
-          <p className="text-xs text-muted-foreground">
-            <span className="text-emerald-500">{trend}</span> {description}
+          <div className="text-3xl font-bold text-gray-900 mb-1">{value}</div>
+          <p className="text-xs text-gray-500 flex items-center">
+            <span className={`font-medium ${trend?.startsWith('+') ? 'text-emerald-600' : trend?.startsWith('-') ? 'text-red-500' : 'text-gray-500'}`}>
+              {trend}
+            </span>
+            {description && <span className="ml-1">{description}</span>}
           </p>
         </div>
       </CardContent>
@@ -455,7 +465,7 @@ export default function CookerDashboard() {
           fill
           className="object-cover"
           onError={(e) => {
-            e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xNzUgMTI1SDE5NVYxNDVIMjE1VjE2NUgxOTVWMTg1SDE3NVYxNjVIMTU1VjE0NUgxNzVWMTI1WiIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K';
+            e.currentTarget.src = FALLBACK_DISH_IMAGE;
           }}
         />
         <div className="absolute top-2 right-2">
@@ -481,10 +491,10 @@ export default function CookerDashboard() {
           <span>Total</span>
         </div>
         <div className="flex gap-2 mb-3">
-          <Button
-            variant="secondary"
-            size="sm"
-            className={`flex-1 font-semibold text-white ${dish.isAvailable ? 'bg-orange-500 hover:bg-orange-600' : 'bg-orange-300 hover:bg-orange-400'} border-none`}
+          <Button 
+            variant={dish.isAvailable ? "default" : "outline"}
+            size="sm" 
+            className="flex-1"
             onClick={() => onToggleAvailability(dish.id, !dish.isAvailable)}
           >
             {dish.isAvailable ? (
@@ -502,19 +512,15 @@ export default function CookerDashboard() {
         </div>
         <div className="flex gap-2">
           <Button 
-            variant="secondary" 
+            variant="outline" 
             size="sm" 
-            className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-300"
+            className="flex-1"
             onClick={() => onEdit(dish)}
           >
             <Edit className="h-4 w-4 mr-1" />
             Editar
           </Button>
-          <Button 
-            variant="secondary" 
-            size="sm" 
-            className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-300"
-          >
+          <Button variant="outline" size="sm" className="flex-1">
             <Eye className="h-4 w-4 mr-1" />
             Ver
           </Button>
@@ -574,7 +580,7 @@ export default function CookerDashboard() {
             <div className="text-right">
               <div className="text-2xl font-bold text-green-600">${order.total.toLocaleString('es-CL')}</div>
               <div className="text-xs text-gray-500">
-                {order.orderTime?.toDate()?.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) ?? 'N/A'}
+                {order.orderTime?.toDate()?.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) || 'N/A'}
               </div>
             </div>
           </div>
@@ -676,7 +682,7 @@ export default function CookerDashboard() {
         <div className="flex justify-between items-center">
           <span className="font-bold text-green-600">${order.total.toLocaleString('es-CL')}</span>
           <span className="text-xs text-gray-500">
-            {order.orderTime?.toDate()?.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) ?? 'N/A'}
+            {order.orderTime?.toDate()?.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) || 'N/A'}
           </span>
         </div>
       </CardContent>
@@ -714,11 +720,11 @@ export default function CookerDashboard() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Avatar className="h-12 w-12">
-                <AvatarImage src={cookProfile?.avatar ?? user.photoURL ?? 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNSAxNUMzMC41MjI5IDE1IDM1IDEwLjUyMjkgMzUgNUMzNSAyLjc5MDg2IDMzLjIwOTEgMSAzMSAxSDIwQzE3LjI5MDkgMSAxNS40NjA5IDIuNzkwODYgMTUgNUMxNSAxMC41MjI5IDE5LjQ3NzEgMTUgMjUgMTVaIiBmaWxsPSIjOUI5QkEzIi8+CjxwYXRoIGQ9Ik0xMCAzNUMxMCAyNi43MTU3IDE2LjcxNTcgMjAgMjUgMjBDMzMuMjg0MyAyMCA0MCAyNi43MTU3IDQwIDM1VjQ1SDBWMzVaIiBmaWxsPSIjOUI5QkEzIi8+Cjwvc3ZnPgo=' } />
-                <AvatarFallback>{cookProfile?.displayName?.charAt(0) ?? user.displayName?.charAt(0) ?? 'C'}</AvatarFallback>
+                <AvatarImage src={cookProfile?.avatar || user.photoURL || FALLBACK_DISH_IMAGE} />
+                <AvatarFallback>{cookProfile?.displayName?.charAt(0) || user.displayName?.charAt(0) || 'C'}</AvatarFallback>
               </Avatar>
               <div>
-                <h1 className="text-2xl font-bold">¡Hola, {cookProfile?.displayName ?? user.displayName ?? 'Cocinero'}!</h1>
+                <h1 className="text-2xl font-bold">¡Hola, {cookProfile?.displayName || user.displayName || 'Cocinero'}!</h1>
                 <p className="text-muted-foreground">Gestiona tus platos y pedidos</p>
               </div>
             </div>
@@ -736,7 +742,7 @@ export default function CookerDashboard() {
                 <Settings className="h-4 w-4 mr-2" />
                 <span className="hidden lg:inline">Configuración</span>
               </Button>
-
+              <ThemeToggle />
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -893,40 +899,81 @@ export default function CookerDashboard() {
         {/* Dishes Tab */}
         {activeTab === 'dishes' && (
           <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-2xl font-bold">Mis Platos</h2>
-                <p className="text-muted-foreground">Administra los elementos de tu menú</p>
-              </div>
-              <div className="flex items-center gap-3">
-                {dishes.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleToggleAllAvailability(true)}
-                      disabled={isUpdatingAvailability || dishes.every(dish => dish.isAvailable)}
-                    >
-                      <Power className="h-4 w-4 mr-2" />
-                      {isUpdatingAvailability ? 'Actualizando...' : 'Activar Todos'}
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleToggleAllAvailability(false)}
-                      disabled={isUpdatingAvailability || dishes.every(dish => !dish.isAvailable)}
-                    >
-                      <PowerOff className="h-4 w-4 mr-2" />
-                      {isUpdatingAvailability ? 'Actualizando...' : 'Desactivar Todos'}
-                    </Button>
+            {/* Enhanced Dishes Header */}
+            <div className="bg-gradient-to-r from-orange-50 via-red-50 to-yellow-50 border border-orange-200 rounded-xl p-6 shadow-sm">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-4">
+                  <div className="bg-atacama-orange/10 p-3 rounded-full">
+                    <ChefHat className="h-8 w-8 text-atacama-orange" />
                   </div>
-                )}
-                <Button onClick={() => setIsAddDishModalOpen(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Agregar Nuevo Plato
-                </Button>
+                  <div>
+                    <h2 className="text-3xl font-bold text-gray-900">Mis Platos</h2>
+                    <p className="text-gray-600 mt-1">Administra los elementos de tu menú y mantén tu oferta actualizada</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  {dishes.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleToggleAllAvailability(true)}
+                        disabled={isUpdatingAvailability || dishes.every(dish => dish.isAvailable)}
+                        className="border-green-200 text-green-700 hover:bg-green-50 hover:border-green-300 transition-all duration-200"
+                      >
+                        <Power className="h-4 w-4 mr-2" />
+                        {isUpdatingAvailability ? 'Actualizando...' : 'Activar Todos'}
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleToggleAllAvailability(false)}
+                        disabled={isUpdatingAvailability || dishes.every(dish => !dish.isAvailable)}
+                        className="border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300 transition-all duration-200"
+                      >
+                        <PowerOff className="h-4 w-4 mr-2" />
+                        {isUpdatingAvailability ? 'Actualizando...' : 'Desactivar Todos'}
+                      </Button>
+                    </div>
+                  )}
+                  <Button 
+                    variant="default"
+                    onClick={() => setIsAddDishModalOpen(true)}
+                    className="bg-atacama-orange hover:bg-atacama-orange/90 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Agregar Plato
+                  </Button>
+                </div>
               </div>
+              
+              {/* Quick Stats for Dishes */}
+              {dishes.length > 0 && (
+                <div className="grid grid-cols-4 gap-4 mt-6">
+                  <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 text-center border border-orange-100">
+                    <Utensils className="h-5 w-5 text-atacama-orange mx-auto mb-1" />
+                    <div className="text-lg font-bold text-gray-900">{dishes.length}</div>
+                    <div className="text-xs text-gray-500">Total Platos</div>
+                  </div>
+                  <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 text-center border border-orange-100">
+                    <CheckCircle className="h-5 w-5 text-green-500 mx-auto mb-1" />
+                    <div className="text-lg font-bold text-gray-900">{dishes.filter(d => d.isAvailable).length}</div>
+                    <div className="text-xs text-gray-500">Disponibles</div>
+                  </div>
+                  <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 text-center border border-orange-100">
+                    <XCircle className="h-5 w-5 text-red-500 mx-auto mb-1" />
+                    <div className="text-lg font-bold text-gray-900">{dishes.filter(d => !d.isAvailable).length}</div>
+                    <div className="text-xs text-gray-500">No Disponibles</div>
+                  </div>
+                  <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 text-center border border-orange-100">
+                    <Star className="h-5 w-5 text-yellow-500 mx-auto mb-1" />
+                    <div className="text-lg font-bold text-gray-900">{dishes.reduce((acc, d) => acc + d.rating, 0) / dishes.length || 0}</div>
+                    <div className="text-xs text-gray-500">Rating Promedio</div>
+                  </div>
+                </div>
+              )}
             </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {dishes.length > 0 ? (
                 dishes.map((dish) => (
@@ -938,11 +985,20 @@ export default function CookerDashboard() {
                   />
                 ))
               ) : (
-                <div className="col-span-full text-center py-12">
-                  <ChefHat className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No tienes platos aún</h3>
-                  <p className="text-muted-foreground mb-4">Comienza agregando tu primer plato al menú</p>
-                  <Button onClick={() => setIsAddDishModalOpen(true)}>Agregar Plato</Button>
+                <div className="col-span-full text-center py-16">
+                  <div className="bg-gradient-to-br from-orange-100 to-red-100 p-6 rounded-full w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+                    <ChefHat className="h-12 w-12 text-atacama-orange" />
+                  </div>
+                  <h3 className="text-xl font-bold mb-2 text-gray-900">No tienes platos aún</h3>
+                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">Comienza creando tu primer plato y comparte tu talento culinario con la comunidad</p>
+                  <Button 
+                    variant="default"
+                    onClick={() => setIsAddDishModalOpen(true)}
+                    className="bg-atacama-orange hover:bg-atacama-orange/90 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200 px-8 py-3"
+                  >
+                    <Plus className="h-5 w-5 mr-2" />
+                    Crear Mi Primer Plato
+                  </Button>
                 </div>
               )}
             </div>
@@ -1169,17 +1225,15 @@ export default function CookerDashboard() {
       </div>
 
       {/* Edit Dish Modal */}
-      {editingDish && (
-        <EditDishModal
-          dish={editingDish as any}
-          isOpen={isEditModalOpen}
-          onClose={() => {
-            setIsEditModalOpen(false);
-            setEditingDish(null);
-          }}
-          onSave={handleSaveDish}
-        />
-      )}
+      <EditDishModal
+        dish={editingDish}
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingDish(null);
+        }}
+        onSave={handleSaveDish}
+      />
 
       {/* Settings Modal */}
       <CookerSettingsModal
@@ -1188,23 +1242,23 @@ export default function CookerDashboard() {
         onSave={async (settings: Record<string, unknown>) => {
           try {
             // Update cook profile with new settings
-            await CooksService.updateCookProfile(user?.uid ?? '', {
+            await CooksService.updateCook(user?.uid || '', {
               displayName: settings.displayName as string | undefined,
               bio: settings.bio as string | undefined,
               avatar: settings.avatar as string | undefined,
               coverImage: settings.coverImage as string | undefined,
               location: {
-                coordinates: cookProfile?.location?.coordinates ?? {
+                coordinates: cookProfile?.location?.coordinates || {
                   latitude: 0,
                   longitude: 0,
                   timestamp: Timestamp.now()
                 },
                 address: {
-                  street: cookProfile?.location?.address?.street ?? '',
-                  city: cookProfile?.location?.address?.city ?? '',
-                  state: cookProfile?.location?.address?.state ?? '',
-                  zipCode: cookProfile?.location?.address?.zipCode ?? '',
-                  country: cookProfile?.location?.address?.country ?? '',
+                  street: cookProfile?.location?.address?.street || '',
+                  city: cookProfile?.location?.address?.city || '',
+                  state: cookProfile?.location?.address?.state || '',
+                  zipCode: cookProfile?.location?.address?.zipCode || '',
+                  country: cookProfile?.location?.address?.country || '',
                   fullAddress: settings.location as string
                 },
                 isActive: cookProfile?.location?.isActive ?? true,
@@ -1226,7 +1280,7 @@ export default function CookerDashboard() {
             });
             
             // Refresh cook profile
-            const profile = await CooksService.getCookById(user?.uid ?? '');
+            const profile = await CooksService.getCookById(user?.uid || '');
             setCookProfile(profile);
             console.log('Settings saved successfully');
           } catch (error) {
@@ -1244,7 +1298,7 @@ export default function CookerDashboard() {
         onSave={handleAddDish}
         cookerId={user?.uid ?? ''}
         cookerName={cookProfile?.displayName ?? user?.displayName ?? 'Cocinero'}
-        cookerAvatar={cookProfile?.avatar ?? user?.photoURL ?? 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNSAxNUMzMC41MjI5IDE1IDM1IDEwLjUyMjkgMzUgNUMzNSAyLjc5MDg2IDMzLjIwOTEgMSAzMSAxSDIwQzE3LjI5MDkgMSAxNS40NjA5IDIuNzkwODYgMTUgNUMxNSAxMC41MjI5IDE5LjQ3NzEgMTUgMjUgMTVaIiBmaWxsPSIjOUI5QkEzIi8+CjxwYXRoIGQ9Ik0xMCAzNUMxMCAyNi43MTU3IDE2LjcxNTcgMjAgMjUgMjBDMzMuMjg0MyAyMCA0MCAyNi43MTU3IDQwIDM1VjQ1SDBWMzVaIiBmaWxsPSIjOUI5QkEzIi8+Cjwvc3ZnPgo='}
+        cookerAvatar={cookProfile?.avatar ?? user?.photoURL ?? FALLBACK_DISH_IMAGE}
         cookerRating={cookProfile?.rating ?? 0}
       />
     </div>

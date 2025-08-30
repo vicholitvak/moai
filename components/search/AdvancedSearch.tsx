@@ -140,10 +140,9 @@ export function AdvancedSearch({
 
   // Get user location
   useEffect(() => {
-    LocationService.getCurrentPosition().then(coords => {
+    LocationService.getCurrentLocation().then(coords => {
       if (coords) {
-        const location = { lat: coords.latitude, lng: coords.longitude };
-        setUserLocation(location);
+        setUserLocation(coords);
         setFilters(prev => ({ ...prev, location: coords }));
       }
     });

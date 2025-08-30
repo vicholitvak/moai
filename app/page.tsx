@@ -2,13 +2,11 @@
 
   import { useState, useEffect } from 'react';
   import { useRouter } from 'next/navigation';
-  import Link from 'next/link';
   import { useAuth } from '@/context/AuthContext';
   import Head from 'next/head';
   import Hero from '../components/Hero';
   import HowItWorks from '../components/HowItWorks';
   import SignUpModal from '../components/SignUpModal';
-  import SignInModal from '../components/SignInModal';
   import MobileNav from '../components/MobileNav';
   import RecommendationDashboard from '@/components/RecommendationDashboard';
   import FeaturedCarousel from '@/components/FeaturedCarousel';
@@ -22,8 +20,7 @@
   import { LocationBasedDishes } from '@/components/LocationBasedDishes';
 
   export default function Home() {
-  const [isSignUpModalOpen, setIsSignUpModalOpen] = useState(false);
-  const [isSignInModalOpen, setIsSignInModalOpen] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const [showRecommendations, setShowRecommendations] = useState(false);
     const router = useRouter();
     const { user, role } = useAuth();
@@ -98,14 +95,14 @@
         </Head>
 
         <MobileNav
-          onSignInClick={() => setIsSignInModalOpen(true)}
-          onSignUpClick={() => setIsSignUpModalOpen(true)}
+          onSignInClick={() => router.push('/login')}
+          onSignUpClick={() => setIsModalOpen(true)}
         />
 
-  <main>
+        <main>
           <Hero
-            onSignUpClick={() => setIsSignUpModalOpen(true)}
-            onSignInClick={() => setIsSignInModalOpen(true)}
+            onSignUpClick={() => setIsModalOpen(true)}
+            onSignInClick={() => router.push('/login')}
           />
 
           {/* Stats Section */}
@@ -200,7 +197,25 @@
           </motion.section>
 
           {/* Featured Dishes Section */}
-          <FeaturedCarousel />
+          <motion.section
+            className="py-20"
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
+            <div className="container mx-auto px-4">
+              <motion.div variants={itemVariants} className="text-center mb-12">
+                <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                  Platos Destacados
+                </h2>
+                <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                  Descubre los mejores platos de nuestros cocineros locales
+                </p>
+              </motion.div>
+              <FeaturedCarousel />
+            </div>
+          </motion.section>
 
           {/* Recommendations Section - Only for logged in clients */}
           {showRecommendations && (
@@ -219,13 +234,21 @@
 
           {/* Location-Based Dishes Section */}
           <motion.section
-            className="py-20"
+            className="py-20 bg-gradient-to-r from-green-50/50 to-blue-50/30"
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
           >
             <div className="container mx-auto px-4">
+              <motion.div variants={itemVariants} className="text-center mb-12">
+                <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
+                  Platos por Ciudad
+                </h2>
+                <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                  Descubre platos tradicionales de diferentes ciudades de Chile
+                </p>
+              </motion.div>
               <LocationBasedDishes />
             </div>
           </motion.section>
@@ -271,20 +294,36 @@
                 <h2 className="text-3xl md:text-5xl font-bold mb-6 text-white">
                   ¿Listo para Empezar?
                 </h2>
-                <Button
-                  size="xl"
-                  className="bg-white text-moai-600 font-bold px-10 py-4 rounded-full shadow-lg hover:bg-moai-50 hover:text-moai-700 transition-all duration-300"
-                  onClick={() => router.push('/dishes')}
+                <p className="text-lg md:text-xl text-white/90 mb-8 leading-relaxed">
+                  Únete a la comunidad de Moai y disfruta de la mejor comida local en todo Chile
+                </p>
+                <motion.div
+                  variants={itemVariants}
+                  className="flex flex-col sm:flex-row items-center justify-center gap-4"
                 >
-                  Explorar Platos
-                </Button>
+                  <Button
+                    onClick={() => setIsModalOpen(true)}
+                    size="lg"
+                    variant="premium"
+                    className="px-8 py-4 text-lg font-semibold rounded-full shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-300"
+                  >
+                    Registrarse Ahora
+                  </Button>
+                  <Button
+                    onClick={() => router.push('/dishes')}
+                    variant="glass"
+                    size="lg"
+                    className="px-8 py-4 text-lg font-semibold rounded-full border-2 border-white/30 text-white hover:bg-white/10 transition-all duration-300"
+                  >
+                    Explorar Platos
+                  </Button>
+                </motion.div>
               </motion.div>
             </div>
           </motion.section>
         </main>
 
-  <SignUpModal isOpen={isSignUpModalOpen} onOpenChange={setIsSignUpModalOpen} />
-  <SignInModal isOpen={isSignInModalOpen} onOpenChange={setIsSignInModalOpen} />
+        <SignUpModal isOpen={isModalOpen} onOpenChange={setIsModalOpen} />
 
         {/* Enhanced Footer */}
         <footer className="bg-gray-900 text-white py-16">
@@ -301,9 +340,9 @@
               <div>
                 <h4 className="font-semibold mb-4 text-white">Para Clientes</h4>
                 <ul className="space-y-2 text-gray-300">
-                  <li><Link href="/dishes" className="hover:text-moai-400 transition-colors">Explorar Platos</Link></li>
-                  <li><Link href="/cooks" className="hover:text-moai-400 transition-colors">Ver Cocineros</Link></li>
-                  <li><Link href="/orders" className="hover:text-moai-400 transition-colors">Mis Pedidos</Link></li>
+                  <li><a href="/dishes" className="hover:text-moai-400 transition-colors">Explorar Platos</a></li>
+                  <li><a href="/cooks" className="hover:text-moai-400 transition-colors">Ver Cocineros</a></li>
+                  <li><a href="/orders" className="hover:text-moai-400 transition-colors">Mis Pedidos</a></li>
                 </ul>
               </div>
               <div>

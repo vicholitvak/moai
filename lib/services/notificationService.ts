@@ -6,46 +6,17 @@ export interface NotificationData {
   id: string;
   title: string;
   message: string;
-  type: 'info' | 'success' | 'warning' | 'error' | 'order_update' | 'delivery_update' | 'promotion' | 'new_dish' | 'message' | 'review';
+  type: 'info' | 'success' | 'warning' | 'error';
   action?: {
     label: string;
     onClick: () => void;
   };
   duration?: number;
-  priority: 'low' | 'medium' | 'high' | 'normal';
+  priority: 'low' | 'medium' | 'high';
   category: 'order' | 'payment' | 'delivery' | 'system' | 'promotion';
   metadata?: Record<string, any>;
   timestamp: Date;
   read: boolean;
-  body?: string;
-  actionUrl?: string;
-  createdAt?: Date;
-}
-
-export type NotificationMessage = NotificationData;
-
-export interface NotificationSettings {
-  soundEnabled: boolean;
-  pushEnabled: boolean;
-  pushNotifications: boolean;
-  emailNotifications: boolean;
-  categories: {
-    order: boolean;
-    payment: boolean;
-    delivery: boolean;
-    system: boolean;
-    promotion: boolean;
-  };
-  preferences: {
-    orderUpdates: boolean;
-    deliveryUpdates: boolean;
-    promotionalOffers: boolean;
-    systemAlerts: boolean;
-  };
-  schedule: {
-    startTime: string;
-    endTime: string;
-  };
 }
 
 export class NotificationService {
@@ -61,18 +32,11 @@ export class NotificationService {
     this.loadPreferences();
   }
 
-  static async requestPermission(userId?: string): Promise<string | null> {
+  private static async requestPermission() {
     if ('Notification' in window) {
       const permission = await Notification.requestPermission();
       this.pushEnabled = permission === 'granted';
-      
-      if (permission === 'granted' && userId) {
-        // Here you would typically register the user for push notifications
-        // and return a token, but for now we'll return a mock token
-        return 'mock-push-token-' + userId;
-      }
     }
-    return null;
   }
 
   private static setupServiceWorker() {
@@ -90,18 +54,9 @@ export class NotificationService {
   private static loadPreferences() {
     const preferences = localStorage.getItem('notificationPreferences');
     if (preferences) {
-      const { soundEnabled, pushEnabled } = JSON.parse(preferences);
-      this.soundEnabled = soundEnabled ?? true;
-      this.pushEnabled = pushEnabled ?? false;
+      const { soundEnabled } = JSON.parse(preferences);
+      this.soundEnabled = soundEnabled;
     }
-  }
-
-  private static savePreferences() {
-    const preferences = {
-      soundEnabled: this.soundEnabled,
-      pushEnabled: this.pushEnabled
-    };
-    localStorage.setItem('notificationPreferences', JSON.stringify(preferences));
   }
 
   // Crear notificaciones
@@ -231,7 +186,7 @@ export class NotificationService {
     }
   }
 
-  static markAllAsReadSync() {
+  static markAllAsRead() {
     this.notifications.forEach(n => n.read = true);
     this.notifyListeners();
     this.persistNotifications();
@@ -249,7 +204,7 @@ export class NotificationService {
     this.persistNotifications();
   }
 
-  static getUnreadCountSync(): number {
+  static getUnreadCount(): number {
     return this.notifications.filter(n => !n.read).length;
   }
 
@@ -415,82 +370,12 @@ export class NotificationService {
   // Métricas
   static getMetrics() {
     const total = this.notifications.length;
-    const unread = this.getUnreadCountSync();
+    const unread = this.getUnreadCount();
     const byCategory = this.notifications.reduce((acc, n) => {
       acc[n.category] = (acc[n.category] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
     return { total, unread, byCategory };
-  }
-
-  // Missing methods that components expect
-  static async getUserNotifications(userId: string, limit: number = 50): Promise<NotificationData[]> {
-    // For now, return all notifications (in a real app, this would filter by user)
-    return this.notifications.slice(0, limit);
-  }
-
-  static async getUserSettings(userId: string): Promise<any> {
-    // Return default settings
-    return {
-      soundEnabled: this.soundEnabled,
-      pushEnabled: this.pushEnabled,
-      categories: {
-        order: true,
-        payment: true,
-        delivery: true,
-        system: true,
-        promotion: false
-      }
-    };
-  }
-
-  static async updateUserSettings(userId: string, updates: any): Promise<void> {
-    // Update settings
-    if (updates.soundEnabled !== undefined) {
-      this.soundEnabled = updates.soundEnabled;
-    }
-    if (updates.pushEnabled !== undefined) {
-      this.pushEnabled = updates.pushEnabled;
-    }
-    // Persist settings
-    this.savePreferences();
-  }
-
-  static async deleteNotification(notificationId: string): Promise<void> {
-    this.delete(notificationId);
-  }
-
-  static async markAllAsRead(userId: string): Promise<void> {
-    this.markAllAsReadSync();
-  }
-
-  static async getUnreadCount(userId: string): Promise<number> {
-    return this.getUnreadCountSync();
-  }
-
-  static async sendToUser(userId: string, notification: any): Promise<void> {
-    // Add notification to the list
-    const newNotification: NotificationData = {
-      id: Date.now().toString(),
-      title: notification.title || 'Notification',
-      message: notification.body || '',
-      type: notification.type || 'info',
-      priority: notification.priority || 'medium',
-      category: notification.category || 'system',
-      timestamp: new Date(),
-      read: false,
-      ...notification
-    };
-
-    this.notifications.unshift(newNotification);
-    this.notifyListeners();
-    this.persistNotifications();
-
-    // Show toast
-    toast(newNotification.title, {
-      description: newNotification.message,
-      duration: newNotification.duration || 5000,
-    });
   }
 }

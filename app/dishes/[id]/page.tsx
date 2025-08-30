@@ -9,36 +9,26 @@ import { DishesService, CooksService, ReviewsService } from '@/lib/firebase/data
 import type { Dish, Cook, Review } from '@/lib/firebase/dataService';
 import { toast } from 'sonner';
 import { formatPrice } from '@/lib/utils';
-import {
-  ArrowLeft,
-  Star,
-  Clock,
-  MapPin,
-  Heart,
-  ShoppingCart,
+import { 
+  ArrowLeft, 
+  Star, 
+  Clock, 
+  MapPin, 
+  Heart, 
+  ShoppingCart, 
   ChefHat,
+  Users,
   Award,
+  MessageCircle,
   Plus,
   Minus,
   Share2,
-  Loader2,
-  Check,
-  Leaf,
-  Flame,
-  Shield,
-  Zap,
-  MessageSquare,
-  Truck,
-  Eye,
-  Sparkles,
-  Crown,
-  TrendingUp
+  Loader2
 } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../../../components/ui/avatar';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 import RecommendedPairings from './recommended-pairings';
 import { ReviewSystem } from '@/components/reviews/ReviewSystem';
 
@@ -47,10 +37,6 @@ interface DishWithCookDetails extends Dish {
   images?: string[];
   distance?: string;
   reviews?: Review[];
-  isNew?: boolean;
-  isTrending?: boolean;
-  deliveryTime?: string;
-  discountPercentage?: number;
 }
 
 const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
@@ -69,7 +55,6 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [addToCartSuccess, setAddToCartSuccess] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
     const fetchDishData = async () => {
@@ -79,7 +64,7 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
 
         // Fetch dish data from Firebase
         const dishData = await DishesService.getDishById(resolvedParams.id);
-
+        
         if (!dishData) {
           setError('Dish not found');
           return;
@@ -87,7 +72,7 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
 
         // Fetch cook data
         const cookData = await CooksService.getCookById(dishData.cookerId);
-
+        
         // Fetch reviews for this dish/cook
         const reviewsData = await ReviewsService.getReviewsByCook(dishData.cookerId);
 
@@ -95,19 +80,14 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
         const dishWithDetails: DishWithCookDetails = {
           ...dishData,
           images: [dishData.image, dishData.image, dishData.image], // Use dish image for now
-          distance: '1.2 km',
+          distance: cook?.distance || 'Nearby', // Real distance from cook profile or default
           reviews: reviewsData,
-          cookerBio: cookData?.bio || 'Passionate home cook sharing delicious meals',
-          isNew: dishData.tags?.includes('nuevo') || false,
-          isTrending: Math.random() > 0.7, // Mock trending status
-          deliveryTime: cookData?.settings?.selfDelivery ? '15-30 min' : '30-45 min',
-          discountPercentage: Math.random() > 0.8 ? Math.floor(Math.random() * 20) + 10 : undefined
+          cookerBio: cookData?.bio || 'Passionate home cook sharing delicious meals'
         };
 
         setDish(dishWithDetails);
         setCook(cookData);
         setReviews(reviewsData);
-
         // Check if dish is in user's favorites
         if (user) {
           try {
@@ -120,7 +100,7 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
         } else {
           setIsFavorite(false);
         }
-
+        
       } catch (error) {
         console.error('Error fetching dish data:', error);
         setError('Error loading dish details');
@@ -134,9 +114,9 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
 
   const handleAddToCart = async () => {
     if (!dish || !user) return;
-
+    
     setIsAddingToCart(true);
-
+    
     try {
       const cartItem = {
         dishId: dish.id,
@@ -152,25 +132,25 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
       };
 
       addToCart(cartItem);
-
+      
       // Show success animation
       setAddToCartSuccess(true);
       setTimeout(() => setAddToCartSuccess(false), 2000);
-
-      toast.success(`¡${dish.name} agregado al carrito!`, {
-        description: `Cantidad: ${quantity} • Total: ${formatPrice(dish.price * quantity)}`,
+      
+      toast.success(`Added ${dish.name} to cart!`, {
+        description: `Quantity: ${quantity}`,
         action: {
-          label: 'Ver Carrito',
+          label: 'View Cart',
           onClick: () => router.push('/cart')
         }
       });
-
+      
       // Reset quantity after adding to cart
       setQuantity(1);
-
+      
     } catch (error) {
       console.error('Error adding to cart:', error);
-      toast.error('Error al agregar al carrito');
+      toast.error('Failed to add item to cart');
     } finally {
       setIsAddingToCart(false);
     }
@@ -178,58 +158,15 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
 
   const toggleFavorite = () => {
     setIsFavorite(!isFavorite);
-    toast.success(isFavorite ? 'Removido de favoritos' : 'Agregado a favoritos');
+    // You would typically save this to backend
   };
-
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: dish?.name,
-          text: `¡Mira este delicioso plato: ${dish?.name}!`,
-          url: window.location.href,
-        });
-      } catch (error) {
-        console.log('Error sharing:', error);
-      }
-    } else {
-      // Fallback: copy to clipboard
-      navigator.clipboard.writeText(window.location.href);
-      toast.success('Enlace copiado al portapapeles');
-    }
-  };
-
-  // Get dietary badges
-  const getDietaryBadges = () => {
-    const badges = [];
-    if (dish?.tags?.includes('vegano') || dish?.tags?.includes('vegan')) {
-      badges.push({ text: 'Vegano', icon: Leaf, color: 'bg-emerald-500' });
-    }
-    if (dish?.tags?.includes('saludable') || dish?.tags?.includes('healthy')) {
-      badges.push({ text: 'Saludable', icon: Sparkles, color: 'bg-blue-500' });
-    }
-    if (dish?.tags?.includes('sin gluten') || dish?.tags?.includes('gluten-free')) {
-      badges.push({ text: 'Sin Gluten', icon: Shield, color: 'bg-purple-500' });
-    }
-    if (dish?.tags?.includes('picante') || dish?.tags?.includes('spicy')) {
-      badges.push({ text: 'Picante', icon: Flame, color: 'bg-red-500' });
-    }
-    return badges;
-  };
-
-  const dietaryBadges = getDietaryBadges();
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="relative">
-            <div className="w-16 h-16 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin mx-auto"></div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <ChefHat className="h-6 w-6 text-slate-900" />
-            </div>
-          </div>
-          <p className="text-slate-600 font-medium">Cargando detalles del plato...</p>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading dish details...</p>
         </div>
       </div>
     );
@@ -237,28 +174,25 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
 
   if (error || !dish) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 flex items-center justify-center">
-        <div className="text-center space-y-6 max-w-md mx-auto px-4">
-          <div className="text-8xl animate-bounce">🍽️</div>
-          <div className="space-y-2">
-            <h1 className="text-2xl font-bold text-slate-900">
-              {error || 'Plato no encontrado'}
-            </h1>
-            <p className="text-slate-600 leading-relaxed">
-              {error === 'Dish not found'
-                ? 'El plato que buscas no existe o puede haber sido removido.'
-                : 'Hubo un error cargando los detalles del plato. Por favor intenta de nuevo.'
-              }
-            </p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button onClick={() => router.back()} variant="outline" className="gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Volver Atrás
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="text-6xl">🍽️</div>
+          <h1 className="text-2xl font-bold text-foreground">
+            {error || 'Dish not found'}
+          </h1>
+          <p className="text-muted-foreground max-w-md">
+            {error === 'Dish not found' 
+              ? 'The dish you\'re looking for doesn\'t exist or may have been removed.'
+              : 'There was an error loading the dish details. Please try again.'
+            }
+          </p>
+          <div className="flex gap-2 justify-center">
+            <Button onClick={() => router.back()} variant="outline">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Go Back
             </Button>
-            <Button onClick={() => router.push('/dishes')} className="gap-2">
-              <Eye className="h-4 w-4" />
-              Explorar Platos
+            <Button onClick={() => router.push('/dishes')}>
+              Browse Dishes
             </Button>
           </div>
         </div>
@@ -266,648 +200,390 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
     );
   }
 
-  const originalPrice = dish.discountPercentage ? Math.round(dish.price / (1 - dish.discountPercentage / 100)) : dish.price;
-  const savings = originalPrice - dish.price;
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
-      {/* Enhanced Header */}
-      <div className="sticky top-0 z-50 border-b bg-white/95 backdrop-blur-xl supports-[backdrop-filter]:bg-white/80 shadow-sm">
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.back()}
-                className="hover:scale-105 transition-all duration-200 hover:bg-slate-100"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Volver
-              </Button>
-
-              {/* Breadcrumb */}
-              <div className="hidden sm:flex items-center gap-2 text-sm text-slate-600">
-                <span>Platos</span>
-                <span>/</span>
-                <span className="text-slate-900 font-medium truncate max-w-48">{dish.name}</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleShare}
-                className="hover:scale-105 transition-all duration-200 hover:bg-slate-100"
-              >
-                <Share2 className="h-4 w-4 mr-2" />
-                Compartir
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push('/cart')}
-                className="relative hover:scale-105 transition-all duration-200 hover:bg-slate-100"
-              >
-                <ShoppingCart className="h-4 w-4" />
-                {itemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-slate-900 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center animate-in zoom-in-50 duration-300">
-                    {itemCount}
-                  </span>
-                )}
-              </Button>
-            </div>
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => router.back()}
+              className="hover:scale-105 transition-transform duration-150"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+            <div className="flex-1" />
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="hover:scale-105 transition-transform duration-150"
+            >
+              <Share2 className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => router.push('/cart')}
+              className="relative hover:scale-105 transition-transform duration-150"
+            >
+              <ShoppingCart className="h-4 w-4" />
+              {itemCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground rounded-full w-5 h-5 text-xs flex items-center justify-center animate-in zoom-in-50 duration-300">
+                  {itemCount}
+                </span>
+              )}
+            </Button>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-2 gap-12">
-          {/* Enhanced Image Gallery */}
-          <div className="space-y-6">
-            {/* Main Image */}
-            <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 shadow-xl group">
+      <div className="container mx-auto px-4 py-6">
+        <div className="grid lg:grid-cols-2 gap-8">
+          {/* Image Gallery */}
+          <div className="space-y-4">
+            <div className="aspect-[4/3] rounded-lg overflow-hidden bg-muted relative group">
               {imageLoading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
-                  <div className="text-center space-y-3">
-                    <Loader2 className="h-8 w-8 animate-spin text-slate-900 mx-auto" />
-                    <p className="text-sm text-slate-600">Cargando imagen...</p>
-                  </div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               )}
-
-              <Image
-                src={dish.images?.[selectedImage] || dish.image}
+              <img 
+                src={dish.images?.[selectedImage] || dish.image} 
                 alt={dish.name}
-                fill
-                className={`object-cover transition-all duration-700 group-hover:scale-110 ${imageLoading ? 'opacity-0' : 'opacity-100'}`}
+                className={`w-full h-full object-cover transition-all duration-300 group-hover:scale-105 ${imageLoading ? 'opacity-0' : 'opacity-100'}`}
                 onLoad={() => setImageLoading(false)}
                 onError={(e) => {
                   setImageLoading(false);
                   e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgdmlld0JveD0iMCAwIDYwMCA0MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI2MDAiIGhlaWdodD0iNDAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNzUgMTc1SDMyNVYyMjVIMjc1VjE3NVoiIGZpbGw9IiM5QjlCQTMiLz4KPC9zdmc+';
                 }}
               />
-
-              {/* Overlay Actions */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300">
-                <div className="absolute top-4 right-4 flex flex-col space-y-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={toggleFavorite}
-                    className={`backdrop-blur-sm bg-white/90 hover:bg-white transition-all duration-200 hover:scale-110 ${isFavorite ? 'text-red-500' : ''}`}
-                  >
-                    <Heart className={`h-4 w-4 transition-all duration-200 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} />
-                  </Button>
-                </div>
-
-                <div className="absolute bottom-4 left-4 right-4">
-                  <div className="flex items-center justify-between text-white">
-                    <div className="flex items-center gap-2">
-                      <Eye className="h-4 w-4" />
-                      <span className="text-sm font-medium">Vista previa</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                      <span className="font-bold">{dish.rating}</span>
-                      <span className="text-yellow-200">({dish.reviewCount})</span>
-                    </div>
-                  </div>
-                </div>
+              {/* Image overlay with favorite button */}
+              <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <Button 
+                  variant="secondary" 
+                  size="sm" 
+                  onClick={toggleFavorite}
+                  className="backdrop-blur-sm bg-white/80 hover:bg-white/90"
+                >
+                  <Heart className={`h-4 w-4 transition-colors duration-200 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
+                </Button>
               </div>
-
-              {/* Special Badges */}
-              <div className="absolute top-4 left-4 flex flex-col space-y-2">
-                {dish.isNew && (
-                  <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white border-0 shadow-lg animate-pulse">
-                    <Zap className="h-3 w-3 mr-1" />
-                    Nuevo
-                  </Badge>
-                )}
-                {dish.isTrending && (
-                  <Badge className="bg-orange-500 hover:bg-orange-600 text-white border-0 shadow-lg">
-                    <TrendingUp className="h-3 w-3 mr-1" />
-                    Tendencia
-                  </Badge>
-                )}
-                {dish.discountPercentage && (
-                  <Badge className="bg-red-500 hover:bg-red-600 text-white border-0 shadow-lg animate-bounce">
-                    <Crown className="h-3 w-3 mr-1" />
-                    -{dish.discountPercentage}% OFF
-                  </Badge>
-                )}
-              </div>
-
-              {/* Thumbnail Gallery */}
-              <div className="flex gap-3 overflow-x-auto pb-2 mt-4">
-                {(dish.images || [dish.image]).map((image: string, index: number) => (
-                  <button
-                    key={index}
-                    onClick={() => {
-                      setSelectedImage(index);
-                      setImageLoading(true);
-                    }}
-                    className={`aspect-square w-20 rounded-xl overflow-hidden border-2 transition-all duration-300 hover:scale-105 flex-shrink-0 ${
-                      selectedImage === index
-                        ? 'border-slate-900 shadow-lg ring-2 ring-slate-900/20'
-                        : 'border-slate-200 hover:border-slate-400'
-                    }`}
-                  >
-                    <Image
-                      src={image}
-                      alt={`${dish.name} ${index + 1}`}
-                      fill
-                      className="object-cover"
-                    />
-                  </button>
-                ))}
-              </div>
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {(dish.images || [dish.image]).map((image: string, index: number) => (
+                <button
+                  key={index}
+                  onClick={() => {
+                    setSelectedImage(index);
+                    setImageLoading(true);
+                  }}
+                  className={`aspect-square w-20 rounded-md overflow-hidden border-2 transition-all duration-200 hover:scale-105 flex-shrink-0 ${
+                    selectedImage === index 
+                      ? 'border-primary shadow-lg' 
+                      : 'border-transparent hover:border-primary/50'
+                  }`}
+                >
+                  <img 
+                    src={image} 
+                    alt={`${dish.name} ${index + 1}`} 
+                    className="w-full h-full object-cover" 
+                  />
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Enhanced Dish Information */}
-          <div className="space-y-8">
-            {/* Title and Basic Info */}
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <h1 className="text-4xl font-bold text-slate-900 leading-tight">{dish.name}</h1>
-                <p className="text-lg text-slate-600 leading-relaxed">{dish.description}</p>
+          {/* Dish Info */}
+          <div className="space-y-6">
+            <div>
+              <div className="mb-2">
+                <h1 className="text-3xl font-bold animate-in fade-in-50 slide-in-from-bottom-3 duration-500">{dish.name}</h1>
               </div>
-
-              {/* Rating and Status */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2 bg-yellow-50 px-3 py-2 rounded-full">
-                    <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
-                    <span className="font-bold text-slate-900">{dish.rating}</span>
-                    <span className="text-slate-600">({dish.reviewCount} reseñas)</span>
-                  </div>
-
-                  <Badge
-                    variant={dish.isAvailable ? 'default' : 'secondary'}
-                    className={`px-3 py-1 ${dish.isAvailable ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-slate-500'}`}
-                  >
-                    {dish.isAvailable ? '✓ Disponible' : '✗ Agotado'}
-                  </Badge>
+              <div className="flex items-center gap-4 mb-4">
+                <div className="flex items-center gap-1">
+                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                  <span className="font-medium">{dish.rating}</span>
+                  <span className="text-muted-foreground">({dish.reviewCount} reviews)</span>
                 </div>
-
-                {/* Dietary Badges */}
-                {dietaryBadges.length > 0 && (
-                  <div className="flex gap-2">
-                    {dietaryBadges.slice(0, 2).map((badge, index) => {
-                      const Icon = badge.icon;
-                      return (
-                        <Badge key={index} className={`${badge.color} text-white text-xs px-2 py-1`}>
-                          <Icon className="h-3 w-3 mr-1" />
-                          {badge.text}
-                        </Badge>
-                      );
-                    })}
-                  </div>
-                )}
+                <Badge variant={dish.isAvailable ? 'default' : 'secondary'}>
+                  {dish.isAvailable ? 'Available' : 'Sold Out'}
+                </Badge>
               </div>
+              <p className="text-muted-foreground leading-relaxed">{dish.description}</p>
             </div>
 
-            {/* Enhanced Cook Information */}
-            <Card className="hover:shadow-xl transition-all duration-300 group cursor-pointer border-0 shadow-lg bg-gradient-to-r from-white to-slate-50" onClick={() => router.push(`/cooks/${dish.cookerId}`)}>
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-16 w-16 ring-4 ring-white shadow-lg">
+            {/* Cook Info */}
+            <Card className="hover:shadow-lg transition-all duration-300 group cursor-pointer" onClick={() => router.push(`/cooks/${dish.cookerId}`)}>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-12 w-12 ring-2 ring-transparent group-hover:ring-primary/20 transition-all duration-300">
                     <AvatarImage src={cook?.avatar || dish.cookerAvatar} />
-                    <AvatarFallback className="bg-gradient-to-br from-slate-400 to-slate-600 text-white text-lg">
-                      <ChefHat className="h-8 w-8" />
+                    <AvatarFallback>
+                      <ChefHat className="h-6 w-6" />
                     </AvatarFallback>
                   </Avatar>
-
-                  <div className="flex-1 space-y-2">
-                    <div>
-                      <h3 className="text-xl font-bold text-slate-900 group-hover:text-slate-700 transition-colors">
-                        {cook?.displayName || dish.cookerName}
-                      </h3>
-                      <div className="flex items-center gap-3 text-sm text-slate-600">
-                        <div className="flex items-center gap-1">
-                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                          <span className="font-medium">{cook?.rating || dish.cookerRating}</span>
-                        </div>
-                        <span>•</span>
-                        <span>{cook?.reviewCount || reviews.length} reseñas</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-4 text-sm text-slate-600">
+                  <div className="flex-1">
+                    <h3 className="font-semibold group-hover:text-primary transition-colors duration-200">{cook?.displayName || dish.cookerName}</h3>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
-                        <MapPin className="h-4 w-4" />
-                        <span>{dish.distance}</span>
+                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                        <span>{cook?.rating || dish.cookerRating}</span>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        <span>{dish.deliveryTime}</span>
-                      </div>
+                      <span>•</span>
+                      <span>{cook?.reviewCount || reviews.length} reviews</span>
                     </div>
                   </div>
-
-                  <div className="flex flex-col gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push(`/cooks/${dish.cookerId}`);
-                      }}
-                      className="opacity-70 group-hover:opacity-100 transition-all duration-200 hover:scale-105"
-                    >
-                      Ver Perfil
-                    </Button>
-
-                    {cook?.settings?.selfDelivery && (
-                      <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-xs">
-                        <Truck className="h-3 w-3 mr-1" />
-                        Entrega Directa
-                      </Badge>
-                    )}
-                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/cooks/${dish.cookerId}`);
+                    }}
+                    className="opacity-70 group-hover:opacity-100 transition-opacity duration-200"
+                  >
+                    View Profile
+                  </Button>
                 </div>
-
-                <p className="text-slate-600 mt-4 leading-relaxed group-hover:text-slate-700 transition-colors">
-                  {dish.cookerBio}
-                </p>
+                <p className="text-sm text-muted-foreground mt-3 group-hover:text-foreground/80 transition-colors duration-200">{dish.cookerBio}</p>
               </CardContent>
             </Card>
 
-            {/* Enhanced Details Grid */}
+            {/* Details */}
             <div className="grid grid-cols-3 gap-4">
-              <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl hover:shadow-md transition-all duration-300 hover:scale-105 group">
-                <MapPin className="h-6 w-6 mx-auto mb-2 text-blue-600 group-hover:scale-110 transition-transform" />
-                <p className="text-sm font-bold text-slate-900">{dish.distance}</p>
-                <p className="text-xs text-slate-600">Distancia</p>
+              <div className="text-center p-4 bg-muted rounded-lg hover:bg-muted/80 transition-all duration-200 hover:scale-105 cursor-default group">
+                <MapPin className="h-5 w-5 mx-auto mb-2 text-muted-foreground group-hover:text-primary transition-colors duration-200" />
+                <p className="text-sm font-medium">{dish.distance || '1.2 km'}</p>
+                <p className="text-xs text-muted-foreground">Distance</p>
               </div>
-
-              <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl hover:shadow-md transition-all duration-300 hover:scale-105 group">
-                <Clock className="h-6 w-6 mx-auto mb-2 text-green-600 group-hover:scale-110 transition-transform" />
-                <p className="text-sm font-bold text-slate-900">{dish.prepTime}</p>
-                <p className="text-xs text-slate-600">Tiempo Prep.</p>
+              <div className="text-center p-4 bg-muted rounded-lg hover:bg-muted/80 transition-all duration-200 hover:scale-105 cursor-default group">
+                <Clock className="h-5 w-5 mx-auto mb-2 text-muted-foreground group-hover:text-primary transition-colors duration-200" />
+                <p className="text-sm font-medium">{dish.prepTime}</p>
+                <p className="text-xs text-muted-foreground">Prep Time</p>
               </div>
-
-              <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl hover:shadow-md transition-all duration-300 hover:scale-105 group">
-                <Award className="h-6 w-6 mx-auto mb-2 text-purple-600 group-hover:scale-110 transition-transform" />
-                <p className="text-sm font-bold text-slate-900">{dish.category}</p>
-                <p className="text-xs text-slate-600">Categoría</p>
+              <div className="text-center p-4 bg-muted rounded-lg hover:bg-muted/80 transition-all duration-200 hover:scale-105 cursor-default group">
+                <Award className="h-5 w-5 mx-auto mb-2 text-muted-foreground group-hover:text-primary transition-colors duration-200" />
+                <p className="text-sm font-medium">{dish.category}</p>
+                <p className="text-xs text-muted-foreground">Cuisine</p>
               </div>
             </div>
 
-            {/* Enhanced Tags */}
-            {dish.tags && dish.tags.length > 0 && (
-              <div className="space-y-3">
-                <h3 className="font-semibold text-slate-900">Características</h3>
-                <div className="flex flex-wrap gap-2">
-                  {dish.tags.map((tag: string, index: number) => (
-                    <Badge
-                      key={tag}
-                      variant="outline"
-                      className="hover:bg-slate-900 hover:text-white transition-all duration-200 hover:scale-105 cursor-pointer border-slate-200 hover:border-slate-900"
-                      style={{ animationDelay: `${index * 100}ms` }}
-                    >
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Enhanced Price and Add to Cart */}
-            <div className="border-t border-slate-200 pt-8 space-y-6">
-              {/* Price Display */}
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  {dish.discountPercentage ? (
-                    <div className="space-y-1">
-                      <div className="text-sm text-slate-500 line-through">
-                        {formatPrice(originalPrice)}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-4xl font-bold text-slate-900">{formatPrice(dish.price)}</span>
-                        <Badge className="bg-red-500 hover:bg-red-600 text-white text-xs">
-                          -{dish.discountPercentage}% OFF
-                        </Badge>
-                      </div>
-                      <div className="text-sm text-emerald-600 font-medium">
-                        Ahorras {formatPrice(savings)}
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <span className="text-4xl font-bold text-slate-900">{formatPrice(dish.price)}</span>
-                      <span className="text-slate-600 ml-2">por porción</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Quantity Controls */}
-                <div className="flex items-center gap-3 bg-slate-50 rounded-xl p-2">
-                  <Button
+            {/* Tags */}
+            <div>
+              <h3 className="font-semibold mb-3">Tags</h3>
+              <div className="flex flex-wrap gap-2">
+                {dish.tags.map((tag: string, index: number) => (
+                  <Badge 
+                    key={tag} 
                     variant="outline"
-                    size="sm"
+                    className="hover:bg-primary hover:text-primary-foreground transition-all duration-200 hover:scale-105 cursor-pointer animate-in fade-in-50 slide-in-from-bottom-2"
+                    style={{ animationDelay: `${index * 100}ms` }}
+                  >
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            {/* Price and Add to Cart */}
+            <div className="border-t pt-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <span className="text-3xl font-bold text-primary">{formatPrice(dish.price)}</span>
+                  <span className="text-muted-foreground ml-2">per serving</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
                     disabled={quantity <= 1}
-                    className="hover:scale-105 transition-all duration-200 h-10 w-10 p-0"
+                    className="hover:scale-105 transition-transform duration-150 active:scale-95"
                   >
                     <Minus className="h-4 w-4" />
                   </Button>
-
-                  <div className="w-12 h-10 flex items-center justify-center bg-white rounded-lg border-2 border-slate-200">
-                    <span className="font-bold text-lg text-slate-900 animate-in zoom-in-50 duration-200" key={quantity}>
+                  <div className="w-12 h-10 flex items-center justify-center bg-muted rounded-md border">
+                    <span className="font-medium text-lg animate-in zoom-in-50 duration-200" key={quantity}>
                       {quantity}
                     </span>
                   </div>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
                     onClick={() => setQuantity(quantity + 1)}
-                    className="hover:scale-105 transition-all duration-200 h-10 w-10 p-0"
+                    className="hover:scale-105 transition-transform duration-150 active:scale-95"
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
-
-              {/* Enhanced Add to Cart Button */}
-              <Button
-                className={`w-full relative overflow-hidden transition-all duration-300 font-semibold text-lg py-6 rounded-xl ${
-                  addToCartSuccess
-                    ? 'bg-emerald-500 hover:bg-emerald-600 scale-105 shadow-lg shadow-emerald-200'
-                    : 'bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 shadow-lg hover:shadow-xl hover:shadow-slate-200 hover:-translate-y-0.5'
-                }`}
+              <Button 
+                className={`w-full relative overflow-hidden transition-all duration-300 ${
+                  addToCartSuccess 
+                    ? 'bg-green-500 hover:bg-green-600 scale-105' 
+                    : ''
+                }`} 
                 size="lg"
                 disabled={!dish.isAvailable || isAddingToCart || !user}
                 onClick={handleAddToCart}
               >
                 {addToCartSuccess ? (
                   <div className="flex items-center animate-in zoom-in-50 duration-300">
-                    <Check className="h-6 w-6 mr-3" />
-                    ¡Agregado al Carrito!
+                    <div className="h-5 w-5 mr-2 rounded-full bg-white/20 flex items-center justify-center">
+                      ✓
+                    </div>
+                    Added to Cart!
                   </div>
                 ) : isAddingToCart ? (
                   <>
-                    <Loader2 className="h-6 w-6 mr-3 animate-spin" />
-                    Agregando al Carrito...
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    Adding to Cart...
                   </>
                 ) : (
                   <>
-                    <ShoppingCart className="h-6 w-6 mr-3" />
-                    {!dish.isAvailable
-                      ? 'Agotado'
+                    <ShoppingCart className={`h-5 w-5 mr-2 transition-transform duration-200 ${isAddingToCart ? 'scale-110' : ''}`} />
+                    {!dish.isAvailable 
+                      ? 'Sold Out'
                       : !user
-                      ? 'Inicia Sesión para Pedir'
-                      : `Agregar al Carrito • ${formatPrice(dish.price * quantity)}`
+                      ? 'Login to Add to Cart'
+                      : `Add to Cart - ${formatPrice(dish.price * quantity)}`
                     }
                   </>
                 )}
-
-                {/* Ripple effect */}
+                
+                {/* Ripple effect for click */}
                 {isAddingToCart && (
-                  <div className="absolute inset-0 bg-white/20 animate-pulse rounded-xl" />
+                  <div className="absolute inset-0 bg-white/20 animate-pulse rounded-lg" />
                 )}
               </Button>
-
-              {/* Additional Actions */}
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  className="flex-1 gap-2 hover:bg-slate-50 transition-all duration-200"
-                  onClick={() => router.push(`/cooks/${dish.cookerId}`)}
-                >
-                  <MessageSquare className="h-4 w-4" />
-                  Contactar Cocinero
-                </Button>
-
-                <Button
-                  variant="outline"
-                  className="flex-1 gap-2 hover:bg-slate-50 transition-all duration-200"
-                  onClick={handleShare}
-                >
-                  <Share2 className="h-4 w-4" />
-                  Compartir
-                </Button>
-              </div>
             </div>
           </div>
         </div>
 
-        {/* Enhanced Additional Information */}
-        <div className="mt-16">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4 bg-slate-100 p-1 rounded-xl">
-              <TabsTrigger value="overview" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                Información
-              </TabsTrigger>
-              <TabsTrigger value="ingredients" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                Ingredientes
-              </TabsTrigger>
-              <TabsTrigger value="nutrition" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                Nutrición
-              </TabsTrigger>
-              <TabsTrigger value="reviews" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                Reseñas
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="overview" className="mt-8">
-              <div className="grid md:grid-cols-2 gap-8">
-                <Card className="hover:shadow-lg transition-shadow duration-300">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <ChefHat className="h-5 w-5 text-slate-600" />
-                      Sobre este Plato
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-slate-700 leading-relaxed">{dish.description}</p>
-                    <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-                      <div>
-                        <p className="text-sm text-slate-600">Categoría</p>
-                        <p className="font-medium">{dish.category}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-slate-600">Tiempo de Preparación</p>
-                        <p className="font-medium">{dish.prepTime}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="hover:shadow-lg transition-shadow duration-300">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Truck className="h-5 w-5 text-slate-600" />
-                      Información de Entrega
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                      <span className="text-slate-700">Tiempo Estimado</span>
-                      <span className="font-medium text-slate-900">{dish.deliveryTime}</span>
-                    </div>
-                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                      <span className="text-slate-700">Distancia</span>
-                      <span className="font-medium text-slate-900">{dish.distance}</span>
-                    </div>
-                    {cook?.settings?.selfDelivery && (
-                      <div className="flex items-center gap-2 p-3 bg-emerald-50 rounded-lg">
-                        <Truck className="h-4 w-4 text-emerald-600" />
-                        <span className="text-emerald-800 font-medium">Entrega directa por el cocinero</span>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+        {/* Additional Info Tabs */}
+        <div className="mt-12 space-y-8">
+          {/* Ingredients */}
+          <Card className="hover:shadow-md transition-shadow duration-300">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <div className="h-5 w-5 bg-primary/10 rounded-full flex items-center justify-center">
+                  <div className="h-2 w-2 bg-primary rounded-full" />
+                </div>
+                Ingredients
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {dish.ingredients.map((ingredient: string, index: number) => (
+                  <div 
+                    key={ingredient} 
+                    className="flex items-center gap-2 p-2 bg-muted rounded hover:bg-muted/70 transition-colors duration-200 animate-in fade-in-50 slide-in-from-left-2"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                    <span className="text-sm">{ingredient}</span>
+                  </div>
+                ))}
               </div>
-            </TabsContent>
+            </CardContent>
+          </Card>
 
-            <TabsContent value="ingredients" className="mt-8">
-              <Card className="hover:shadow-lg transition-shadow duration-300">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Leaf className="h-5 w-5 text-slate-600" />
-                    Ingredientes Frescos
-                  </CardTitle>
-                  <CardDescription>
-                    Todos los ingredientes son frescos y de la más alta calidad
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {dish.ingredients.map((ingredient: string, index: number) => (
-                      <div
-                        key={ingredient}
-                        className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors duration-200 animate-in fade-in-50 slide-in-from-left-2"
-                        style={{ animationDelay: `${index * 50}ms` }}
+          {/* Nutrition & Allergens */}
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card className="hover:shadow-md transition-shadow duration-300">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  🥗
+                  Nutrition Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {dish.nutritionInfo ? (
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center p-2 rounded hover:bg-muted/50 transition-colors duration-200">
+                      <span>Calories</span>
+                      <span className="font-medium px-2 py-1 bg-primary/10 rounded-full text-primary">{dish.nutritionInfo.calories}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-2 rounded hover:bg-muted/50 transition-colors duration-200">
+                      <span>Protein</span>
+                      <span className="font-medium px-2 py-1 bg-blue-100 rounded-full text-blue-700">{dish.nutritionInfo.protein}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-2 rounded hover:bg-muted/50 transition-colors duration-200">
+                      <span>Carbohydrates</span>
+                      <span className="font-medium px-2 py-1 bg-green-100 rounded-full text-green-700">{dish.nutritionInfo.carbs}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-2 rounded hover:bg-muted/50 transition-colors duration-200">
+                      <span>Fat</span>
+                      <span className="font-medium px-2 py-1 bg-orange-100 rounded-full text-orange-700">{dish.nutritionInfo.fat}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">Nutrition information not available</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-md transition-shadow duration-300">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  ⚠️
+                  Allergen Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {dish.allergens && dish.allergens.length > 0 ? (
+                  <div className="space-y-2">
+                    {dish.allergens.map((allergen: string, index: number) => (
+                      <div 
+                        key={allergen} 
+                        className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg hover:bg-yellow-100 transition-colors duration-200 animate-in fade-in-50 slide-in-from-right-2"
+                        style={{ animationDelay: `${index * 100}ms` }}
                       >
-                        <div className="w-2 h-2 bg-slate-900 rounded-full animate-pulse" />
-                        <span className="text-slate-700">{ingredient}</span>
+                        <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
+                        <span className="text-sm font-medium text-yellow-800">Contains {allergen}</span>
                       </div>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="nutrition" className="mt-8">
-              <div className="grid md:grid-cols-2 gap-8">
-                <Card className="hover:shadow-lg transition-shadow duration-300">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-slate-600" />
-                      Información Nutricional
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {dish.nutritionInfo ? (
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="text-center p-4 bg-slate-50 rounded-lg">
-                            <div className="text-2xl font-bold text-slate-900">{dish.nutritionInfo.calories}</div>
-                            <div className="text-sm text-slate-600">Calorías</div>
-                          </div>
-                          <div className="text-center p-4 bg-blue-50 rounded-lg">
-                            <div className="text-2xl font-bold text-blue-700">{dish.nutritionInfo.protein}</div>
-                            <div className="text-sm text-blue-600">Proteína</div>
-                          </div>
-                          <div className="text-center p-4 bg-green-50 rounded-lg">
-                            <div className="text-2xl font-bold text-green-700">{dish.nutritionInfo.carbs}</div>
-                            <div className="text-sm text-green-600">Carbohidratos</div>
-                          </div>
-                          <div className="text-center p-4 bg-orange-50 rounded-lg">
-                            <div className="text-2xl font-bold text-orange-700">{dish.nutritionInfo.fat}</div>
-                            <div className="text-sm text-orange-600">Grasa</div>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-center py-8">
-                        <Sparkles className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                        <p className="text-slate-600">Información nutricional no disponible</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                <Card className="hover:shadow-lg transition-shadow duration-300">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Shield className="h-5 w-5 text-slate-600" />
-                      Información de Alérgenos
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {dish.allergens && dish.allergens.length > 0 ? (
-                      <div className="space-y-3">
-                        {dish.allergens.map((allergen: string, index: number) => (
-                          <div
-                            key={allergen}
-                            className="flex items-center gap-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg animate-in fade-in-50 slide-in-from-right-2"
-                            style={{ animationDelay: `${index * 100}ms` }}
-                          >
-                            <div className="w-3 h-3 bg-yellow-500 rounded-full animate-pulse" />
-                            <span className="text-yellow-800 font-medium">Contiene {allergen}</span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8">
-                        <Check className="h-12 w-12 text-emerald-500 mx-auto mb-4" />
-                        <p className="text-emerald-700 font-medium">Sin alérgenos conocidos</p>
-                        <p className="text-slate-600 text-sm">Este plato no contiene alérgenos comunes</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="reviews" className="mt-8">
-              <ReviewSystem
-                cookerId={dish.cookerId}
-                dishId={dish.id}
-                dishName={dish.name}
-                onReviewSubmit={() => {
-                  // Reload reviews after new review is submitted
-                  window.location.reload();
-                }}
-              />
-            </TabsContent>
-          </Tabs>
-        </div>
-
-        {/* Enhanced Recommended Pairings */}
-        <div className="mt-16">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-slate-900 mb-2">Complementa tu Pedido</h2>
-            <p className="text-slate-600">Descubre otros deliciosos platos de este cocinero</p>
+                ) : (
+                  <div className="text-center py-4">
+                    <div className="text-2xl mb-2">✅</div>
+                    <p className="text-muted-foreground">No allergen information available</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
-          <RecommendedPairings
-            cookId={dish.cookerId}
-            onAddToCart={(item) => {
-              addToCart({
-                dishId: item.id,
-                name: item.name,
-                price: item.price,
-                quantity: 1,
-                cookerName: item.cookerName || 'Unknown',
-                cookerId: item.cookerId || '',
-                image: item.image || '',
-                prepTime: item.prepTime || '30 min'
-              } as any);
-              toast.success(`¡${item.name} agregado al carrito!`, {
-                action: {
-                  label: 'Ver Carrito',
-                  onClick: () => router.push('/cart')
-                }
-              });
+          {/* Reviews Section */}
+          <ReviewSystem 
+            cookerId={dish.cookerId}
+            dishId={dish.id}
+            dishName={dish.name}
+            onReviewSubmit={() => {
+              // Reload reviews after new review is submitted
+              fetchDishData();
             }}
           />
+
+          {/* Recommended Pairings */}
+          <div className="mt-8">
+            <h3 className="text-xl font-bold mb-4">Complementa tu Pedido</h3>
+            <RecommendedPairings 
+              cookId={dish.cookerId} 
+              onAddToCart={(item) => {
+                addToCart(item);
+                toast.success(`Added ${item.name} to cart!`, {
+                  action: {
+                    label: 'View Cart',
+                    onClick: () => router.push('/cart')
+                  }
+                });
+              }} 
+            />
+          </div>
         </div>
       </div>
     </div>

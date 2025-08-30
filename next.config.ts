@@ -19,6 +19,7 @@ const nextConfig: NextConfig = {
   },
   // Performance monitoring
   experimental: {
+    instrumentationHook: true,
   },
   // Environment variables for Sentry
   env: {

@@ -16,7 +16,6 @@ import {
   writeBatch
 } from 'firebase/firestore';
 import { db } from './client';
-import { DeliveryTracking } from '@/lib/services/deliveryTrackingService';
 
 // Types for our data structures
 export interface Dish {
@@ -121,7 +120,6 @@ export interface Order {
     quantity: number;
     price: number;
     prepTime?: string;
-    notes?: string;
   }>;
   subtotal: number;
   deliveryFee: number;
@@ -137,16 +135,6 @@ export interface Order {
   };
   deliveryCode: string;
   isDelivered: boolean;
-  paymentId?: string;
-  driverLocation?: {
-    lat: number;
-    lng: number;
-    address?: string;
-  };
-  reviewed?: boolean;
-  cancelledAt?: Timestamp;
-  assignedAt?: Timestamp;
-  deliveredAt?: Timestamp;
   cookerApproval?: {
     approved: boolean;
     approvedAt?: Timestamp;
@@ -232,7 +220,6 @@ export interface Driver {
   };
   workingDays: string[];
   lastLocationUpdate?: Timestamp;
-  distance?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -540,11 +527,6 @@ export class DishesService {
       console.error('Error removing from favorites:', error);
       return false;
     }
-  }
-
-  // Alias method for getDishesByCook (for backward compatibility)
-  static async getDishesByCookId(cookerId: string): Promise<Dish[]> {
-    return this.getDishesByCook(cookerId);
   }
 }
 
@@ -1242,7 +1224,6 @@ export class OrdersService {
           return { id: cookId, data: cook };
         })),
         Promise.all(driverIds.map(async (driverId) => {
-          if (!driverId) return { id: driverId, data: null };
           const driver = await DriversService.getDriverById(driverId);
           return { id: driverId, data: driver };
         }))
@@ -1255,8 +1236,8 @@ export class OrdersService {
       // Combine orders with detailed info
       return orders.map(order => ({
         ...order,
-        cookInfo: order.cookerId ? cookMap.get(order.cookerId) || undefined : undefined,
-        driverInfo: order.driverId ? driverMap.get(order.driverId) || undefined : undefined
+        cookInfo: order.cookerId ? cookMap.get(order.cookerId) : undefined,
+        driverInfo: order.driverId ? driverMap.get(order.driverId) : undefined
       }));
     } catch (error) {
       console.error('Error getting orders with details:', error);
@@ -1423,11 +1404,7 @@ export class DriversService {
         ...doc.data()
       } as Driver));
     } catch (error) {
-      console.error('Error fetching drivers:', error instanceof Error ? error.message : String(error));
-      console.error('Error details:', {
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
-      });
+      console.error('Error fetching drivers:', error);
       return [];
     }
   }
@@ -1445,12 +1422,7 @@ export class DriversService {
       }
       return null;
     } catch (error) {
-      console.error('Error fetching driver:', error instanceof Error ? error.message : String(error));
-      console.error('Error details:', {
-        error: error instanceof Error ? error.message : String(error),
-        driverId,
-        stack: error instanceof Error ? error.stack : undefined
-      });
+      console.error('Error fetching driver:', error);
       return null;
     }
   }
@@ -1474,10 +1446,10 @@ export class DriversService {
       console.log('Driver profile updated successfully');
       return true;
     } catch (error) {
-      console.error('Error updating driver profile:', error instanceof Error ? error.message : String(error));
+      console.error('Error updating driver profile:', error);
       console.error('Error details:', {
-        code: (error as any)?.code || 'Unknown',
-        message: error instanceof Error ? error.message : String(error),
+        code: (error as any).code,
+        message: (error as any).message,
         driverId,
         updates
       });
@@ -1511,13 +1483,12 @@ export class DriversService {
         return docRef.id;
       }
     } catch (error) {
-      console.error('Error creating driver profile:', error instanceof Error ? error.message : String(error));
+      console.error('Error creating driver profile:', error);
       console.error('Error details:', {
-        error: error instanceof Error ? error.message : String(error),
-        code: (error as any)?.code || 'Unknown',
+        code: (error as any).code,
+        message: (error as any).message,
         driverId,
-        dataKeys: Object.keys(driverData),
-        stack: error instanceof Error ? error.stack : undefined
+        dataKeys: Object.keys(driverData)
       });
       return null;
     }
@@ -1528,12 +1499,7 @@ export class DriversService {
       await deleteDoc(doc(db, this.collection, driverId));
       return true;
     } catch (error) {
-      console.error('Error deleting driver:', error instanceof Error ? error.message : String(error));
-      console.error('Error details:', {
-        error: error instanceof Error ? error.message : String(error),
-        driverId,
-        stack: error instanceof Error ? error.stack : undefined
-      });
+      console.error('Error deleting driver:', error);
       return false;
     }
   }
@@ -1944,6 +1910,3 @@ export class AnalyticsService {
     }
   }
 }
-
-// Re-export DeliveryTracking for convenience
-export type { DeliveryTracking };

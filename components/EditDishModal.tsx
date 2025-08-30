@@ -11,10 +11,10 @@ import { Textarea } from './ui/textarea';
 import { Switch } from './ui/switch';
 
 interface EditDishModalProps {
-  dish: { id: string; name: string; description: string; price: number; images: string[]; category: string; preparationTime: number; servingSize: number; dietaryRestrictions: string[]; nutrition: Record<string, number | string>; availability: boolean; prepTime?: string; status?: string; image?: string; ingredients?: string[]; deliveryMode?: 'cook' | 'external'; deliveryFee?: number; allergens?: string[]; };
+  dish: { id: string; name: string; description: string; price: number; images: string[]; category: string; preparationTime: number; servingSize: number; dietaryRestrictions: string[]; nutrition: Record<string, number>; availability: boolean; };
   isOpen: boolean;
   onClose: () => void;
-  onSave: (updatedDish: { id: string; name: string; description: string; price: number; images: string[]; category: string; preparationTime: number; servingSize: number; dietaryRestrictions: string[]; nutrition: Record<string, number | string>; availability: boolean; }) => void;
+  onSave: (updatedDish: { id: string; name: string; description: string; price: number; images: string[]; category: string; preparationTime: number; servingSize: number; dietaryRestrictions: string[]; nutrition: Record<string, number>; availability: boolean; }) => void;
 }
 
 const EditDishModal: React.FC<EditDishModalProps> = ({ dish, isOpen, onClose, onSave }) => {
@@ -30,7 +30,7 @@ const EditDishModal: React.FC<EditDishModalProps> = ({ dish, isOpen, onClose, on
     image: '',
     ingredients: [] as string[],
     allergens: [] as string[],
-    nutrition: {
+    nutritionInfo: {
       calories: 0,
       protein: '',
       carbs: '',
@@ -60,12 +60,7 @@ const EditDishModal: React.FC<EditDishModalProps> = ({ dish, isOpen, onClose, on
         deliveryMode: dish.deliveryMode || 'cook',
         deliveryFee: dish.deliveryFee || 0,
         allergens: dish.allergens || [],
-        nutrition: dish.nutrition ? {
-          calories: typeof dish.nutrition.calories === 'number' ? dish.nutrition.calories : 0,
-          protein: typeof dish.nutrition.protein === 'string' ? dish.nutrition.protein : '',
-          carbs: typeof dish.nutrition.carbs === 'string' ? dish.nutrition.carbs : '',
-          fat: typeof dish.nutrition.fat === 'string' ? dish.nutrition.fat : ''
-        } : {
+        nutritionInfo: dish.nutritionInfo || {
           calories: 0,
           protein: '',
           carbs: '',
@@ -82,11 +77,11 @@ const EditDishModal: React.FC<EditDishModalProps> = ({ dish, isOpen, onClose, on
       }
       
       // Check if nutrition info has values
-      const hasNutrition = dish.nutrition && 
-        ((typeof dish.nutrition.calories === 'number' && dish.nutrition.calories > 0) || 
-         (typeof dish.nutrition.protein === 'string' && dish.nutrition.protein !== '0g') || 
-         (typeof dish.nutrition.carbs === 'string' && dish.nutrition.carbs !== '0g') || 
-         (typeof dish.nutrition.fat === 'string' && dish.nutrition.fat !== '0g'));
+      const hasNutrition = dish.nutritionInfo && 
+        (dish.nutritionInfo.calories > 0 || 
+         dish.nutritionInfo.protein !== '0g' || 
+         dish.nutritionInfo.carbs !== '0g' || 
+         dish.nutritionInfo.fat !== '0g');
       setShowNutrition(hasNutrition || false);
     }
   }, [dish, isOpen]);
@@ -98,12 +93,12 @@ const EditDishModal: React.FC<EditDishModalProps> = ({ dish, isOpen, onClose, on
     }));
   };
 
-  const handleNutritionChange = (field: string, value: string) => {
+  const handleNutritionChange = (field: string, value: number) => {
     setFormData(prev => ({
       ...prev,
-      nutrition: {
-        ...prev.nutrition,
-        [field]: field === 'calories' ? parseInt(value) || 0 : value
+      nutritionInfo: {
+        ...prev.nutritionInfo,
+        [field]: value
       }
     }));
   };
@@ -215,9 +210,9 @@ const EditDishModal: React.FC<EditDishModalProps> = ({ dish, isOpen, onClose, on
     const updatedDish = {
       ...dish,
       ...formData,
-      images: allImages.length > 1 ? allImages : [],
+      images: allImages.length > 1 ? allImages : undefined,
       price: parseFloat(formData.price.toString()),
-      nutrition: showNutrition ? formData.nutrition : {
+      nutritionInfo: showNutrition ? formData.nutritionInfo : {
         calories: 0,
         protein: '0g',
         carbs: '0g',
@@ -457,11 +452,11 @@ const EditDishModal: React.FC<EditDishModalProps> = ({ dish, isOpen, onClose, on
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex gap-2">
-                    <Input
+                    <input
                       type="text"
                       value={newIngredient}
                       onChange={(e) => setNewIngredient(e.target.value)}
-                      className="flex-1"
+                      className="flex-1 px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
                       placeholder="Add ingredient"
                       onKeyPress={(e) => e.key === 'Enter' && addIngredient()}
                     />
@@ -493,11 +488,11 @@ const EditDishModal: React.FC<EditDishModalProps> = ({ dish, isOpen, onClose, on
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex gap-2">
-                    <Input
+                    <input
                       type="text"
                       value={newAllergen}
                       onChange={(e) => setNewAllergen(e.target.value)}
-                      className="flex-1"
+                      className="flex-1 px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
                       placeholder="Add allergen"
                       onKeyPress={(e) => e.key === 'Enter' && addAllergen()}
                     />
@@ -532,45 +527,45 @@ const EditDishModal: React.FC<EditDishModalProps> = ({ dish, isOpen, onClose, on
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="calories">Calories</Label>
-                      <Input
+                      <input
                         id="calories"
                         type="number"
-                        value={formData.nutrition.calories}
+                        value={formData.nutritionInfo.calories}
                         onChange={(e) => handleNutritionChange('calories', e.target.value)}
-                        className="mt-1"
+                        className="w-full mt-1 px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
                         placeholder="0"
                       />
                     </div>
                     <div>
                       <Label htmlFor="protein">Protein</Label>
-                      <Input
+                      <input
                         id="protein"
                         type="text"
-                        value={formData.nutrition.protein}
+                        value={formData.nutritionInfo.protein}
                         onChange={(e) => handleNutritionChange('protein', e.target.value)}
-                        className="mt-1"
+                        className="w-full mt-1 px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
                         placeholder="e.g., 25g"
                       />
                     </div>
                     <div>
                       <Label htmlFor="carbs">Carbs</Label>
-                      <Input
+                      <input
                         id="carbs"
                         type="text"
-                        value={formData.nutrition.carbs}
+                        value={formData.nutritionInfo.carbs}
                         onChange={(e) => handleNutritionChange('carbs', e.target.value)}
-                        className="mt-1"
+                        className="w-full mt-1 px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
                         placeholder="e.g., 45g"
                       />
                     </div>
                     <div>
                       <Label htmlFor="fat">Fat</Label>
-                      <Input
+                      <input
                         id="fat"
                         type="text"
-                        value={formData.nutrition.fat}
+                        value={formData.nutritionInfo.fat}
                         onChange={(e) => handleNutritionChange('fat', e.target.value)}
-                        className="mt-1"
+                        className="w-full mt-1 px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
                         placeholder="e.g., 15g"
                       />
                     </div>

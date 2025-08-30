@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { MapPin, Phone, Info, Utensils, DollarSign, Clock } from 'lucide-react';
-import type { Order, Cook, Dish } from '@/lib/firebase/dataService';
+import type { Order, Cook, Dish } from '@/lib/types';
 
 interface OrderDetailsModalProps {
   isOpen: boolean;

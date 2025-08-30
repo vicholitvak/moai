@@ -3,14 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Clock, Truck, Star, ChefHat, Heart } from 'lucide-react';
 import { LocationService } from '@/lib/services/locationService';
-import { ChileanCitiesService, ChileanCity } from '@/lib/services/chileanCitiesService';
+import { ChileanCitiesService } from '@/lib/services/chileanCitiesService';
 import { CitySelector } from './CitySelector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dish } from '@/types';
-import { Timestamp } from 'firebase/firestore';
 
 interface LocationBasedDishesProps {
   onDishSelect?: (dish: Dish) => void;
@@ -18,36 +17,35 @@ interface LocationBasedDishesProps {
 }
 
 export function LocationBasedDishes({ onDishSelect, className }: LocationBasedDishesProps) {
-  const [selectedLocation, setSelectedLocation] = useState<any>(null);
+  const [selectedCityId, setSelectedCityId] = useState<string>('');
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
-  const [selectedCity, setSelectedCity] = useState<ChileanCity | null>(null);
 
   useEffect(() => {
-    if (selectedLocation && selectedLocation.lat && selectedLocation.lon) {
-      loadDishesForLocation(selectedLocation);
+    if (selectedCityId) {
+      loadDishesForCity(selectedCityId);
     }
-  }, [selectedLocation]);
+  }, [selectedCityId]);
 
-  const loadDishesForLocation = async (location: { lat: string, lon: string }) => {
+  const loadDishesForCity = async (cityId: string) => {
     try {
       setIsLoading(true);
       setError(null);
-      // You may want to update this to use a new service that fetches dishes by lat/lon
-      const cityDishes = await LocationService.getDishesForLocation({ latitude: parseFloat(location.lat), longitude: parseFloat(location.lon), timestamp: Timestamp.now() });
+
+      const cityDishes = await LocationService.getDishesForChileanCity(cityId);
       setDishes(cityDishes);
     } catch (error) {
-      console.error('Error loading dishes for location:', error);
-      setError('Error al cargar los platos de la ubicación seleccionada');
+      console.error('Error loading dishes for city:', error);
+      setError('Error al cargar los platos de la ciudad seleccionada');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleLocationSelect = (location: any) => {
-    setSelectedLocation(location);
+  const handleCitySelect = (city: any) => {
+    setSelectedCityId(city.id);
   };
 
   const handleDishSelect = (dish: Dish) => {
@@ -88,16 +86,15 @@ export function LocationBasedDishes({ onDishSelect, className }: LocationBasedDi
     }
   };
 
-  // Optionally, you can reverse geocode to get city info for display
-  const selectedCityInfo = null;
+  const selectedCity = selectedCityId ? ChileanCitiesService.getCityById(selectedCityId) : null;
 
   return (
     <div className={className}>
       {/* City Selector */}
       <div className="mb-6">
         <CitySelector
-          selectedLocation={selectedLocation}
-          onLocationSelect={handleLocationSelect}
+          selectedCityId={selectedCityId}
+          onCitySelect={handleCitySelect}
         />
       </div>
 
@@ -146,12 +143,12 @@ export function LocationBasedDishes({ onDishSelect, className }: LocationBasedDi
       )}
 
       {/* Dishes Grid */}
-      {!selectedLocation ? (
+      {!selectedCityId ? (
         <div className="text-center py-12">
           <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Selecciona tu ubicación</h3>
+          <h3 className="text-lg font-semibold mb-2">Selecciona tu ciudad</h3>
           <p className="text-muted-foreground">
-            Elige tu ubicación para ver los platos disponibles en tu área
+            Elige tu ciudad para ver los platos disponibles en tu área
           </p>
         </div>
       ) : isLoading ? (
@@ -176,7 +173,7 @@ export function LocationBasedDishes({ onDishSelect, className }: LocationBasedDi
           <h3 className="text-lg font-semibold mb-2">Error al cargar platos</h3>
           <p className="text-muted-foreground">{error}</p>
           <Button
-            onClick={() => selectedLocation && loadDishesForLocation(selectedLocation)}
+            onClick={() => loadDishesForCity(selectedCityId)}
             className="mt-4"
           >
             Reintentar
@@ -221,7 +218,7 @@ export function LocationBasedDishes({ onDishSelect, className }: LocationBasedDi
                     }`}
                   />
                 </Button>
-                {dish.availability && (
+                {dish.isAvailable && (
                   <Badge className="absolute top-2 left-2 bg-green-500">
                     Disponible
                   </Badge>

@@ -233,13 +233,13 @@ export class MessagingService {
   }
 
   // Get messages for a conversation
-  static async getConversationMessages(conversationId: string, limitCount: number = 50): Promise<Message[]> {
+  static async getConversationMessages(conversationId: string, limit: number = 50): Promise<Message[]> {
     try {
       const messagesQuery = query(
         collection(db, 'messages'),
         where('conversationId', '==', conversationId),
         orderBy('timestamp', 'desc'),
-        limit(limitCount)
+        limit(limit)
       );
 
       const messagesSnapshot = await getDocs(messagesQuery);
@@ -260,14 +260,14 @@ export class MessagingService {
   static subscribeToMessages(
     conversationId: string, 
     callback: (messages: Message[]) => void,
-    limitCount: number = 50
+    limit: number = 50
   ) {
     try {
       const messagesQuery = query(
         collection(db, 'messages'),
         where('conversationId', '==', conversationId),
         orderBy('timestamp', 'desc'),
-        limit(limitCount)
+        limit(limit)
       );
 
       return onSnapshot(messagesQuery, (snapshot) => {
@@ -587,7 +587,7 @@ export class MessagingService {
   private static getDefaultTemplates(role: Message['senderRole']): MessageTemplate[] {
     const templates: MessageTemplate[] = [];
 
-    if (role === 'cook') {
+    if (role === 'cook' || role === 'all') {
       templates.push(
         {
           id: 'cook_order_accepted',
@@ -608,7 +608,7 @@ export class MessagingService {
       );
     }
 
-    if (role === 'driver') {
+    if (role === 'driver' || role === 'all') {
       templates.push(
         {
           id: 'driver_pickup',

@@ -59,24 +59,23 @@ function PaymentSuccessContent() {
       console.log('Creating orders with approved payment:', authorizedPaymentId);
 
       // Create orders for each cook with the authorized payment ID
-      const orderPromises = Object.entries(ordersByCook).map(async ([cookerId, items]: [string, unknown]) => {
-        const typedItems = items as any[];
+      const orderPromises = Object.entries(ordersByCook).map(async ([cookerId, items]: [string, any[]]) => {
         const orderData = {
           customerId: user.uid,
           customerName: user.displayName || user.email || 'Cliente',
           customerEmail: user.email || '',
           cookerId,
-          dishes: typedItems.map(item => ({
+          dishes: items.map(item => ({
             dishId: item.dishId,
             dishName: item.name,
             quantity: item.quantity,
             price: item.price,
             prepTime: item.prepTime
           })),
-          subtotal: typedItems.reduce((sum, item) => sum + item.totalPrice, 0),
+          subtotal: items.reduce((sum, item) => sum + item.totalPrice, 0),
           deliveryFee: totals.deliveryFee / Object.keys(ordersByCook).length,
           serviceFee: totals.serviceFee / Object.keys(ordersByCook).length,
-          total: (typedItems.reduce((sum, item) => sum + item.totalPrice, 0) + 
+          total: (items.reduce((sum, item) => sum + item.totalPrice, 0) + 
                  (totals.deliveryFee / Object.keys(ordersByCook).length) + 
                  (totals.serviceFee / Object.keys(ordersByCook).length)),
           deliveryInfo: {

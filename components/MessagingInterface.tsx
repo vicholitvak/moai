@@ -28,7 +28,7 @@ import {
   Check,
   CheckCheck,
   X,
-  FileText,
+  Template,
   Star
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -47,7 +47,7 @@ const MessagingInterface = ({
   compactMode = false,
   height = '600px'
 }: MessagingInterfaceProps) => {
-  const { user, role } = useAuth();
+  const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -135,8 +135,8 @@ const MessagingInterface = ({
     if (!user) return;
 
     try {
-      const userRole = role || 'customer';
-      const messageTemplates = await MessagingService.getMessageTemplates(userRole as 'customer' | 'cook' | 'driver' | 'admin');
+      const userRole = user.role || 'customer';
+      const messageTemplates = await MessagingService.getMessageTemplates(userRole);
       setTemplates(messageTemplates);
     } catch (error) {
       console.error('Error loading templates:', error);
@@ -163,8 +163,8 @@ const MessagingInterface = ({
         conversationId: activeConversation.id!,
         senderId: user.uid,
         senderName: user.displayName || 'Usuario',
-        senderAvatar: user.photoURL || undefined,
-        senderRole: (role as 'customer' | 'cook' | 'driver' | 'admin') || 'customer',
+        senderAvatar: user.photoURL,
+        senderRole: user.role || 'customer',
         content: newMessage.trim(),
         replyTo: replyingTo?.id
       });
@@ -484,7 +484,7 @@ const MessagingInterface = ({
                     size="sm"
                     onClick={() => setShowTemplates(!showTemplates)}
                   >
-                    <FileText className="h-4 w-4 mr-2" />
+                    <Template className="h-4 w-4 mr-2" />
                     Plantillas
                   </Button>
                 )}

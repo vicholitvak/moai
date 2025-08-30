@@ -1,17 +1,19 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-const RoleSwitcher = (): React.ReactElement | null => {
+const RoleSwitcher = () => {
   const { user, role } = useAuth();
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
-  const switchRole = async (newRole: string): Promise<void> => {
+  const switchRole = async (newRole: string) => {
     if (!user) return;
     
     setLoading(true);

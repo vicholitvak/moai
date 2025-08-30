@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { AdminService, OrdersService, DishesService } from '@/lib/firebase/dataService';
+import { AdminService, OrdersService } from '@/lib/firebase/dataService';
 import { onSnapshot, query, collection, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import type { Order, Cook, Driver, Dish } from '@/lib/firebase/dataService';
@@ -18,6 +18,7 @@ import {
   Package,
   RefreshCw,
   Truck,
+  User,
   Users,
   AlertTriangle,
   CheckCircle,
@@ -40,35 +41,19 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import dynamic from 'next/dynamic';
-const GoogleDriversMap = dynamic(() => import('@/components/ui/google-drivers-map'), {
+
+// Dynamically import the map component to avoid SSR issues
+const RealTimeMap = dynamic(() => import('@/components/ui/real-time-map'), {
   ssr: false,
   loading: () => (
     <div className="h-64 bg-muted rounded-lg flex items-center justify-center">
-      <span>Cargando mapa...</span>
-    </div>
-  ),
-});
-
-// TrackingTabMap: wrapper for GoogleDriversMap with filter toggle
-const TrackingTabMap: React.FC = () => {
-  const [showOnlyActive, setShowOnlyActive] = React.useState(true);
-  return (
-    <div>
-      <div className="flex items-center gap-4 mb-4">
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={showOnlyActive}
-            onChange={e => setShowOnlyActive(e.target.checked)}
-            className="accent-blue-600"
-          />
-          Mostrar solo repartidores con entregas activas
-        </label>
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
+        <p className="text-sm text-muted-foreground">Cargando mapa...</p>
       </div>
-      <GoogleDriversMap showOnlyActiveDeliveries={showOnlyActive} />
     </div>
-  );
-};
+  )
+});
 
 interface AdminStats {
   totalOrders: number;
@@ -98,46 +83,6 @@ const AdminDashboard: React.FC = () => {
   const [adminCheckLoading, setAdminCheckLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
-  // Dish deletion state
-  const [dishes, setDishes] = useState<Dish[]>([]);
-  const [dishDeleteDialogOpen, setDishDeleteDialogOpen] = useState(false);
-  const [dishToDelete, setDishToDelete] = useState<string | null>(null);
-  // Load all dishes for admin tab
-  useEffect(() => {
-    if (!isAdmin) return;
-    const loadDishes = async () => {
-      try {
-        const allDishes = await DishesService.getAllDishes();
-        setDishes(allDishes);
-      } catch {
-        setDishes([]);
-      }
-    };
-    loadDishes();
-  }, [isAdmin]);
-  const handleDeleteDish = async (): Promise<void> => {
-    if (!dishToDelete) return;
-    try {
-      const success = await DishesService.deleteDish(dishToDelete);
-      if (success) {
-        toast.success('Plato eliminado correctamente');
-        setDishes(dishes.filter(d => d.id !== dishToDelete));
-      } else {
-        toast.error('Error al eliminar el plato');
-      }
-    } catch (error) {
-      console.error('Error deleting dish:', error);
-      toast.error('Error al eliminar el plato');
-    } finally {
-      setDishDeleteDialogOpen(false);
-      setDishToDelete(null);
-    }
-  };
-
-  const openDeleteDishDialog = (dishId: string): void => {
-    setDishToDelete(dishId);
-    setDishDeleteDialogOpen(true);
-  };
 
   // Check admin permissions
   useEffect(() => {
@@ -256,7 +201,7 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  const getStatusIcon = (status: Order['status']) => {
+  const getStatusIcon = (status: Order['status']): JSX.Element => {
     switch (status) {
       case 'pending_approval': return <Clock className="h-4 w-4" />;
       case 'pending': return <Timer className="h-4 w-4" />;
@@ -272,14 +217,13 @@ const AdminDashboard: React.FC = () => {
   };
 
   const formatStatus = (status: Order['status']): string => {
-    const statusMap: Record<string, string> = {
+    const statusMap = {
       'pending_approval': 'Esperando Aprobación',
       'pending': 'Pendiente',
       'accepted': 'Aceptada',
       'preparing': 'Preparando',
       'ready': 'Lista',
       'delivering': 'En Camino',
-      'en_viaje': 'En Viaje',
       'delivered': 'Entregada',
       'cancelled': 'Cancelada',
       'rejected': 'Rechazada'
@@ -415,82 +359,12 @@ const AdminDashboard: React.FC = () => {
         </div>
 
         {/* Main Content */}
-
         <Tabs defaultValue="orders" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="orders">Órdenes en Tiempo Real</TabsTrigger>
             <TabsTrigger value="tracking">Seguimiento GPS</TabsTrigger>
             <TabsTrigger value="system">Estado del Sistema</TabsTrigger>
-            <TabsTrigger value="dishes">Platos</TabsTrigger>
           </TabsList>
-          <TabsContent value="dishes" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ChefHat className="h-5 w-5" />
-                  Platos
-                  <Badge variant="outline" className="ml-auto">
-                    {dishes.length} total
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {dishes.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No hay platos registrados
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {dishes.map((dish) => (
-                      <div key={dish.id} className="p-4 border rounded-lg flex items-center justify-between">
-                        <div>
-                          <div className="font-medium">{dish.name}</div>
-                          <div className="text-xs text-muted-foreground">{dish.category} • {dish.cookerName || 'Sin cocinero'}</div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => openDeleteDishDialog(dish.id)}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Eliminar
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Delete Dish Confirmation Dialog */}
-            <Dialog open={dishDeleteDialogOpen} onOpenChange={setDishDeleteDialogOpen}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>¿Eliminar plato?</DialogTitle>
-                  <DialogDescription>
-                    Esta acción no se puede deshacer. El plato será eliminado permanentemente.
-                  </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => setDishDeleteDialogOpen(false)}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={handleDeleteDish}
-                  >
-                    Eliminar
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </TabsContent>
 
           <TabsContent value="orders" className="space-y-6">
             <Card>
@@ -560,7 +434,7 @@ const AdminDashboard: React.FC = () => {
                               <div className="font-medium">
                                 {order.cookInfo ? (
                                   <>
-                                    {order.cookInfo.displayName || 'Sin nombre'}
+                                    {order.cookInfo.name || order.cookInfo.displayName || 'Sin nombre'}
                                     <span className="text-xs text-muted-foreground ml-2">
                                       ⭐ {order.cookInfo.rating?.toFixed(1) || 'N/A'}
                                     </span>
@@ -580,7 +454,7 @@ const AdminDashboard: React.FC = () => {
                               <div className="font-medium">
                                 {order.driverInfo ? (
                                   <>
-                                    {order.driverInfo.displayName || 'Sin nombre'}
+                                    {order.driverInfo.name || order.driverInfo.displayName || 'Sin nombre'}
                                     <span className="text-xs text-muted-foreground ml-2">
                                       ⭐ {order.driverInfo.rating?.toFixed(1) || 'N/A'}
                                     </span>
@@ -629,11 +503,68 @@ const AdminDashboard: React.FC = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Truck className="h-5 w-5" />
-                  Seguimiento GPS de Repartidores
+                  Seguimiento GPS en Tiempo Real
+                  <Badge variant="outline" className="ml-auto">
+                    {orders.filter(order => order.status === 'en_viaje').length} en viaje
+                  </Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <TrackingTabMap />
+                {loading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                ) : orders.filter(order => order.status === 'en_viaje').length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No hay entregas en viaje en este momento
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {orders.filter(order => order.status === 'en_viaje').map((order) => (
+                      <div key={order.id} className="border rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <h3 className="font-semibold">Pedido #{order.id.slice(-8)}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {order.customerName} • {order.dishes?.length || 0} items
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-semibold">{formatPrice(order.total || 0)}</p>
+                            <Badge className="bg-blue-100 text-blue-800">En Viaje</Badge>
+                          </div>
+                        </div>
+
+                        {/* Driver Info */}
+                        {order.driverInfo && (
+                          <div className="mb-4 p-3 bg-muted rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <User className="h-5 w-5 text-blue-600" />
+                              <div>
+                                <p className="font-medium">{order.driverInfo.name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  ⭐ {order.driverInfo.rating?.toFixed(1) || 'N/A'} • {order.driverInfo.vehicleType || 'Vehículo'}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Real-time Map */}
+                        <RealTimeMap
+                          orderId={order.id}
+                          customerLocation={{
+                            lat: -33.4489, // You'll need to geocode the actual address
+                            lng: -70.6693,
+                            address: order.deliveryInfo?.address || 'Dirección no disponible'
+                          }}
+                          estimatedTime={30} // This should come from tracking data
+                          isAdmin={true}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

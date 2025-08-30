@@ -18,7 +18,7 @@ export const addDishSchema = z.object({
     .int('El precio debe ser un número entero'),
   
   category: z.enum(['Platos principales', 'Acompañamientos', 'Bebidas'], {
-    message: 'Selecciona una categoría válida'
+    errorMap: () => ({ message: 'Selecciona una categoría válida' })
   }),
   
   prepTime: z.string()
@@ -49,7 +49,7 @@ export const addDishSchema = z.object({
     ),
   
   deliveryMode: z.enum(['cook', 'external'], {
-    message: 'Selecciona un modo de entrega válido'
+    errorMap: () => ({ message: 'Selecciona un modo de entrega válido' })
   }).optional(),
   
   deliveryFee: z.number()

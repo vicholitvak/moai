@@ -442,10 +442,7 @@ const NotificationCenter = ({ isOpen, onClose, showSettings = false }: Notificat
                         onCheckedChange={(checked) => 
                           handleUpdateSettings({
                             preferences: {
-                              orderUpdates: settings?.preferences?.orderUpdates ?? false,
-                              deliveryUpdates: settings?.preferences?.deliveryUpdates ?? false,
-                              promotionalOffers: settings?.preferences?.promotionalOffers ?? false,
-                              systemAlerts: settings?.preferences?.systemAlerts ?? false,
+                              ...settings?.preferences,
                               [key]: checked
                             }
                           })
@@ -473,8 +470,8 @@ const NotificationCenter = ({ isOpen, onClose, showSettings = false }: Notificat
                       onChange={(e) => 
                         handleUpdateSettings({
                           schedule: {
-                            startTime: e.target.value,
-                            endTime: settings?.schedule?.endTime || '22:00'
+                            ...settings?.schedule,
+                            startTime: e.target.value
                           }
                         })
                       }
@@ -488,7 +485,7 @@ const NotificationCenter = ({ isOpen, onClose, showSettings = false }: Notificat
                       onChange={(e) => 
                         handleUpdateSettings({
                           schedule: {
-                            startTime: settings?.schedule?.startTime || '08:00',
+                            ...settings?.schedule,
                             endTime: e.target.value
                           }
                         })

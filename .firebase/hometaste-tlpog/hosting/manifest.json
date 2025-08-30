@@ -1,0 +1,54 @@
+{
+  "name": "Moai - Local Food Delivery",
+  "short_name": "Moai",
+  "description": "Discover delicious homemade food from local cooks",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#F57C00",
+  "orientation": "portrait-primary",
+  "categories": ["food", "lifestyle", "shopping"],
+  "icons": [
+    {
+      "src": "/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-192x192.png", 
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "My Orders",
+      "short_name": "Orders",
+      "description": "View my active orders",
+      "url": "/client/orders",
+      "icons": [
+        {
+          "src": "/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Browse Dishes",
+      "short_name": "Dishes",
+      "description": "Discover new dishes",
+      "url": "/dishes",
+      "icons": [
+        {
+          "src": "/icon-96x96.png", 
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ]
+}

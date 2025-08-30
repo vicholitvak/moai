@@ -325,9 +325,6 @@ export class PerformanceService {
         return;
       }
 
-      const cleanMetadata = metadata && typeof metadata === 'object'
-        ? Object.fromEntries(Object.entries(metadata).filter(([_, v]) => v !== undefined))
-        : undefined;
       const metric: PerformanceMetric = {
         type: 'page_load',
         name: pageName,
@@ -335,7 +332,7 @@ export class PerformanceService {
         timestamp: Timestamp.now(),
         sessionId: this.sessionId || this.generateSessionId(),
         userAgent: navigator.userAgent,
-        ...(cleanMetadata ? { metadata: cleanMetadata } : {})
+        metadata
       };
 
       await addDoc(collection(db, 'performanceMetrics'), metric);
@@ -382,11 +379,6 @@ export class PerformanceService {
   // Track search performance
   static async trackSearchPerformance(query: string, duration: number, resultsCount: number): Promise<void> {
     try {
-      const metadata = {
-        query,
-        resultsCount
-      };
-      const cleanMetadata = Object.fromEntries(Object.entries(metadata).filter(([_, v]) => v !== undefined));
       const metric: PerformanceMetric = {
         type: 'search',
         name: 'search_execution',
@@ -394,7 +386,10 @@ export class PerformanceService {
         timestamp: Timestamp.now(),
         sessionId: this.sessionId || this.generateSessionId(),
         userAgent: navigator.userAgent,
-        ...(Object.keys(cleanMetadata).length ? { metadata: cleanMetadata } : {})
+        metadata: {
+          query,
+          resultsCount
+        }
       };
 
       await addDoc(collection(db, 'performanceMetrics'), metric);
@@ -426,9 +421,6 @@ export class PerformanceService {
   // Track user interaction performance
   static async trackInteraction(actionName: string, duration: number, metadata?: Record<string, unknown>): Promise<void> {
     try {
-      const cleanMetadata = metadata && typeof metadata === 'object'
-        ? Object.fromEntries(Object.entries(metadata).filter(([_, v]) => v !== undefined))
-        : undefined;
       const metric: PerformanceMetric = {
         type: 'interaction',
         name: actionName,
@@ -436,7 +428,7 @@ export class PerformanceService {
         timestamp: Timestamp.now(),
         sessionId: this.sessionId || this.generateSessionId(),
         userAgent: navigator.userAgent,
-        ...(cleanMetadata ? { metadata: cleanMetadata } : {})
+        metadata
       };
 
       await addDoc(collection(db, 'performanceMetrics'), metric);

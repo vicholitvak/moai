@@ -2,13 +2,16 @@ import {
   collection, 
   doc, 
   getDocs, 
+  getDoc, 
   addDoc, 
   updateDoc, 
   query, 
   where, 
   orderBy, 
+  limit,
   Timestamp,
-  increment
+  increment,
+  arrayUnion
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 

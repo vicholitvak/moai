@@ -43,7 +43,7 @@ export class IdleDriverTrackingService {
           this.lastUpdateTimes.set(driverId, currentTime);
         }
       } catch (error) {
-        console.error('Error updating idle driver location:', error instanceof Error ? error.message : String(error));
+        console.error('Error updating idle driver location:', error);
       }
     };
 
@@ -51,10 +51,7 @@ export class IdleDriverTrackingService {
     if (navigator.geolocation) {
       watchId = navigator.geolocation.watchPosition(
         () => updateIdleLocation(),
-        (error) => {
-          const errorMessage = this.getGeolocationErrorMessage(error);
-          console.error('Idle geolocation error:', errorMessage);
-        },
+        (error) => console.error('Idle geolocation error:', error),
         {
           enableHighAccuracy: false, // Less accuracy for idle to save battery
           timeout: 15000,
@@ -111,7 +108,7 @@ export class IdleDriverTrackingService {
 
       return true;
     } catch (error) {
-      console.error('Error updating idle driver location:', error instanceof Error ? error.message : String(error));
+      console.error('Error updating idle driver location:', error);
       return false;
     }
   }
@@ -131,10 +128,7 @@ export class IdleDriverTrackingService {
             lng: position.coords.longitude
           });
         },
-        (error) => {
-          const errorMessage = this.getGeolocationErrorMessage(error);
-          reject(new Error(`Failed to get current location: ${errorMessage}`));
-        },
+        (error) => reject(error),
         { 
           enableHighAccuracy: false, // Less accuracy for idle tracking
           timeout: 15000, 
@@ -142,20 +136,6 @@ export class IdleDriverTrackingService {
         }
       );
     });
-  }
-
-  // Convert geolocation error codes to meaningful messages
-  static getGeolocationErrorMessage(error: GeolocationPositionError): string {
-    switch (error.code) {
-      case error.PERMISSION_DENIED:
-        return 'Location permission denied by user';
-      case error.POSITION_UNAVAILABLE:
-        return 'Location information unavailable';
-      case error.TIMEOUT:
-        return 'Location request timed out';
-      default:
-        return `Unknown geolocation error: ${error.message || 'No details available'}`;
-    }
   }
 
   // Subscribe to driver status changes to start/stop tracking
@@ -183,7 +163,7 @@ export class IdleDriverTrackingService {
         }
       }
     }, (error) => {
-      console.error('Error subscribing to driver status:', error instanceof Error ? error.message : String(error));
+      console.error('Error subscribing to driver status:', error);
     });
   }
 

@@ -32,8 +32,6 @@ import { formatPrice } from '@/lib/utils';
 import { CooksService, DishesService, ReviewsService } from '@/lib/firebase/dataService';
 import type { Cook, Dish, Review } from '@/lib/firebase/dataService';
 import { ReviewSystem } from '@/components/reviews/ReviewSystem';
-import { UserProfileService } from '@/lib/services/userProfileService';
-import { ChatService } from '@/lib/services/chatService';
 
 interface CookProfile extends Omit<Cook, 'cookingStyle' | 'favoriteIngredients' | 'achievements'> {
   dishes: Dish[];
@@ -50,17 +48,12 @@ interface CookProfile extends Omit<Cook, 'cookingStyle' | 'favoriteIngredients' 
 const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
   const router = useRouter();
   const { addToCart } = useCart();
-  const { user } = useAuth();
   const [cook, setCook] = useState<CookProfile | null>(null);
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [cookId, setCookId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'dishes' | 'about' | 'reviews'>('dishes');
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'main' | 'drinks' | 'sides'>('all');
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [followLoading, setFollowLoading] = useState(false);
-  const [contactLoading, setContactLoading] = useState(false);
-  const [followCounts, setFollowCounts] = useState({ followers: 0, following: 0 });
 
   useEffect(() => {
     const resolveParams = async () => {
@@ -103,11 +96,11 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
           reviews: cookReviews,
           achievements: [
             { title: 'Top Rated Cook', description: `Maintained ${cookData.rating}+ rating`, icon: '🏆' },
-            { title: 'Satisfied Customers', description: `Served ${cookData.totalOrders ?? 0} customers`, icon: '👥' },
+            { title: 'Satisfied Customers', description: `Served ${cookData.totalOrders || 0} customers`, icon: '👥' },
             { title: 'Verified Chef', description: 'Professional cooking certification', icon: '✓' }
           ],
-          favoriteIngredients: cookData.specialties ?? [],
-          cookingStyle: cookData.bio?.split('.')[0] ?? 'Traditional cooking'
+          favoriteIngredients: cookData.specialties || [],
+          cookingStyle: cookData.bio?.split('.')[0] || 'Traditional cooking'
         };
         
         setCook(fullCookProfile);
@@ -124,25 +117,28 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
     fetchCookData();
   }, [cookId]);
 
-  // Check follow status when user and cookId are available
-  useEffect(() => {
-    if (!user || !cookId) return;
-    
-    const checkFollowStatus = async () => {
-      try {
-        const following = await UserProfileService.isFollowing(user.uid, cookId);
-        setIsFollowing(following);
-        
-        const counts = await UserProfileService.getFollowCounts(cookId);
-        setFollowCounts(counts);
-      } catch (error) {
-        console.error('Error checking follow status:', error);
-      }
+  const handleAddToCart = (item: Dish) => {
+    const cartItem = {
+      dishId: item.id,
+      name: item.name,
+      price: item.price,
+      image: item.image || 'placeholder.jpg',
+      cookerName: cook?.name || 'Unknown Cook',
+      cookerId: cookId,
+      cookerAvatar: cook?.avatar || '',
+      quantity: 1,
+      prepTime: item.prepTime || '30 min',
+      category: item.category || 'main'
     };
     
-    checkFollowStatus();
-  }, [user, cookId]);
-
+    addToCart(cartItem);
+    toast.success(`Added ${item.name} to cart!`, {
+      action: {
+        label: 'View Cart',
+        onClick: () => router.push('/cart')
+      }
+    });
+  };
 
   // Filter dishes by category
   const getFilteredItems = () => {
@@ -156,59 +152,6 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
   };
   
   const getAllItems = () => dishes;
-
-  const handleFollow = async () => {
-    if (followLoading || !user) return;
-    setFollowLoading(true);
-    
-    try {
-      if (isFollowing) {
-        // Unfollow logic
-        await UserProfileService.unfollowUser(user.uid, cookId);
-        toast.success('Unfollowed the cook');
-      } else {
-        // Follow logic
-        await UserProfileService.followUser(user.uid, cookId);
-        toast.success('Followed the cook');
-      }
-      
-      // Update local state
-      setIsFollowing(!isFollowing);
-      
-      // Update follow counts
-      const counts = await UserProfileService.getFollowCounts(cookId);
-      setFollowCounts(counts);
-      
-    } catch (error) {
-      console.error('Error updating follow status:', error);
-      toast.error('Failed to update follow status');
-    } finally {
-      setFollowLoading(false);
-    }
-  };
-
-  const handleContact = async () => {
-    if (contactLoading || !user) return;
-    setContactLoading(true);
-    
-    try {
-      // Create or get direct chat room with the cook
-      const roomId = await ChatService.getOrCreateDirectChatRoom(user.uid, cookId);
-      
-      if (roomId) {
-        // Navigate to chat page with the room ID
-        router.push(`/chat?roomId=${roomId}`);
-        toast.success('Chat initiated with the cook');
-      } else {
-        toast.error('Failed to create chat room');
-      }
-    } catch (error) {
-      console.error('Error initiating chat:', error);
-      toast.error('Failed to initiate chat');
-    } finally {
-      setContactLoading(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -266,17 +209,14 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
       {/* Cover Image & Profile Header */}
       <div className="relative">
         <div className="h-64 bg-gradient-to-r from-orange-400 to-red-500 relative overflow-hidden">
-          {cook.coverImage && cook.coverImage.trim() !== '' && (
-            <Image 
-              src={cook.coverImage} 
-              alt={`${cook.name} kitchen`}
-              fill
-              className="object-cover opacity-80"
-              onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
-          )}
+          <img 
+            src={cook.coverImage} 
+            alt={`${cook.name} kitchen`}
+            className="w-full h-full object-cover opacity-80"
+            onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
           <div className="absolute inset-0 bg-black/20"></div>
         </div>
         
@@ -284,7 +224,7 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
           <div className="relative -mt-16 pb-6">
             <div className="flex flex-col md:flex-row gap-6 items-start">
               <Avatar className="h-32 w-32 border-4 border-background shadow-lg">
-                <AvatarImage src={cook.avatar && cook.avatar.trim() !== '' ? cook.avatar : undefined} />
+                <AvatarImage src={cook.avatar} />
                 <AvatarFallback className="text-2xl">
                   <ChefHat className="h-12 w-12" />
                 </AvatarFallback>
@@ -302,7 +242,7 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
                       </div>
                       <div className="flex items-center gap-1">
                         <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">{cook.location?.address?.fullAddress ?? 'Ubicación no disponible'}</span>
+                        <span className="text-muted-foreground">{cook.location?.address?.fullAddress || 'Ubicación no disponible'}</span>
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2 mb-3">
@@ -316,20 +256,13 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
                   </div>
                   
                   <div className="flex flex-col gap-2">
-                    <Button 
-                      className="w-full md:w-auto"
-                      onClick={handleContact}
-                      disabled={contactLoading}
-                    >
-                      {contactLoading ? 'Connecting...' : <><MessageCircle className="h-4 w-4 mr-2" /> Contact Cook</>}
+                    <Button className="w-full md:w-auto">
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Contact Cook
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      className="w-full md:w-auto"
-                      onClick={handleFollow}
-                      disabled={followLoading}
-                    >
-                      {followLoading ? (isFollowing ? 'Unfollowing...' : 'Following...') : <><Heart className="h-4 w-4 mr-2" /> {isFollowing ? 'Unfollow' : 'Follow'}</>}
+                    <Button variant="outline" className="w-full md:w-auto">
+                      <Heart className="h-4 w-4 mr-2" />
+                      Follow
                     </Button>
                   </div>
                 </div>
@@ -427,14 +360,14 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
                 size="sm"
                 onClick={() => setSelectedCategory('drinks')}
               >
-                Drinks ({(cook as any).drinks?.length ?? 0})
+                Drinks ({(cook as any).drinks?.length || 0})
               </Button>
               <Button
                 variant={selectedCategory === 'sides' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setSelectedCategory('sides')}
               >
-                Sides ({(cook as any).sides?.length ?? 0})
+                Sides ({(cook as any).sides?.length || 0})
               </Button>
             </div>
             
@@ -453,7 +386,7 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
                       fill
                       className="object-cover"
                       onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                        e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik00MCA0MEg2MFY2MEg0MFY0MFoiIGZpbGw9IiM5QjlCQTMiLz4KPC9zdmc+';
+                        e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDMwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xMjUgNzVIMTc1VjEyNUgxMjVWNzVaIiBmaWxsPSIjOUI5QkEzIi8+PC9zdmc+';
                       }}
                     />
                     <div className="absolute top-2 left-2">
@@ -500,8 +433,8 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
                           quantity: 1,
                           cookerName: cook.displayName,
                           cookerId: cook.id,
-                          image: item.image ?? 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik00MCA0MEg2MFY2MEg0MFY0MFoiIGZpbGw9IiM5QjlCQTMiLz4KPC9zdmc+',
-                          prepTime: item.prepTime ?? '30 min'
+                          image: item.image || '',
+                          prepTime: item.prepTime || '30 min'
                         } as any);
                       }}
                     >
@@ -595,7 +528,7 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
               </CardHeader>
               <CardContent>
                 <div className="grid md:grid-cols-2 gap-4">
-                  {(cook.achievements ?? []).map((achievement: { title: string; description: string; icon: string }, index: number) => (
+                  {(cook.achievements || []).map((achievement: { title: string; description: string; icon: string }, index: number) => (
                     <div key={index} className="flex items-start gap-3 p-3 bg-muted rounded-lg">
                       <div className="text-2xl">{achievement.icon}</div>
                       <div>
@@ -644,9 +577,9 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
                       ...cookData,
                       dishes: cookDishes,
                       reviews: cookReviews,
-                      achievements: cook?.achievements ?? [],
-                      favoriteIngredients: cook?.favoriteIngredients ?? [],
-                      cookingStyle: cook?.cookingStyle ?? ''
+                      achievements: cook?.achievements || [],
+                      favoriteIngredients: cook?.favoriteIngredients || [],
+                      cookingStyle: cook?.cookingStyle || ''
                     });
                   }
                 } catch (error) {

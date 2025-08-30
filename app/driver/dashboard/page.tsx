@@ -1,5 +1,4 @@
 'use client';
-'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -11,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { toast } from 'sonner';
 import { 
   MapPin, 
@@ -56,7 +55,7 @@ import DeliveryFeed from '@/components/DeliveryFeed';
 import ActiveDeliveryView from '@/components/ActiveDeliveryView';
 import DeliveryGuidanceFlow from '@/components/DeliveryGuidanceFlow';
 import { IdleDriverTrackingService } from '@/lib/services/idleDriverTrackingService';
-import RouteOptimizationService, { OptimizedRoute } from '@/lib/services/routeOptimizationService';
+import RouteOptimizationService, { OptimizedRoute, RoutePoint } from '@/lib/services/routeOptimizationService';
 import { format } from 'date-fns';
 
 interface DriverStats {
@@ -78,6 +77,11 @@ interface DriverStats {
   fuelEfficiency: string;
 }
 
+interface WeeklyEarnings {
+  day: string;
+  earnings: number;
+  deliveries: number;
+}
 
 export default function DriverDashboard() {
   const router = useRouter();
@@ -86,6 +90,7 @@ export default function DriverDashboard() {
   const [driverData, setDriverData] = useState<Driver | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [profileCompleted, setProfileCompleted] = useState(false);
   const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [orderFilter, setOrderFilter] = useState('available');
@@ -117,8 +122,7 @@ export default function DriverDashboard() {
   const [isOnline, setIsOnline] = useState(false);
   const [isTogglingStatus, setIsTogglingStatus] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<string>('Ubicación no disponible');
-  const [driverCoords, setDriverCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [cooksMap, setCooksMap] = useState<Map<string, Cook>>(new Map());
+  const [cooksMap, setCooksMap] = useState<Map<string, Cook>>(new Map<string, Cook>());
   const [dishesMap, setDishesMap] = useState<Map<string, Dish>>(new Map<string, Dish>());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -126,6 +130,21 @@ export default function DriverDashboard() {
   const [showGuidanceFlow, setShowGuidanceFlow] = useState(false);
   const [idleTracking, setIdleTracking] = useState<{ stop: () => void } | null>(null);
   const [locationWatchId, setLocationWatchId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      loadDriverData();
+    }
+  }, [user]);
+
+  // Cleanup idle tracking when component unmounts
+  useEffect(() => {
+    return () => {
+      if (idleTracking) {
+        idleTracking.stop();
+      }
+    };
+  }, [idleTracking]);
 
   const loadDriverData = useCallback(async () => {
     if (!user) return;
@@ -167,6 +186,7 @@ export default function DriverDashboard() {
       
       console.log('DriverDashboard: Driver profile is complete, proceeding with dashboard');
       setDriverData(driver);
+      setProfileCompleted(true);
       
       // Continue with existing logic if profile is complete
       if (!driver) {
@@ -238,117 +258,6 @@ export default function DriverDashboard() {
       setLoading(false);
     }
   }, [user]);
-
-  const updateStats = useCallback((currentOrders: Order[]) => {
-    const deliveredOrders = currentOrders.filter(order => order.status === 'delivered');
-    const now = new Date();
-    
-    // Date ranges
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const weekStart = new Date();
-    weekStart.setDate(now.getDate() - 7);
-    weekStart.setHours(0, 0, 0, 0);
-    
-    const monthStart = new Date();
-    monthStart.setMonth(now.getMonth() - 1);
-    monthStart.setHours(0, 0, 0, 0);
-
-    // Filter orders by time periods
-    const todayDeliveredOrders = deliveredOrders.filter(order => {
-      const orderDate = order.actualDeliveryTime?.toDate() || order.createdAt?.toDate() || new Date();
-      return orderDate >= today;
-    });
-    
-    const weekDeliveredOrders = deliveredOrders.filter(order => {
-      const orderDate = order.actualDeliveryTime?.toDate() || order.createdAt?.toDate() || new Date();
-      return orderDate >= weekStart;
-    });
-    
-    const monthDeliveredOrders = deliveredOrders.filter(order => {
-      const orderDate = order.actualDeliveryTime?.toDate() || order.createdAt?.toDate() || new Date();
-      return orderDate >= monthStart;
-    });
-
-    // Calculate earnings (drivers typically earn delivery fees + tips)
-    const todayEarnings = todayDeliveredOrders.reduce((sum, order) => sum + (order.deliveryFee || 2500), 0);
-    const weekEarnings = weekDeliveredOrders.reduce((sum, order) => sum + (order.deliveryFee || 2500), 0);
-    const monthEarnings = monthDeliveredOrders.reduce((sum, order) => sum + (order.deliveryFee || 2500), 0);
-    const totalEarnings = deliveredOrders.reduce((sum, order) => sum + (order.deliveryFee || 2500), 0);
-    
-    // Calculate delivery counts
-    const todayDeliveries = todayDeliveredOrders.length;
-    const weekDeliveries = weekDeliveredOrders.length;
-    const monthDeliveries = monthDeliveredOrders.length;
-    const totalDeliveries = deliveredOrders.length;
-
-    // Calculate performance metrics
-    const averageDeliveryTime = deliveredOrders.length > 0 
-      ? deliveredOrders.reduce((sum, order) => {
-          const created = order.createdAt?.toDate() || new Date();
-          const delivered = order.actualDeliveryTime?.toDate() || new Date();
-          return sum + (delivered.getTime() - created.getTime()) / (1000 * 60); // minutes
-        }, 0) / deliveredOrders.length 
-      : 25;
-
-    const onTimeDeliveries = deliveredOrders.filter(order => {
-      const created = order.createdAt?.toDate() || new Date();
-      const delivered = order.actualDeliveryTime?.toDate() || new Date();
-      const deliveryTime = (delivered.getTime() - created.getTime()) / (1000 * 60);
-      const estimatedTime = typeof order.estimatedDeliveryTime === 'number' ? order.estimatedDeliveryTime : 45;
-      return deliveryTime <= estimatedTime; // on time if within estimated time
-    }).length;
-
-    const onTimeDeliveryRate = deliveredOrders.length > 0 ? (onTimeDeliveries / deliveredOrders.length) * 100 : 95;
-
-    // Update stats with enhanced metrics
-    setStats(prevStats => ({
-      ...prevStats,
-      todayEarnings,
-      weekEarnings,
-      monthEarnings,
-      totalEarnings,
-      todayDeliveries,
-      weekDeliveries,
-      monthDeliveries,
-      totalDeliveries,
-      averageRating: driverData?.rating || 5.0,
-      completionRate: driverData?.completionRate || 100,
-      totalDistance: `${(totalDeliveries * 2.5).toFixed(1)} km`,
-      onlineTime: isOnline ? '2h 30m' : '0h 0m',
-      averageDeliveryTime: Math.round(averageDeliveryTime),
-      customerSatisfactionRate: 98, // This could be calculated from reviews
-      onTimeDeliveryRate: Math.round(onTimeDeliveryRate),
-      fuelEfficiency: '12.5 km/L' // This would come from vehicle data
-    }));
-  }, [driverData, isOnline]);
-
-  // Get real driver location on mount and when user changes
-  useEffect(() => {
-    if (!user) return;
-    const geoSuccess = (position: GeolocationPosition) => {
-      setDriverCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
-      setCurrentLocation(`${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`);
-    };
-    const geoError = (err: GeolocationPositionError) => {
-      setCurrentLocation('Ubicación no disponible');
-      setDriverCoords(null);
-    };
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(geoSuccess, geoError, { enableHighAccuracy: true, timeout: 10000 });
-    }
-    loadDriverData();
-  }, [user, loadDriverData]);
-
-  // Cleanup idle tracking when component unmounts
-  useEffect(() => {
-    return () => {
-      if (idleTracking) {
-        idleTracking.stop();
-      }
-    };
-  }, [idleTracking]);
 
   useEffect(() => {
     let unsubscribeOrders: () => void;
@@ -744,17 +653,18 @@ export default function DriverDashboard() {
       toast.error('No hay órdenes disponibles para optimizar');
       return;
     }
-    if (!driverCoords) {
-      toast.error('Ubicación del conductor no disponible');
-      return;
-    }
+
     setIsOptimizingRoute(true);
     try {
+      // Get current location (simulate for now)
+      const driverLocation = { lat: -33.4489, lng: -70.6693 }; // Santiago center
+      
       const route = await RouteOptimizationService.optimizeRoute(
         availableOrders,
-        driverCoords,
+        driverLocation,
         routeOptions
       );
+      
       setOptimizedRoute(route);
       toast.success(`Ruta optimizada para ${route.points.length} entregas`);
     } catch (error) {
@@ -881,9 +791,7 @@ export default function DriverDashboard() {
                 onClick={handleToggleOnlineStatus}
                 disabled={isTogglingStatus}
                 variant={isOnline ? "destructive" : "default"}
-                className={`font-semibold focus:ring-2 focus:ring-orange-500 focus:outline-none ${isOnline ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 hover:bg-gray-700'} text-white`}
-                aria-pressed={isOnline}
-                aria-label={isOnline ? 'Cambiar a fuera de línea' : 'Cambiar a en línea'}
+                className={`${isOnline ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 hover:bg-gray-700'}`}
               >
                 {isTogglingStatus ? (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -894,7 +802,7 @@ export default function DriverDashboard() {
               </Button>
               
               {/* Theme Toggle */}
-
+              <ThemeToggle />
               
               {/* User Avatar */}
               <Avatar>
@@ -968,7 +876,7 @@ export default function DriverDashboard() {
                 </div>
                 <DeliveryGuidanceFlow
                   order={activeDeliveryOrder}
-                  cook={activeDeliveryOrder ? cooksMap.get((activeDeliveryOrder as Order).cookerId) : undefined}
+                  cook={cooksMap.get(activeDeliveryOrder.cookerId)}
                   onStatusUpdate={handleStatusUpdate}
                   onStartNavigation={handleNavigateToAddress}
                   onCallCustomer={handleCallCustomer}
@@ -987,10 +895,10 @@ export default function DriverDashboard() {
                       </div>
                       <div>
                         <h3 className="font-semibold text-blue-900">
-                          Tienes una entrega activa - Pedido #{activeDeliveryOrder ? (activeDeliveryOrder as Order).id.slice(-8) : ''}
+                          Tienes una entrega activa - Pedido #{activeDeliveryOrder.id.slice(-8)}
                         </h3>
                         <p className="text-sm text-blue-700">
-                          Estado: {activeDeliveryOrder ? getStatusText((activeDeliveryOrder as Order).status) : ''} • Cliente: {activeDeliveryOrder ? (activeDeliveryOrder as Order).customerName : ''}
+                          Estado: {getStatusText(activeDeliveryOrder.status)} • Cliente: {activeDeliveryOrder.customerName}
                         </p>
                       </div>
                     </div>
@@ -1578,7 +1486,7 @@ export default function DriverDashboard() {
                   ) : (
                     <div className="space-y-3 max-h-80 overflow-y-auto">
                       {availableOrders.map((order) => {
-                        const cook = cooksMap.get(order.cookerId);
+                        const cook = cooksMap[order.cookerId];
                         return (
                           <div key={order.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                             <div className="flex items-center space-x-3">
@@ -1586,11 +1494,9 @@ export default function DriverDashboard() {
                                 <Package className="h-4 w-4 text-orange-600" />
                               </div>
                               <div>
-                                <h4 className="font-medium text-sm truncate">
-                                  #{order.id.slice(-8)}
-                                </h4>
+                                <h4 className="font-medium text-sm">#{order.id.slice(-8)}</h4>
                                 <p className="text-xs text-gray-500">
-                                  {cook ? cook.displayName : 'Cocinero'} • {order.customerName}
+                                  {cook ? cook.businessName : 'Cocinero'} • {order.customerName}
                                 </p>
                               </div>
                             </div>
@@ -1735,7 +1641,7 @@ export default function DriverDashboard() {
                     <h4 className="font-medium text-gray-900">Secuencia de Entregas:</h4>
                     {optimizedRoute.points.map((point, index) => {
                       const order = availableOrders.find(o => o.id === point.orderId);
-                      const cook = order ? cooksMap.get(order.cookerId) : null;
+                      const cook = order ? cooksMap[order.cookerId] : null;
                       
                       return (
                         <div key={point.id} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
@@ -1749,7 +1655,7 @@ export default function DriverDashboard() {
                                   Pedido #{point.orderId.slice(-8)}
                                 </h5>
                                 <p className="text-xs text-gray-500">
-                                  {cook ? cook.displayName : 'Cocinero'} → {point.customerName}
+                                  {cook ? cook.businessName : 'Cocinero'} → {point.customerName}
                                 </p>
                               </div>
                               <div className="text-right">
@@ -1932,7 +1838,8 @@ export default function DriverDashboard() {
             {/* Orders List */}
             <div className="grid gap-4">
               {(() => {
-                let filteredOrders: Order[] = [];
+                let filteredOrders = [];
+                
                 if (orderFilter === 'available') {
                   filteredOrders = availableOrders;
                 } else if (orderFilter === 'active') {
@@ -1967,9 +1874,9 @@ export default function DriverDashboard() {
                   );
                 }
 
-                return filteredOrders.map((order: Order) => {
-                  const cook = cooksMap.get(order.cookerId);
-                  const totalItems = order.dishes.reduce((sum: number, dish: { quantity: number }) => sum + dish.quantity, 0);
+                return filteredOrders.map((order) => {
+                  const cook = cooksMap[order.cookerId];
+                  const totalItems = order.dishes.reduce((sum, dish) => sum + dish.quantity, 0);
                   
                   return (
                     <Card key={order.id} className="hover:shadow-md transition-shadow">
@@ -1987,7 +1894,7 @@ export default function DriverDashboard() {
                                     Pedido #{order.id.slice(-8)}
                                   </h3>
                                   <p className="text-sm text-gray-500">
-                                    {cook ? cook.displayName : 'Cocinero desconocido'}
+                                    {cook ? cook.businessName : 'Cocinero desconocido'}
                                   </p>
                                 </div>
                               </div>
@@ -2071,7 +1978,7 @@ export default function DriverDashboard() {
                               {orderFilter === 'active' && order.status === 'preparing' && (
                                 <div className="flex flex-col gap-1">
                                   <Badge variant="outline" className="text-blue-600 border-blue-300">
-                                    Preparando
+                                    Preparando ({order.estimatedReadyTime || 'Calculando...'})
                                   </Badge>
                                   <p className="text-xs text-muted-foreground">
                                     El cocinero está preparando el pedido

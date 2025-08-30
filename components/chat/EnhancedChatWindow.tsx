@@ -193,10 +193,7 @@ export default function EnhancedChatWindow({ roomId, onClose, className }: Enhan
           }]
         };
 
-        await ChatService.sendMessage(roomId, user!.uid, messageData.content, type === 'image' ? 'image' : 'text', {
-          imageUrl: type === 'image' ? fileUrl : undefined,
-          location: undefined
-        });
+        await ChatService.sendMessage(roomId, user.uid, messageData);
         
         setUploadProgress(prev => {
           const newProgress = { ...prev };
@@ -256,11 +253,7 @@ export default function EnhancedChatWindow({ roomId, onClose, className }: Enhan
           }]
         };
 
-        await ChatService.sendMessage(roomId, user!.uid, JSON.stringify(messageData), 'text', {
-          orderId: undefined,
-          location: undefined,
-          imageUrl: undefined
-        });
+        await ChatService.sendMessage(roomId, user.uid, messageData);
         
         // Clean up stream
         stream.getTracks().forEach(track => track.stop());
@@ -326,18 +319,18 @@ export default function EnhancedChatWindow({ roomId, onClose, className }: Enhan
   };
 
   const MessageContent = ({ message }: { message: EnhancedChatMessage }) => {
-    if (message.type === 'location' && message.metadata?.location) {
+    if (message.type === 'location' && message.location) {
       return (
         <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
           <MapPin className="h-4 w-4 text-blue-600" />
           <div>
             <p className="text-sm font-medium">Ubicación compartida</p>
-            <p className="text-xs text-muted-foreground">{message.metadata.location.address}</p>
+            <p className="text-xs text-muted-foreground">{message.location.address}</p>
           </div>
           <Button
             size="sm"
             variant="outline"
-            onClick={() => message.metadata?.location && window.open(`https://maps.google.com/?q=${message.metadata.location.lat},${message.metadata.location.lng}`)}
+            onClick={() => window.open(`https://maps.google.com/?q=${message.location!.lat},${message.location!.lng}`)}
           >
             Ver mapa
           </Button>
@@ -345,7 +338,7 @@ export default function EnhancedChatWindow({ roomId, onClose, className }: Enhan
       );
     }
 
-    if ((message as any).attachments && (message as any).attachments.length > 0) {
+    if (message.type === 'attachment' && message.attachments) {
       return (
         <div className="space-y-2">
           {message.attachments && message.attachments.map((attachment, index) => (
@@ -394,14 +387,14 @@ export default function EnhancedChatWindow({ roomId, onClose, className }: Enhan
               )}
             </div>
           ))}
-          {message.message && message.message !== '📷 Imagen' && message.message !== '🎤 Mensaje de voz' && !message.message.startsWith('📄') && (
-            <p className="text-sm">{message.message}</p>
+          {message.content && message.content !== '📷 Imagen' && message.content !== '🎤 Mensaje de voz' && !message.content.startsWith('📄') && (
+            <p className="text-sm">{message.content}</p>
           )}
         </div>
       );
     }
 
-    return <p className="text-sm whitespace-pre-wrap">{message.message}</p>;
+    return <p className="text-sm whitespace-pre-wrap">{message.content}</p>;
   };
 
   const getRoleColor = (role: string) => {
@@ -453,7 +446,7 @@ export default function EnhancedChatWindow({ roomId, onClose, className }: Enhan
                       {getRoleLabel((room.participants[0] as any)?.role || '')}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
-                      {room.lastMessage?.timestamp ? getMessageTime(room.lastMessage.timestamp) : 'Hace tiempo'}
+                      {room.lastActivity ? getMessageTime(room.lastActivity) : 'Hace tiempo'}
                     </span>
                   </div>
                 </div>
@@ -534,7 +527,7 @@ export default function EnhancedChatWindow({ roomId, onClose, className }: Enhan
                     {isOwn && (
                       <CheckCheck className={cn(
                         "h-3 w-3",
-                        user && message.readBy.includes(user.uid) ? "text-blue-500" : "text-gray-400"
+                        message.read ? "text-blue-500" : "text-gray-400"
                       )} />
                     )}
                     {message.edited && <span>(editado)</span>}
@@ -585,7 +578,7 @@ export default function EnhancedChatWindow({ roomId, onClose, className }: Enhan
           <div className="flex items-center justify-between bg-muted/50 rounded-lg p-3 mb-3">
             <div className="flex-1">
               <p className="text-xs text-muted-foreground">Respondiendo a:</p>
-              <p className="text-sm truncate">{replyingTo.message}</p>
+              <p className="text-sm truncate">{replyingTo.content}</p>
             </div>
             <Button
               variant="ghost"

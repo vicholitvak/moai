@@ -229,7 +229,7 @@ const RealTimeMap: React.FC<RealTimeMapProps> = ({
     duration: string;
     estimatedArrival: Date;
   } | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     setMapLoaded(true);
@@ -304,7 +304,7 @@ const RealTimeMap: React.FC<RealTimeMapProps> = ({
     return R * c;
   };
 
-  const allLocations = [customerLocation, cookLocation].filter((loc): loc is Location => loc !== undefined);
+  const allLocations = [customerLocation, cookLocation];
   if (driverLocation) allLocations.push(driverLocation);
 
   const distanceToCustomer = driverLocation 
@@ -370,18 +370,16 @@ const RealTimeMap: React.FC<RealTimeMapProps> = ({
               </Marker>
               
               {/* Cook Location */}
-              {cookLocation && (
-                <Marker position={[cookLocation.lat, cookLocation.lng]} icon={cookIcon}>
-                  <Popup>
-                    <div className="p-2">
-                      <h3 className="font-semibold">Cocina</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {cookLocation.address || 'Ubicación del cocinero'}
-                      </p>
-                    </div>
-                  </Popup>
-                </Marker>
-              )}
+              <Marker position={[cookLocation.lat, cookLocation.lng]} icon={cookIcon}>
+                <Popup>
+                  <div className="p-2">
+                    <h3 className="font-semibold">Cocina</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {cookLocation.address || 'Ubicación del cocinero'}
+                    </p>
+                  </div>
+                </Popup>
+              </Marker>
               
               {/* Driver Location */}
               {driverLocation && (

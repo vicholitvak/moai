@@ -8,6 +8,6 @@ import { type ThemeProviderProps } from "next-themes"
 export function ThemeProvider({
   children,
   ...props
-}: ThemeProviderProps): React.ReactElement {
+}: ThemeProviderProps) {
   return <NextThemesProvider {...props}>{children}</NextThemesProvider>
 }

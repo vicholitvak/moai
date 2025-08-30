@@ -35,7 +35,7 @@ export const signUpSchema = z.object({
   confirmPassword: z.string(),
   displayName: nameSchema,
   role: z.enum(['customer', 'cooker', 'driver'], {
-    message: 'Selecciona un rol válido'
+    errorMap: () => ({ message: 'Selecciona un rol válido' })
   }),
   acceptTerms: z.boolean()
     .refine(val => val === true, 'Debes aceptar los términos y condiciones')
@@ -119,7 +119,7 @@ export const driverProfileSchema = z.object({
   displayName: nameSchema,
   phone: phoneSchema,
   vehicleType: z.enum(['bicycle', 'motorcycle', 'car'], {
-    message: 'Selecciona un tipo de vehículo válido'
+    errorMap: () => ({ message: 'Selecciona un tipo de vehículo válido' })
   }),
   vehiclePlate: z.string()
     .min(6, 'La patente debe tener al menos 6 caracteres')
@@ -142,7 +142,7 @@ export const driverProfileSchema = z.object({
 export const roleAssignmentSchema = z.object({
   userId: z.string().min(1, 'ID de usuario requerido'),
   newRole: z.enum(['customer', 'cooker', 'driver', 'admin'], {
-    message: 'Rol inválido'
+    errorMap: () => ({ message: 'Rol inválido' })
   }),
   reason: z.string()
     .min(10, 'Debe proporcionar una razón (mínimo 10 caracteres)')
