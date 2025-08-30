@@ -80,7 +80,7 @@ function PaymentPendingContent() {
                 </li>
                 <li className="flex items-start gap-2">
                   <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                  <span>Puedes consultar el estado en "Mis Pedidos"</span>
+                  <span>Puedes consultar el estado en &quot;Mis Pedidos&quot;</span>
                 </li>
               </ul>
             </CardContent>

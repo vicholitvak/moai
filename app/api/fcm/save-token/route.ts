@@ -3,7 +3,7 @@ import { admin } from '@/lib/firebase/admin';
 
 const db = admin.firestore();
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const { userId, token, platform } = await request.json();
 
@@ -18,10 +18,10 @@ export async function POST(request: NextRequest) {
     const userRef = db.collection('users').doc(userId);
     await userRef.set({
       fcmTokens: {
-        [platform || 'web']: {
+        [platform ?? 'web']: {
           token,
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-          userAgent: request.headers.get('user-agent') || 'unknown'
+          userAgent: request.headers.get('user-agent') ?? 'unknown'
         }
       }
     }, { merge: true });

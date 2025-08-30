@@ -342,7 +342,7 @@ const DeliveryVerificationPage = () => {
                   <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-bold">
                     2
                   </div>
-                  <span>Ingresa el código en el campo de arriba y presiona "Buscar"</span>
+                  <span>Ingresa el código en el campo de arriba y presiona &quot;Buscar&quot;</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-bold">

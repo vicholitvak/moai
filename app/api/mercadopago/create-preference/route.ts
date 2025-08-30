@@ -5,12 +5,12 @@ import { monitoring } from '@/lib/services/monitoringService';
 // Using MercadoPago REST API directly instead of SDK to avoid build issues
 const MERCADO_PAGO_ACCESS_TOKEN = process.env.MERCADO_PAGO_ACCESS_TOKEN;
 
-async function createPreferenceHandler(request: NextRequest) {
+async function createPreferenceHandler(request: NextRequest): Promise<NextResponse> {
   try {
     const body = await request.json();
     const { amount, description, orderId, customerEmail, customerName, items } = body;
 
-    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000';
 
     // Track payment creation attempt
     monitoring.trackPayment(amount, 'CLP', 'mercadopago', true);

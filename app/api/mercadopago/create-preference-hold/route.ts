@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const MERCADO_PAGO_ACCESS_TOKEN = process.env.MERCADO_PAGO_ACCESS_TOKEN;
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const body = await request.json();
     const { amount, description, orderId, customerEmail, customerName, items } = body;
 
-    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXTAUTH_URL ?? 'http://localhost:3000';
     
     console.log('Creating MercadoPago preference with authorization hold:', {
       amount,

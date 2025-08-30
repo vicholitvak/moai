@@ -90,10 +90,10 @@ export default function AdminVerifyPage() {
                 <div className="space-y-2 text-sm">
                   <div><strong>Email:</strong> {user.email}</div>
                   <div><strong>UID:</strong> {user.uid}</div>
-                  <div><strong>Display Name:</strong> {user.displayName || 'Not set'}</div>
+                  <div><strong>Display Name:</strong> {user.displayName ?? 'Not set'}</div>
                   <div><strong>Current Role:</strong> 
                     <Badge className="ml-2" variant={role === 'Admin' ? 'default' : 'secondary'}>
-                      {role || 'Loading...'}
+                      {role ?? 'Loading...'}
                     </Badge>
                   </div>
                 </div>

@@ -416,7 +416,7 @@ export default function DeliveryGuidanceFlow({
                 {order.deliveryInfo.instructions && (
                   <div className="flex items-start space-x-2">
                     <MessageSquare className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                    <span className="italic">"{order.deliveryInfo.instructions}"</span>
+                    <span className="italic">&quot;{order.deliveryInfo.instructions}&quot;</span>
                   </div>
                 )}
               </div>

@@ -4,7 +4,7 @@ import { OrdersService } from '@/lib/firebase/dataService';
 // Using MercadoPago REST API directly instead of SDK to avoid build issues
 const MERCADO_PAGO_ACCESS_TOKEN = process.env.MERCADO_PAGO_ACCESS_TOKEN;
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const body = await request.json();
     console.log('Mercado Pago webhook received:', body);

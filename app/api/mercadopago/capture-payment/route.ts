@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const MERCADO_PAGO_ACCESS_TOKEN = process.env.MERCADO_PAGO_ACCESS_TOKEN;
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const body = await request.json();
     const { paymentId, amount } = body;
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     // Capture the authorized payment
     const capturePayload: any = {
-      transaction_amount: amount || paymentData.transaction_amount,
+      transaction_amount: amount ?? paymentData.transaction_amount,
       capture: true
     };
 
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
       status: captureResult.status,
       status_detail: captureResult.status_detail,
       transaction_amount: captureResult.transaction_amount,
-      captured_amount: amount || captureResult.transaction_amount,
+      captured_amount: amount ?? captureResult.transaction_amount,
       capture_date: new Date().toISOString()
     });
 

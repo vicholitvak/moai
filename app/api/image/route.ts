@@ -1,10 +1,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(req: NextRequest) {
+export async function GET(req: NextRequest): Promise<NextResponse> {
   const { searchParams } = new URL(req.url);
-  const query = searchParams.get('query') || 'food';
-  const orientation = searchParams.get('orientation') || 'landscape';
+  const query = searchParams.get('query') ?? 'food';
+  const orientation = searchParams.get('orientation') ?? 'landscape';
   // TODO: Replace with process.env.UNSPLASH_ACCESS_KEY
   const accessKey = 'Xldgx1whiesin60J_MBv-F_k8DnCtaRkmrU9yGM26mU';
 

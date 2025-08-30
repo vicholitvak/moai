@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ShoppingCart, Plus, Star, Clock, Loader2 } from 'lucide-react';
+import Image from 'next/image';
+import { Plus, Star, Clock, Loader2 } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
@@ -88,10 +89,11 @@ const RecommendedPairings: React.FC<RecommendedPairingsProps> = ({ cookId, onAdd
   const ItemCard = ({ item }: { item: Dish }) => (
     <Card className="overflow-hidden hover:shadow-md transition-shadow">
       <div className="aspect-[3/2] relative">
-        <img 
+        <Image 
           src={item.image} 
           alt={item.name}
-          className="w-full h-full object-cover"
+          fill
+          className="object-cover"
           onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
             e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDE1MCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNTAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik02MiAzN0g4OFY2M0g2MlYzN1oiIGZpbGw9IiM5QjlCQTMiLz4KPC9zdmc+';
           }}

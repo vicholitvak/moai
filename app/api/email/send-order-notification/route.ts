@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const { 
       cookEmail, 
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Base URL for dashboard links
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000';
     const confirmUrl = `${baseUrl}/cooker/dashboard?confirm=${orderId}`;
     const rejectUrl = `${baseUrl}/cooker/dashboard?reject=${orderId}`;
 

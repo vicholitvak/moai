@@ -47,7 +47,7 @@ const ModernTestimonial = React.forwardRef<HTMLDivElement, TestimonialProps>(
 
           {/* Quote */}
           <blockquote className="text-gray-700 mb-6 leading-relaxed">
-            "{quote}"
+            &quot;{quote}&quot;
           </blockquote>
 
           {/* Author */}

@@ -4,7 +4,7 @@ import { admin } from '@/lib/firebase/admin';
 const db = admin.firestore();
 const messaging = admin.messaging();
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const { userId, notification, data } = await request.json();
 
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     if (!userData) {
       return NextResponse.json({ error: 'User data not found' }, { status: 404 });
     }
-    const fcmTokens = userData.fcmTokens || {};
+    const fcmTokens = userData.fcmTokens ?? {};
     
     // Get all available tokens for the user
     const tokens = Object.values(fcmTokens)
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       },
       data: {
         ...data,
-        clickAction: data?.actionUrl || '/',
+        clickAction: data?.actionUrl ?? '/',
         timestamp: new Date().toISOString()
       },
       android: {

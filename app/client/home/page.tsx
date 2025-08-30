@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useAuth } from '../../../context/AuthContext';
 import { useCart } from '../../../context/CartContext';
 import { OrdersService, DishesService, CooksService } from '@/lib/firebase/dataService';
+import type { Order, Dish, Cook } from '@/lib/firebase/dataService';
 import { NotificationService } from '@/lib/services/notificationService';
 import { 
   Bell, 
@@ -47,16 +49,16 @@ const orderStatusMap = {
 };
 
 const ClientHome = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { itemCount } = useCart();
   const router = useRouter();
   
-  const [activeOrders, setActiveOrders] = useState<any[]>([]);
-  const [recentOrders, setRecentOrders] = useState<any[]>([]);
-  const [recommendations, setRecommendations] = useState<any[]>([]);
-  const [favoriteDishes, setFavoriteDishes] = useState<any[]>([]);
-  const [featuredDishes, setFeaturedDishes] = useState<any[]>([]);
-  const [topCooks, setTopCooks] = useState<any[]>([]);
+  const [activeOrders, setActiveOrders] = useState<Order[]>([]);
+  const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+  const [recommendations, setRecommendations] = useState<Dish[]>([]);
+  const [favoriteDishes, setFavoriteDishes] = useState<Dish[]>([]);
+  const [featuredDishes, setFeaturedDishes] = useState<Dish[]>([]);
+  const [topCooks, setTopCooks] = useState<Cook[]>([]);
   const [stats, setStats] = useState({
     totalOrders: 0,
     totalSpent: 0,
@@ -66,18 +68,10 @@ const ClientHome = () => {
   const [loading, setLoading] = useState(true);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
+  // Load notifications on mount
   useEffect(() => {
-    if (!user) {
-      router.push('/login');
-      return;
-    }
-    
-    fetchDashboardData();
-    setupRealtimeListeners();
-    
-    // Load notifications
     NotificationService.loadPersistedNotifications();
-    const unsubscribe = NotificationService.subscribe((notifications) => {
+    const unsubscribe = NotificationService.subscribe(() => {
       const count = NotificationService.getUnreadCountSync();
       setUnreadNotifications(count);
     });
@@ -85,9 +79,9 @@ const ClientHome = () => {
     return () => {
       unsubscribe();
     };
-  }, [user, router]);
+  }, []);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     if (!user) return;
     
     try {
@@ -104,7 +98,7 @@ const ClientHome = () => {
       setRecentOrders(recent);
       
       // Calculate stats
-      const totalSpent = orders.reduce((sum, o) => sum + (o.total || 0), 0);
+      const totalSpent = orders.reduce((sum, o) => sum + (o.total ?? 0), 0);
       setStats({
         totalOrders: orders.length,
         totalSpent,
@@ -120,14 +114,14 @@ const ClientHome = () => {
         .filter(d => d.isAvailable)
         .sort((a, b) => {
           // Prioritize dishes with actual ratings, then by creation date
-          const ratingA = a.rating || 0;
-          const ratingB = b.rating || 0;
+          const ratingA = a.rating ?? 0;
+          const ratingB = b.rating ?? 0;
           if (ratingA !== ratingB) {
             return ratingB - ratingA;
           }
           // If ratings are equal, prioritize newer dishes
-          const dateA = a.createdAt?.toDate() || new Date(0);
-          const dateB = b.createdAt?.toDate() || new Date(0);
+          const dateA = a.createdAt?.toDate() ?? new Date(0);
+          const dateB = b.createdAt?.toDate() ?? new Date(0);
           return dateB.getTime() - dateA.getTime();
         })
         .slice(0, 6);
@@ -155,9 +149,9 @@ const ClientHome = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
-  const setupRealtimeListeners = () => {
+  const setupRealtimeListeners = useCallback(() => {
     if (!user) return;
     
     // Listen for order updates
@@ -179,7 +173,18 @@ const ClientHome = () => {
     );
     
     return () => unsubscribe();
-  };
+  }, [user]);
+
+  // Main initialization effect
+  useEffect(() => {
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+    
+    fetchDashboardData();
+    setupRealtimeListeners();
+  }, [user, router, fetchDashboardData, setupRealtimeListeners]);
 
   const getOrderProgress = (status: string): number => {
     const progressMap: { [key: string]: number } = {
@@ -209,11 +214,11 @@ const ClientHome = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Avatar className="h-10 w-10">
-                <AvatarImage src={user?.photoURL || ''} />
-                <AvatarFallback>{user?.displayName?.[0] || 'U'}</AvatarFallback>
+                <AvatarImage src={user?.photoURL ?? ''} />
+                <AvatarFallback>{user?.displayName?.[0] ?? 'U'}</AvatarFallback>
               </Avatar>
               <div>
-                <h1 className="text-xl font-bold text-gradient-moai animate-fade-in">¡Hola, {user?.displayName || 'Cliente'}!</h1>
+                <h1 className="text-xl font-bold text-gradient-moai animate-fade-in">¡Hola, {user?.displayName ?? 'Cliente'}!</h1>
                 <p className="text-sm text-muted-foreground">Bienvenido a tu dashboard</p>
               </div>
             </div>
@@ -354,10 +359,11 @@ const ClientHome = () => {
                     onClick={() => router.push(`/dishes/${dish.id}`)}
                   >
                     <div className="aspect-square relative">
-                      <img 
+                      <Image 
                         src={dish.image} 
                         alt={dish.name}
-                        className="w-full h-full object-cover rounded-t-lg"
+                        fill
+                        className="object-cover rounded-t-lg"
                         onError={(e) => {
                           e.currentTarget.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300&h=300&fit=crop';
                         }}
@@ -474,10 +480,11 @@ const ClientHome = () => {
                       onClick={() => router.push(`/dishes/${dish.id}`)}
                     >
                       <div className="aspect-video relative">
-                        <img 
+                        <Image 
                           src={dish.image} 
                           alt={dish.name}
-                          className="w-full h-full object-cover rounded-t-lg"
+                          fill
+                          className="object-cover rounded-t-lg"
                         />
                         {dish.isAvailable && (
                           <Badge className="absolute top-2 right-2">Disponible</Badge>
@@ -518,9 +525,11 @@ const ClientHome = () => {
                         className="flex gap-4 p-4 border rounded-lg hover:bg-accent cursor-pointer"
                         onClick={() => router.push(`/dishes/${dish.id}`)}
                       >
-                        <img 
+                        <Image 
                           src={dish.image} 
                           alt={dish.name}
+                          width={80}
+                          height={80}
                           className="w-20 h-20 rounded-lg object-cover"
                         />
                         <div className="flex-1">
@@ -583,7 +592,7 @@ const ClientHome = () => {
                               </div>
                               <div className="flex items-center gap-1">
                                 <MapPin className="h-4 w-4" />
-                                <span>{cook.distance || 'Cerca'}</span>
+                                <span>Cerca</span>
                               </div>
                               <div className="flex items-center gap-1">
                                 <Package className="h-4 w-4" />
@@ -688,7 +697,7 @@ const ClientHome = () => {
             onClick={() => router.push('/profile')}
           >
             <Avatar className="h-6 w-6">
-              <AvatarImage src={user?.photoURL || ''} />
+              <AvatarImage src={user?.photoURL ?? ''} />
               <AvatarFallback>U</AvatarFallback>
             </Avatar>
             <span>Mi Perfil</span>

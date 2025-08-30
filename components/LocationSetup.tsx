@@ -165,7 +165,7 @@ export default function LocationSetup({ onLocationUpdate, currentLocation }: Loc
           <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800">
             <AlertCircle className="h-4 w-4" />
             <span className="text-sm">
-              Se requiere permiso de ubicación para configurar tu cocina. Haz clic en "Obtener Ubicación" para otorgar permisos.
+              Se requiere permiso de ubicación para configurar tu cocina. Haz clic en &quot;Obtener Ubicación&quot; para otorgar permisos.
             </span>
           </div>
         )}

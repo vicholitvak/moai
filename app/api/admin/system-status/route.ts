@@ -6,7 +6,7 @@ import { headers } from 'next/headers'
  * Admin-only system status endpoint
  * Provides detailed health information for monitoring dashboards
  */
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     // Basic auth check - in production, you'd use proper admin authentication
     const headersList = await headers()
@@ -21,8 +21,8 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
-    const hours = parseInt(searchParams.get('hours') || '24')
-    const format = searchParams.get('format') || 'json'
+    const hours = parseInt(searchParams.get('hours') ?? '24')
+    const format = searchParams.get('format') ?? 'json'
 
     // Perform comprehensive health check
     const healthCheck = await UptimeMonitor.performFullHealthCheck()
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 
     if (format === 'prometheus') {
       const prometheusData = UptimeMonitor.exportMetrics('prometheus')
-      return new Response(prometheusData, {
+      return NextResponse.json(prometheusData, {
         headers: {
           'Content-Type': 'text/plain; charset=utf-8'
         }
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       system: {
         overall: healthCheck.overall,
         uptime: process.uptime(),
-        version: process.env.NEXT_PUBLIC_APP_VERSION || 'development',
+        version: process.env.NEXT_PUBLIC_APP_VERSION ?? 'development',
         environment: process.env.NODE_ENV,
         nodeVersion: process.version
       },
@@ -173,7 +173,7 @@ function generateAlerts(
 /**
  * Update system status (for manual overrides)
  */
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const headersList = await headers()
     const authorization = headersList.get('authorization')

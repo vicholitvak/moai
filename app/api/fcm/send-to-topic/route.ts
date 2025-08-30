@@ -3,7 +3,7 @@ import { admin } from '@/lib/firebase/admin';
 
 const messaging = admin.messaging();
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const { topic, notification, data } = await request.json();
 
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       },
       data: {
         ...data,
-        clickAction: data?.actionUrl || '/',
+        clickAction: data?.actionUrl ?? '/',
         timestamp: new Date().toISOString()
       },
       android: {

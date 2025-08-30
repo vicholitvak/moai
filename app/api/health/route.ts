@@ -24,7 +24,7 @@ async function checkDatabaseHealth(): Promise<'ok' | 'degraded' | 'down'> {
     const startTime = Date.now();
     
     // Try to read a document from Firestore
-    const testDoc = await getDoc(doc(db, 'health', 'test'));
+    await getDoc(doc(db, 'health', 'test'));
     
     const responseTime = Date.now() - startTime;
     
@@ -95,7 +95,7 @@ function getUptimeInSeconds(): number {
   return process.uptime();
 }
 
-export async function HEAD() {
+export async function HEAD(): Promise<NextResponse> {
   return new NextResponse(null, { 
     status: 200,
     headers: {
@@ -106,7 +106,7 @@ export async function HEAD() {
   });
 }
 
-export async function GET() {
+export async function GET(): Promise<NextResponse> {
   const startTime = Date.now();
 
   try {
@@ -142,8 +142,8 @@ export async function GET() {
         responseTime,
         uptime: getUptimeInSeconds()
       },
-      version: process.env.NEXT_PUBLIC_APP_VERSION || 'development',
-      environment: process.env.NODE_ENV || 'unknown'
+      version: process.env.NEXT_PUBLIC_APP_VERSION ?? 'development',
+      environment: process.env.NODE_ENV ?? 'unknown'
     };
 
     // Set appropriate HTTP status
@@ -175,8 +175,8 @@ export async function GET() {
         responseTime: Date.now() - startTime,
         uptime: getUptimeInSeconds()
       },
-      version: process.env.NEXT_PUBLIC_APP_VERSION || 'development',
-      environment: process.env.NODE_ENV || 'unknown'
+      version: process.env.NEXT_PUBLIC_APP_VERSION ?? 'development',
+      environment: process.env.NODE_ENV ?? 'unknown'
     };
 
     return NextResponse.json(errorResponse, {

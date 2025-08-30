@@ -2,6 +2,7 @@
 
 import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useAuth } from '../../../context/AuthContext';
 import { useCart } from '../../../context/CartContext';
 import { DishesService, CooksService, ReviewsService } from '@/lib/firebase/dataService';
@@ -16,9 +17,7 @@ import {
   Heart,
   ShoppingCart,
   ChefHat,
-  Users,
   Award,
-  MessageCircle,
   Plus,
   Minus,
   Share2,
@@ -28,13 +27,9 @@ import {
   Flame,
   Shield,
   Zap,
-  Phone,
   MessageSquare,
   Truck,
-  Calendar,
-  DollarSign,
   Eye,
-  ThumbsUp,
   Sparkles,
   Crown,
   TrendingUp
@@ -75,7 +70,6 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
   const [addToCartSuccess, setAddToCartSuccess] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
-  const [showNutrition, setShowNutrition] = useState(false);
 
   useEffect(() => {
     const fetchDishData = async () => {
@@ -136,7 +130,7 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
     };
 
     fetchDishData();
-  }, [resolvedParams.id]);
+  }, [resolvedParams.id, user]);
 
   const handleAddToCart = async () => {
     if (!dish || !user) return;
@@ -344,10 +338,11 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
                 </div>
               )}
 
-              <img
+              <Image
                 src={dish.images?.[selectedImage] || dish.image}
                 alt={dish.name}
-                className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-110 ${imageLoading ? 'opacity-0' : 'opacity-100'}`}
+                fill
+                className={`object-cover transition-all duration-700 group-hover:scale-110 ${imageLoading ? 'opacity-0' : 'opacity-100'}`}
                 onLoad={() => setImageLoading(false)}
                 onError={(e) => {
                   setImageLoading(false);
@@ -420,10 +415,11 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
                         : 'border-slate-200 hover:border-slate-400'
                     }`}
                   >
-                    <img
+                    <Image
                       src={image}
                       alt={`${dish.name} ${index + 1}`}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
                     />
                   </button>
                 ))}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useAuth } from '../../../context/AuthContext';
 import { useCart } from '../../../context/CartContext';
 import { toast } from 'sonner';
@@ -17,9 +18,6 @@ import {
   Award,
   MessageCircle,
   Share2,
-  Phone,
-  Mail,
-  Calendar,
   TrendingUp,
   Badge as BadgeIcon,
   Utensils,
@@ -27,7 +25,7 @@ import {
   CheckCircle
 } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../../../components/ui/avatar';
 import { formatPrice } from '@/lib/utils';
@@ -49,11 +47,9 @@ interface CookProfile extends Omit<Cook, 'cookingStyle' | 'favoriteIngredients' 
 
 const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
   const router = useRouter();
-  const { user, logout } = useAuth();
   const { addToCart } = useCart();
   const [cook, setCook] = useState<CookProfile | null>(null);
   const [dishes, setDishes] = useState<Dish[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
   const [cookId, setCookId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'dishes' | 'about' | 'reviews'>('dishes');
@@ -100,16 +96,15 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
           reviews: cookReviews,
           achievements: [
             { title: 'Top Rated Cook', description: `Maintained ${cookData.rating}+ rating`, icon: '🏆' },
-            { title: 'Satisfied Customers', description: `Served ${cookData.totalOrders || 0} customers`, icon: '👥' },
+            { title: 'Satisfied Customers', description: `Served ${cookData.totalOrders ?? 0} customers`, icon: '👥' },
             { title: 'Verified Chef', description: 'Professional cooking certification', icon: '✓' }
           ],
-          favoriteIngredients: cookData.specialties || [],
-          cookingStyle: cookData.bio?.split('.')[0] || 'Traditional cooking'
+          favoriteIngredients: cookData.specialties ?? [],
+          cookingStyle: cookData.bio?.split('.')[0] ?? 'Traditional cooking'
         };
         
         setCook(fullCookProfile);
         setDishes(cookDishes);
-        setReviews(cookReviews);
         
       } catch (error) {
         console.error('Error fetching cook data:', error);
@@ -122,28 +117,6 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
     fetchCookData();
   }, [cookId]);
 
-  const handleAddToCart = (item: Dish) => {
-    const cartItem = {
-      dishId: item.id,
-      name: item.name,
-      price: item.price,
-      image: (item.image && item.image.trim() !== '') ? item.image : 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik00MCA0MEg2MFY2MEg0MFY0MFoiIGZpbGw9IiM5QjlCQTMiLz4KPC9zdmc+',
-      cookerName: cook?.name || 'Unknown Cook',
-      cookerId: cookId,
-      cookerAvatar: cook?.avatar || '',
-      quantity: 1,
-      prepTime: item.prepTime || '30 min',
-      category: item.category || 'main'
-    };
-    
-    addToCart(cartItem);
-    toast.success(`Added ${item.name} to cart!`, {
-      action: {
-        label: 'View Cart',
-        onClick: () => router.push('/cart')
-      }
-    });
-  };
 
   // Filter dishes by category
   const getFilteredItems = () => {
@@ -175,7 +148,7 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
         <div className="text-center">
           <ChefHat className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
           <h2 className="text-2xl font-bold mb-2">Cook Not Found</h2>
-          <p className="text-muted-foreground mb-4">The cook you're looking for doesn't exist or has been removed.</p>
+          <p className="text-muted-foreground mb-4">The cook you&apos;re looking for doesn&apos;t exist or has been removed.</p>
           <Button onClick={() => router.push('/dishes')}>Browse Dishes</Button>
         </div>
       </div>
@@ -201,10 +174,10 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={logout}
+                onClick={() => router.push('/login')}
                 className="text-muted-foreground hover:text-destructive"
               >
-                Logout
+                Login
               </Button>
             </div>
           </div>
@@ -215,10 +188,11 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
       <div className="relative">
         <div className="h-64 bg-gradient-to-r from-orange-400 to-red-500 relative overflow-hidden">
           {cook.coverImage && cook.coverImage.trim() !== '' && (
-            <img 
+            <Image 
               src={cook.coverImage} 
               alt={`${cook.name} kitchen`}
-              className="w-full h-full object-cover opacity-80"
+              fill
+              className="object-cover opacity-80"
               onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
                 e.currentTarget.style.display = 'none';
               }}
@@ -249,7 +223,7 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
                       </div>
                       <div className="flex items-center gap-1">
                         <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">{cook.location?.address?.fullAddress || 'Ubicación no disponible'}</span>
+                        <span className="text-muted-foreground">{cook.location?.address?.fullAddress ?? 'Ubicación no disponible'}</span>
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2 mb-3">
@@ -367,14 +341,14 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
                 size="sm"
                 onClick={() => setSelectedCategory('drinks')}
               >
-                Drinks ({(cook as any).drinks?.length || 0})
+                Drinks ({(cook as any).drinks?.length ?? 0})
               </Button>
               <Button
                 variant={selectedCategory === 'sides' ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => setSelectedCategory('sides')}
               >
-                Sides ({(cook as any).sides?.length || 0})
+                Sides ({(cook as any).sides?.length ?? 0})
               </Button>
             </div>
             
@@ -387,10 +361,11 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
                         }
                       }}>
                   <div className="aspect-[4/3] relative">
-                    <img 
+                    <Image 
                       src={item.image} 
                       alt={item.name}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
                       onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
                         e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik00MCA0MEg2MFY2MEg0MFY0MFoiIGZpbGw9IiM5QjlCQTMiLz4KPC9zdmc+';
                       }}
@@ -439,8 +414,8 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
                           quantity: 1,
                           cookerName: cook.displayName,
                           cookerId: cook.id,
-                          image: item.image || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik00MCA0MEg2MFY2MEg0MFY0MFoiIGZpbGw9IiM5QjlCQTMiLz4KPC9zdmc+',
-                          prepTime: item.prepTime || '30 min'
+                          image: item.image ?? 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik00MCA0MEg2MFY2MEg0MFY0MFoiIGZpbGw9IiM5QjlCQTMiLz4KPC9zdmc+',
+                          prepTime: item.prepTime ?? '30 min'
                         } as any);
                       }}
                     >
@@ -534,7 +509,7 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
               </CardHeader>
               <CardContent>
                 <div className="grid md:grid-cols-2 gap-4">
-                  {(cook.achievements || []).map((achievement: { title: string; description: string; icon: string }, index: number) => (
+                  {(cook.achievements ?? []).map((achievement: { title: string; description: string; icon: string }, index: number) => (
                     <div key={index} className="flex items-start gap-3 p-3 bg-muted rounded-lg">
                       <div className="text-2xl">{achievement.icon}</div>
                       <div>
@@ -583,9 +558,9 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
                       ...cookData,
                       dishes: cookDishes,
                       reviews: cookReviews,
-                      achievements: cook?.achievements || [],
-                      favoriteIngredients: cook?.favoriteIngredients || [],
-                      cookingStyle: cook?.cookingStyle || ''
+                      achievements: cook?.achievements ?? [],
+                      favoriteIngredients: cook?.favoriteIngredients ?? [],
+                      cookingStyle: cook?.cookingStyle ?? ''
                     });
                   }
                 } catch (error) {

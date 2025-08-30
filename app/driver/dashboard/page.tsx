@@ -1,7 +1,7 @@
 'use client';
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { DriversService, OrdersService, CooksService, DishesService } from '@/lib/firebase/dataService';
@@ -56,7 +56,7 @@ import DeliveryFeed from '@/components/DeliveryFeed';
 import ActiveDeliveryView from '@/components/ActiveDeliveryView';
 import DeliveryGuidanceFlow from '@/components/DeliveryGuidanceFlow';
 import { IdleDriverTrackingService } from '@/lib/services/idleDriverTrackingService';
-import RouteOptimizationService, { OptimizedRoute, RoutePoint } from '@/lib/services/routeOptimizationService';
+import RouteOptimizationService, { OptimizedRoute } from '@/lib/services/routeOptimizationService';
 import { format } from 'date-fns';
 
 interface DriverStats {
@@ -78,11 +78,6 @@ interface DriverStats {
   fuelEfficiency: string;
 }
 
-interface WeeklyEarnings {
-  day: string;
-  earnings: number;
-  deliveries: number;
-}
 
 export default function DriverDashboard() {
   const router = useRouter();
@@ -91,7 +86,6 @@ export default function DriverDashboard() {
   const [driverData, setDriverData] = useState<Driver | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [profileCompleted, setProfileCompleted] = useState(false);
   const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [orderFilter, setOrderFilter] = useState('available');
@@ -133,33 +127,7 @@ export default function DriverDashboard() {
   const [idleTracking, setIdleTracking] = useState<{ stop: () => void } | null>(null);
   const [locationWatchId, setLocationWatchId] = useState<number | null>(null);
 
-  // Get real driver location on mount and when user changes
-  useEffect(() => {
-    if (!user) return;
-    const geoSuccess = (position: GeolocationPosition) => {
-      setDriverCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
-      setCurrentLocation(`${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`);
-    };
-    const geoError = (err: GeolocationPositionError) => {
-      setCurrentLocation('Ubicación no disponible');
-      setDriverCoords(null);
-    };
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(geoSuccess, geoError, { enableHighAccuracy: true, timeout: 10000 });
-    }
-    loadDriverData();
-  }, [user]);
-
-  // Cleanup idle tracking when component unmounts
-  useEffect(() => {
-    return () => {
-      if (idleTracking) {
-        idleTracking.stop();
-      }
-    };
-  }, [idleTracking]);
-
-  const loadDriverData = async () => {
+  const loadDriverData = useCallback(async () => {
     if (!user) return;
     
     setLoading(true);
@@ -199,7 +167,6 @@ export default function DriverDashboard() {
       
       console.log('DriverDashboard: Driver profile is complete, proceeding with dashboard');
       setDriverData(driver);
-      setProfileCompleted(true);
       
       // Continue with existing logic if profile is complete
       if (!driver) {
@@ -270,7 +237,118 @@ export default function DriverDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  const updateStats = useCallback((currentOrders: Order[]) => {
+    const deliveredOrders = currentOrders.filter(order => order.status === 'delivered');
+    const now = new Date();
+    
+    // Date ranges
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const weekStart = new Date();
+    weekStart.setDate(now.getDate() - 7);
+    weekStart.setHours(0, 0, 0, 0);
+    
+    const monthStart = new Date();
+    monthStart.setMonth(now.getMonth() - 1);
+    monthStart.setHours(0, 0, 0, 0);
+
+    // Filter orders by time periods
+    const todayDeliveredOrders = deliveredOrders.filter(order => {
+      const orderDate = order.actualDeliveryTime?.toDate() || order.createdAt?.toDate() || new Date();
+      return orderDate >= today;
+    });
+    
+    const weekDeliveredOrders = deliveredOrders.filter(order => {
+      const orderDate = order.actualDeliveryTime?.toDate() || order.createdAt?.toDate() || new Date();
+      return orderDate >= weekStart;
+    });
+    
+    const monthDeliveredOrders = deliveredOrders.filter(order => {
+      const orderDate = order.actualDeliveryTime?.toDate() || order.createdAt?.toDate() || new Date();
+      return orderDate >= monthStart;
+    });
+
+    // Calculate earnings (drivers typically earn delivery fees + tips)
+    const todayEarnings = todayDeliveredOrders.reduce((sum, order) => sum + (order.deliveryFee || 2500), 0);
+    const weekEarnings = weekDeliveredOrders.reduce((sum, order) => sum + (order.deliveryFee || 2500), 0);
+    const monthEarnings = monthDeliveredOrders.reduce((sum, order) => sum + (order.deliveryFee || 2500), 0);
+    const totalEarnings = deliveredOrders.reduce((sum, order) => sum + (order.deliveryFee || 2500), 0);
+    
+    // Calculate delivery counts
+    const todayDeliveries = todayDeliveredOrders.length;
+    const weekDeliveries = weekDeliveredOrders.length;
+    const monthDeliveries = monthDeliveredOrders.length;
+    const totalDeliveries = deliveredOrders.length;
+
+    // Calculate performance metrics
+    const averageDeliveryTime = deliveredOrders.length > 0 
+      ? deliveredOrders.reduce((sum, order) => {
+          const created = order.createdAt?.toDate() || new Date();
+          const delivered = order.actualDeliveryTime?.toDate() || new Date();
+          return sum + (delivered.getTime() - created.getTime()) / (1000 * 60); // minutes
+        }, 0) / deliveredOrders.length 
+      : 25;
+
+    const onTimeDeliveries = deliveredOrders.filter(order => {
+      const created = order.createdAt?.toDate() || new Date();
+      const delivered = order.actualDeliveryTime?.toDate() || new Date();
+      const deliveryTime = (delivered.getTime() - created.getTime()) / (1000 * 60);
+      const estimatedTime = typeof order.estimatedDeliveryTime === 'number' ? order.estimatedDeliveryTime : 45;
+      return deliveryTime <= estimatedTime; // on time if within estimated time
+    }).length;
+
+    const onTimeDeliveryRate = deliveredOrders.length > 0 ? (onTimeDeliveries / deliveredOrders.length) * 100 : 95;
+
+    // Update stats with enhanced metrics
+    setStats(prevStats => ({
+      ...prevStats,
+      todayEarnings,
+      weekEarnings,
+      monthEarnings,
+      totalEarnings,
+      todayDeliveries,
+      weekDeliveries,
+      monthDeliveries,
+      totalDeliveries,
+      averageRating: driverData?.rating || 5.0,
+      completionRate: driverData?.completionRate || 100,
+      totalDistance: `${(totalDeliveries * 2.5).toFixed(1)} km`,
+      onlineTime: isOnline ? '2h 30m' : '0h 0m',
+      averageDeliveryTime: Math.round(averageDeliveryTime),
+      customerSatisfactionRate: 98, // This could be calculated from reviews
+      onTimeDeliveryRate: Math.round(onTimeDeliveryRate),
+      fuelEfficiency: '12.5 km/L' // This would come from vehicle data
+    }));
+  }, [driverData, isOnline]);
+
+  // Get real driver location on mount and when user changes
+  useEffect(() => {
+    if (!user) return;
+    const geoSuccess = (position: GeolocationPosition) => {
+      setDriverCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
+      setCurrentLocation(`${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`);
+    };
+    const geoError = (err: GeolocationPositionError) => {
+      setCurrentLocation('Ubicación no disponible');
+      setDriverCoords(null);
+    };
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(geoSuccess, geoError, { enableHighAccuracy: true, timeout: 10000 });
+    }
+    loadDriverData();
+  }, [user, loadDriverData]);
+
+  // Cleanup idle tracking when component unmounts
+  useEffect(() => {
+    return () => {
+      if (idleTracking) {
+        idleTracking.stop();
+      }
+    };
+  }, [idleTracking]);
 
   useEffect(() => {
     let unsubscribeOrders: () => void;
@@ -365,101 +443,15 @@ export default function DriverDashboard() {
         unsubscribeAvailableOrders();
       }
     };
-  }, [user, driverData, availableOrders]);
+  }, [user, driverData, availableOrders, activeDeliveryOrder, updateStats]);
 
-  const handleOnboardingComplete = () => {
+  const handleOnboardingComplete = useCallback(() => {
     setShowOnboarding(false);
-    setProfileCompleted(true);
     // Reload the data after onboarding is complete
     if (user?.uid) {
       loadDriverData();
     }
-  };
-
-  const updateStats = (currentOrders: Order[]) => {
-    const deliveredOrders = currentOrders.filter(order => order.status === 'delivered');
-    const now = new Date();
-    
-    // Date ranges
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const weekStart = new Date();
-    weekStart.setDate(now.getDate() - 7);
-    weekStart.setHours(0, 0, 0, 0);
-    
-    const monthStart = new Date();
-    monthStart.setMonth(now.getMonth() - 1);
-    monthStart.setHours(0, 0, 0, 0);
-
-    // Filter orders by time periods
-    const todayDeliveredOrders = deliveredOrders.filter(order => {
-      const orderDate = order.actualDeliveryTime?.toDate() || order.createdAt?.toDate() || new Date();
-      return orderDate >= today;
-    });
-    
-    const weekDeliveredOrders = deliveredOrders.filter(order => {
-      const orderDate = order.actualDeliveryTime?.toDate() || order.createdAt?.toDate() || new Date();
-      return orderDate >= weekStart;
-    });
-    
-    const monthDeliveredOrders = deliveredOrders.filter(order => {
-      const orderDate = order.actualDeliveryTime?.toDate() || order.createdAt?.toDate() || new Date();
-      return orderDate >= monthStart;
-    });
-
-    // Calculate earnings (drivers typically earn delivery fees + tips)
-    const todayEarnings = todayDeliveredOrders.reduce((sum, order) => sum + (order.deliveryFee || 2500), 0);
-    const weekEarnings = weekDeliveredOrders.reduce((sum, order) => sum + (order.deliveryFee || 2500), 0);
-    const monthEarnings = monthDeliveredOrders.reduce((sum, order) => sum + (order.deliveryFee || 2500), 0);
-    const totalEarnings = deliveredOrders.reduce((sum, order) => sum + (order.deliveryFee || 2500), 0);
-    
-    // Calculate delivery counts
-    const todayDeliveries = todayDeliveredOrders.length;
-    const weekDeliveries = weekDeliveredOrders.length;
-    const monthDeliveries = monthDeliveredOrders.length;
-    const totalDeliveries = deliveredOrders.length;
-
-    // Calculate performance metrics
-    const averageDeliveryTime = deliveredOrders.length > 0 
-      ? deliveredOrders.reduce((sum, order) => {
-          const created = order.createdAt?.toDate() || new Date();
-          const delivered = order.actualDeliveryTime?.toDate() || new Date();
-          return sum + (delivered.getTime() - created.getTime()) / (1000 * 60); // minutes
-        }, 0) / deliveredOrders.length 
-      : 25;
-
-    const onTimeDeliveries = deliveredOrders.filter(order => {
-      const created = order.createdAt?.toDate() || new Date();
-      const delivered = order.actualDeliveryTime?.toDate() || new Date();
-      const deliveryTime = (delivered.getTime() - created.getTime()) / (1000 * 60);
-      const estimatedTime = typeof order.estimatedDeliveryTime === 'number' ? order.estimatedDeliveryTime : 45;
-      return deliveryTime <= estimatedTime; // on time if within estimated time
-    }).length;
-
-    const onTimeDeliveryRate = deliveredOrders.length > 0 ? (onTimeDeliveries / deliveredOrders.length) * 100 : 95;
-
-    // Update stats with enhanced metrics
-    setStats(prevStats => ({
-      ...prevStats,
-      todayEarnings,
-      weekEarnings,
-      monthEarnings,
-      totalEarnings,
-      todayDeliveries,
-      weekDeliveries,
-      monthDeliveries,
-      totalDeliveries,
-      averageRating: driverData?.rating || 5.0,
-      completionRate: driverData?.completionRate || 100,
-      totalDistance: `${(totalDeliveries * 2.5).toFixed(1)} km`,
-      onlineTime: isOnline ? '2h 30m' : '0h 0m',
-      averageDeliveryTime: Math.round(averageDeliveryTime),
-      customerSatisfactionRate: 98, // This could be calculated from reviews
-      onTimeDeliveryRate: Math.round(onTimeDeliveryRate),
-      fuelEfficiency: '12.5 km/L' // This would come from vehicle data
-    }));
-  };
+  }, [user?.uid, loadDriverData]);
 
   const loadOrdersAndStats = async () => {
     // This function is now primarily for initial load if needed,
@@ -1838,7 +1830,7 @@ export default function DriverDashboard() {
                       <div className="w-6 h-6 bg-orange-600 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
                         2
                       </div>
-                      <span>Presiona "Optimizar Ruta" para calcular la mejor secuencia de entregas</span>
+                      <span>Presiona &quot;Optimizar Ruta&quot; para calcular la mejor secuencia de entregas</span>
                     </div>
                     <div className="flex items-start space-x-3">
                       <div className="w-6 h-6 bg-orange-600 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">

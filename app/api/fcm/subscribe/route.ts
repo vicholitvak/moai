@@ -3,7 +3,7 @@ import { admin } from '@/lib/firebase/admin';
 
 const messaging = admin.messaging();
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const { token, topic } = await request.json();
 

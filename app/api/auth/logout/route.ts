@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { admin } from '@/lib/firebase/admin';
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const sessionCookie = req.cookies.get('session')?.value;
     if (!sessionCookie) {

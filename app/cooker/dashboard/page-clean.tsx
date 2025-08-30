@@ -98,7 +98,7 @@ export default function CookerDashboard() {
       const success = await DishesService.updateDish(editingDish.id, updatedDish);
       if (success) {
         // Refresh dishes data
-        const dishesData = await DishesService.getDishesByCook(user?.uid || '');
+        const dishesData = await DishesService.getDishesByCook(user?.uid ?? '');
         setDishes(dishesData);
         console.log('Dish updated successfully');
       }
@@ -234,7 +234,7 @@ export default function CookerDashboard() {
         <div className="flex justify-between items-center mb-3">
           <span className="text-lg font-bold">${order.total.toLocaleString('es-CL')}</span>
           <div className="text-sm text-muted-foreground">
-            <div>Pedido: {order.orderTime?.toDate()?.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) || 'N/A'}</div>
+            <div>Pedido: {order.orderTime?.toDate()?.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) ?? 'N/A'}</div>
           </div>
         </div>
         <div className="flex gap-2">
@@ -276,11 +276,11 @@ export default function CookerDashboard() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Avatar className="h-12 w-12">
-                <AvatarImage src={cookProfile?.avatar || user.photoURL || '/api/placeholder/50/50'} />
-                <AvatarFallback>{cookProfile?.displayName?.charAt(0) || user.displayName?.charAt(0) || 'C'}</AvatarFallback>
+                <AvatarImage src={cookProfile?.avatar ?? user.photoURL ?? '/api/placeholder/50/50'} />
+                <AvatarFallback>{cookProfile?.displayName?.charAt(0) ?? user.displayName?.charAt(0) ?? 'C'}</AvatarFallback>
               </Avatar>
               <div>
-                <h1 className="text-2xl font-bold">¡Hola, {cookProfile?.displayName || user.displayName || 'Cocinero'}!</h1>
+                <h1 className="text-2xl font-bold">¡Hola, {cookProfile?.displayName ?? user.displayName ?? 'Cocinero'}!</h1>
                 <p className="text-muted-foreground">Gestiona tus platos y pedidos</p>
               </div>
             </div>

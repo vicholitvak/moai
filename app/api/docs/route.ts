@@ -5,7 +5,7 @@ import path from 'path'
 /**
  * Serve API documentation as JSON for tools like Swagger/OpenAPI
  */
-export async function GET() {
+export async function GET(): Promise<NextResponse> {
   try {
     // Read the markdown documentation
     const docsPath = path.join(process.cwd(), 'docs', 'API_DOCUMENTATION.md')
@@ -319,7 +319,7 @@ export async function GET() {
 /**
  * Return API documentation info
  */
-export async function HEAD() {
+export async function HEAD(): Promise<Response> {
   return new Response(null, {
     status: 200,
     headers: {

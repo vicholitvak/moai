@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { AdminService, OrdersService, DishesService } from '@/lib/firebase/dataService';
 import { onSnapshot, query, collection, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
-import type { Order, Cook, Driver } from '@/lib/firebase/dataService';
+import type { Order, Cook, Driver, Dish } from '@/lib/firebase/dataService';
 import { formatPrice } from '@/lib/utils';
 import { 
   Activity,
@@ -25,7 +25,6 @@ import {
   Crown,
   Trash2,
   ChefHat,
-  User
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,7 +38,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import dynamic from 'next/dynamic';
 const GoogleDriversMap = dynamic(() => import('@/components/ui/google-drivers-map'), {
@@ -101,7 +99,7 @@ const AdminDashboard: React.FC = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   // Dish deletion state
-  const [dishes, setDishes] = useState<any[]>([]);
+  const [dishes, setDishes] = useState<Dish[]>([]);
   const [dishDeleteDialogOpen, setDishDeleteDialogOpen] = useState(false);
   const [dishToDelete, setDishToDelete] = useState<string | null>(null);
   // Load all dishes for admin tab
@@ -111,7 +109,7 @@ const AdminDashboard: React.FC = () => {
       try {
         const allDishes = await DishesService.getAllDishes();
         setDishes(allDishes);
-      } catch (e) {
+      } catch {
         setDishes([]);
       }
     };
@@ -190,7 +188,7 @@ const AdminDashboard: React.FC = () => {
           id: doc.id,
           ...doc.data()
         })) as Order[];
-        setOrders(ordersData as any);
+        setOrders(ordersData);
         calculateStats(ordersData);
       } finally {
         setLoading(false);

@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import { 
   Plus, 
   TrendingUp, 
@@ -159,19 +160,7 @@ export default function CookerDashboard() {
     loadData();
   }, [user?.uid, authLoading, role]);
 
-  // Handle email actions (confirm/reject from email links)
-  useEffect(() => {
-    const confirmOrderId = searchParams?.get('confirm');
-    const rejectOrderId = searchParams?.get('reject');
-
-    if (confirmOrderId && user?.uid) {
-      handleOrderAction(confirmOrderId, 'accepted');
-    } else if (rejectOrderId && user?.uid) {
-      handleOrderAction(rejectOrderId, 'rejected');
-    }
-  }, [searchParams, user?.uid]);
-
-  const handleOrderAction = async (orderId: string, action: 'accepted' | 'rejected') => {
+  const handleOrderAction = useCallback(async (orderId: string, action: 'accepted' | 'rejected') => {
     try {
       // Update order status
       await OrdersService.updateOrderStatus(orderId, action);
@@ -198,7 +187,19 @@ export default function CookerDashboard() {
         description: 'No se pudo actualizar el estado del pedido. Inténtalo de nuevo.'
       });
     }
-  };
+  }, [router]);
+
+  // Handle email actions (confirm/reject from email links)
+  useEffect(() => {
+    const confirmOrderId = searchParams?.get('confirm');
+    const rejectOrderId = searchParams?.get('reject');
+
+    if (confirmOrderId && user?.uid) {
+      handleOrderAction(confirmOrderId, 'accepted');
+    } else if (rejectOrderId && user?.uid) {
+      handleOrderAction(rejectOrderId, 'rejected');
+    }
+  }, [searchParams, user?.uid, handleOrderAction]);
 
   const handleOnboardingComplete = () => {
     setShowOnboarding(false);
@@ -227,7 +228,7 @@ export default function CookerDashboard() {
           totalEarnings,
           activeDishes,
           pendingOrders,
-          averageRating: profile?.rating || 0
+          averageRating: profile?.rating ?? 0
         });
       };
       
@@ -258,7 +259,7 @@ export default function CookerDashboard() {
       const success = await DishesService.updateDish(editingDish.id, updatedDish);
       if (success) {
         // Refresh dishes data
-        const dishesData = await DishesService.getDishesByCook(user?.uid || '');
+        const dishesData = await DishesService.getDishesByCook(user?.uid ?? '');
         setDishes(dishesData);
         console.log('Dish updated successfully');
       }
@@ -448,10 +449,11 @@ export default function CookerDashboard() {
   }) => (
     <Card className="overflow-hidden">
       <div className="aspect-video bg-muted relative">
-        <img 
+        <Image 
           src={dish.image} 
           alt={dish.name}
-          className="w-full h-full object-cover"
+          fill
+          className="object-cover"
           onError={(e) => {
             e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xNzUgMTI1SDE5NVYxNDVIMjE1VjE2NUgxOTVWMTg1SDE3NVYxNjVIMTU1VjE0NUgxNzVWMTI1WiIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K';
           }}
@@ -572,7 +574,7 @@ export default function CookerDashboard() {
             <div className="text-right">
               <div className="text-2xl font-bold text-green-600">${order.total.toLocaleString('es-CL')}</div>
               <div className="text-xs text-gray-500">
-                {order.orderTime?.toDate()?.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) || 'N/A'}
+                {order.orderTime?.toDate()?.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) ?? 'N/A'}
               </div>
             </div>
           </div>
@@ -674,7 +676,7 @@ export default function CookerDashboard() {
         <div className="flex justify-between items-center">
           <span className="font-bold text-green-600">${order.total.toLocaleString('es-CL')}</span>
           <span className="text-xs text-gray-500">
-            {order.orderTime?.toDate()?.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) || 'N/A'}
+            {order.orderTime?.toDate()?.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) ?? 'N/A'}
           </span>
         </div>
       </CardContent>
@@ -712,11 +714,11 @@ export default function CookerDashboard() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Avatar className="h-12 w-12">
-                <AvatarImage src={cookProfile?.avatar || user.photoURL || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNSAxNUMzMC41MjI5IDE1IDM1IDEwLjUyMjkgMzUgNUMzNSAyLjc5MDg2IDMzLjIwOTEgMSAzMSAxSDIwQzE3LjI5MDkgMSAxNS40NjA5IDIuNzkwODYgMTUgNUMxNSAxMC41MjI5IDE5LjQ3NzEgMTUgMjUgMTVaIiBmaWxsPSIjOUI5QkEzIi8+CjxwYXRoIGQ9Ik0xMCAzNUMxMCAyNi43MTU3IDE2LjcxNTcgMjAgMjUgMjBDMzMuMjg0MyAyMCA0MCAyNi43MTU3IDQwIDM1VjQ1SDBWMzVaIiBmaWxsPSIjOUI5QkEzIi8+Cjwvc3ZnPgo=' } />
-                <AvatarFallback>{cookProfile?.displayName?.charAt(0) || user.displayName?.charAt(0) || 'C'}</AvatarFallback>
+                <AvatarImage src={cookProfile?.avatar ?? user.photoURL ?? 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNSAxNUMzMC41MjI5IDE1IDM1IDEwLjUyMjkgMzUgNUMzNSAyLjc5MDg2IDMzLjIwOTEgMSAzMSAxSDIwQzE3LjI5MDkgMSAxNS40NjA5IDIuNzkwODYgMTUgNUMxNSAxMC41MjI5IDE5LjQ3NzEgMTUgMjUgMTVaIiBmaWxsPSIjOUI5QkEzIi8+CjxwYXRoIGQ9Ik0xMCAzNUMxMCAyNi43MTU3IDE2LjcxNTcgMjAgMjUgMjBDMzMuMjg0MyAyMCA0MCAyNi43MTU3IDQwIDM1VjQ1SDBWMzVaIiBmaWxsPSIjOUI5QkEzIi8+Cjwvc3ZnPgo=' } />
+                <AvatarFallback>{cookProfile?.displayName?.charAt(0) ?? user.displayName?.charAt(0) ?? 'C'}</AvatarFallback>
               </Avatar>
               <div>
-                <h1 className="text-2xl font-bold">¡Hola, {cookProfile?.displayName || user.displayName || 'Cocinero'}!</h1>
+                <h1 className="text-2xl font-bold">¡Hola, {cookProfile?.displayName ?? user.displayName ?? 'Cocinero'}!</h1>
                 <p className="text-muted-foreground">Gestiona tus platos y pedidos</p>
               </div>
             </div>
@@ -1186,23 +1188,23 @@ export default function CookerDashboard() {
         onSave={async (settings: Record<string, unknown>) => {
           try {
             // Update cook profile with new settings
-            await CooksService.updateCookProfile(user?.uid || '', {
+            await CooksService.updateCookProfile(user?.uid ?? '', {
               displayName: settings.displayName as string | undefined,
               bio: settings.bio as string | undefined,
               avatar: settings.avatar as string | undefined,
               coverImage: settings.coverImage as string | undefined,
               location: {
-                coordinates: cookProfile?.location?.coordinates || {
+                coordinates: cookProfile?.location?.coordinates ?? {
                   latitude: 0,
                   longitude: 0,
                   timestamp: Timestamp.now()
                 },
                 address: {
-                  street: cookProfile?.location?.address?.street || '',
-                  city: cookProfile?.location?.address?.city || '',
-                  state: cookProfile?.location?.address?.state || '',
-                  zipCode: cookProfile?.location?.address?.zipCode || '',
-                  country: cookProfile?.location?.address?.country || '',
+                  street: cookProfile?.location?.address?.street ?? '',
+                  city: cookProfile?.location?.address?.city ?? '',
+                  state: cookProfile?.location?.address?.state ?? '',
+                  zipCode: cookProfile?.location?.address?.zipCode ?? '',
+                  country: cookProfile?.location?.address?.country ?? '',
                   fullAddress: settings.location as string
                 },
                 isActive: cookProfile?.location?.isActive ?? true,
@@ -1224,7 +1226,7 @@ export default function CookerDashboard() {
             });
             
             // Refresh cook profile
-            const profile = await CooksService.getCookById(user?.uid || '');
+            const profile = await CooksService.getCookById(user?.uid ?? '');
             setCookProfile(profile);
             console.log('Settings saved successfully');
           } catch (error) {
@@ -1240,10 +1242,10 @@ export default function CookerDashboard() {
         isOpen={isAddDishModalOpen}
         onClose={() => setIsAddDishModalOpen(false)}
         onSave={handleAddDish}
-        cookerId={user?.uid || ''}
-        cookerName={cookProfile?.displayName || user?.displayName || 'Cocinero'}
-        cookerAvatar={cookProfile?.avatar || user?.photoURL || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNSAxNUMzMC41MjI5IDE1IDM1IDEwLjUyMjkgMzUgNUMzNSAyLjc5MDg2IDMzLjIwOTEgMSAzMSAxSDIwQzE3LjI5MDkgMSAxNS40NjA5IDIuNzkwODYgMTUgNUMxNSAxMC41MjI5IDE5LjQ3NzEgMTUgMjUgMTVaIiBmaWxsPSIjOUI5QkEzIi8+CjxwYXRoIGQ9Ik0xMCAzNUMxMCAyNi43MTU3IDE2LjcxNTcgMjAgMjUgMjBDMzMuMjg0MyAyMCA0MCAyNi43MTU3IDQwIDM1VjQ1SDBWMzVaIiBmaWxsPSIjOUI5QkEzIi8+Cjwvc3ZnPgo='}
-        cookerRating={cookProfile?.rating || 0}
+        cookerId={user?.uid ?? ''}
+        cookerName={cookProfile?.displayName ?? user?.displayName ?? 'Cocinero'}
+        cookerAvatar={cookProfile?.avatar ?? user?.photoURL ?? 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNSAxNUMzMC41MjI5IDE1IDM1IDEwLjUyMjkgMzUgNUMzNSAyLjc5MDg2IDMzLjIwOTEgMSAzMSAxSDIwQzE3LjI5MDkgMSAxNS40NjA5IDIuNzkwODYgMTUgNUMxNSAxMC41MjI5IDE5LjQ3NzEgMTUgMjUgMTVaIiBmaWxsPSIjOUI5QkEzIi8+CjxwYXRoIGQ9Ik0xMCAzNUMxMCAyNi43MTU3IDE2LjcxNTcgMjAgMjUgMjBDMzMuMjg0MyAyMCA0MCAyNi43MTU3IDQwIDM1VjQ1SDBWMzVaIiBmaWxsPSIjOUI5QkEzIi8+Cjwvc3ZnPgo='}
+        cookerRating={cookProfile?.rating ?? 0}
       />
     </div>
   );

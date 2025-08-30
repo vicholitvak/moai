@@ -4,7 +4,7 @@ import { admin } from '@/lib/firebase/admin';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const { role } = await request.json();
     

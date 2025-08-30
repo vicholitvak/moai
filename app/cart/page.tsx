@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useUserProfile } from '../../context/UserProfileContext';
-import { OrdersService, CooksService } from '@/lib/firebase/dataService';
+import type { Order } from '@/lib/firebase/dataService';
 import { MercadoPagoService } from '@/lib/services/mercadoPagoService';
 import { OrderApprovalService } from '@/lib/services/orderApprovalService';
 import { toast } from 'sonner';
@@ -39,7 +40,7 @@ import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
 import GoogleAddressAutocomplete from '../../components/GoogleAddressAutocomplete';
-import { formatPrice, generateDeliveryCode } from '../../lib/utils';
+import { formatPrice } from '../../lib/utils';
 
 // Remove mock data - using cart context now
 
@@ -60,8 +61,8 @@ const CartPage = () => {
   
   const [currentStep, setCurrentStep] = useState<'cart' | 'checkout' | 'confirmation'>('cart');
   const [orderForm, setOrderForm] = useState({
-    deliveryAddress: profile?.address?.fullAddress || '',
-    phone: profile?.phone || '',
+    deliveryAddress: profile?.address?.fullAddress ?? '',
+    phone: profile?.phone ?? '',
     specialInstructions: '',
     paymentMethod: 'mercadopago' as 'mercadopago' | 'cash'
   });
@@ -76,8 +77,8 @@ const CartPage = () => {
     if (profile) {
       setOrderForm(prev => ({
         ...prev,
-        deliveryAddress: profile.address?.fullAddress || prev.deliveryAddress,
-        phone: profile.phone || prev.phone
+        deliveryAddress: profile.address?.fullAddress ?? prev.deliveryAddress,
+        phone: profile.phone ?? prev.phone
       }));
     }
   }, [profile]);
@@ -105,8 +106,8 @@ const CartPage = () => {
         amount: total,
         description: `Pedido Moai con Aprobación - ${cartItems.length} items`,
         orderId: mainOrderId,
-        customerEmail: user.email || '',
-        customerName: user.displayName || user.email || 'Cliente',
+        customerEmail: user.email ?? '',
+        customerName: user.displayName ?? user.email ?? 'Cliente',
         items: cartItems.map(item => ({
           id: item.dishId,
           title: item.name,
@@ -181,8 +182,8 @@ const CartPage = () => {
       const orderPromises = Object.entries(ordersByCook).map(async ([cookerId, items]) => {
         const orderData = {
           customerId: user.uid,
-          customerName: user.displayName || user.email || 'Cliente',
-          customerEmail: user.email || '',
+          customerName: user.displayName ?? user.email ?? 'Cliente',
+          customerEmail: user.email ?? '',
           cookerId,
           dishes: items.map(item => ({
             dishId: item.dishId,
@@ -275,10 +276,10 @@ const CartPage = () => {
       let addressUpdate = {
         fullAddress: addressToSave.address,
         street: addressToSave.address, // Fallback to full address
-        city: profile.address?.city || 'Santiago',
-        district: profile.address?.district || '',
-        details: profile.address?.details || '',
-        instructions: profile.address?.instructions || ''
+        city: profile.address?.city ?? 'Santiago',
+        district: profile.address?.district ?? '',
+        details: profile.address?.details ?? '',
+        instructions: profile.address?.instructions ?? ''
       };
 
       // If we have detailed address data from Google Places, use it
@@ -286,18 +287,18 @@ const CartPage = () => {
         const components = addressToSave.fullAddressData.address_components;
         
         // Extract street number and route
-        const streetNumber = components.find(c => c.types.includes('street_number'))?.long_name || '';
-        const route = components.find(c => c.types.includes('route'))?.long_name || '';
+        const streetNumber = components.find(c => c.types.includes('street_number'))?.long_name ?? '';
+        const route = components.find(c => c.types.includes('route'))?.long_name ?? '';
         const street = `${route} ${streetNumber}`.trim() || addressToSave.address;
         
         // Extract locality/city and sublocality (district/comuna)
         const city = components.find(c => 
           c.types.includes('locality') || c.types.includes('administrative_area_level_2')
-        )?.long_name || 'Santiago';
+        )?.long_name ?? 'Santiago';
         
         const district = components.find(c => 
           c.types.includes('sublocality') || c.types.includes('administrative_area_level_3')
-        )?.long_name || '';
+        )?.long_name ?? '';
 
         addressUpdate = {
           ...addressUpdate,
@@ -330,7 +331,7 @@ const CartPage = () => {
               <CheckCircle className="h-16 w-16 text-primary mx-auto mb-4" />
               <h1 className="text-3xl font-bold mb-2">Order Confirmed!</h1>
               <p className="text-muted-foreground">
-                Your order has been placed successfully. You'll receive updates via email and SMS.
+                Your order has been placed successfully. You&apos;ll receive updates via email and SMS.
               </p>
             </div>
 
@@ -356,11 +357,11 @@ const CartPage = () => {
                   </div>
                   <div className="border-t pt-3">
                     <p className="text-sm text-muted-foreground">
-                      <strong>What's next?</strong>
+                      <strong>What&apos;s next?</strong>
                     </p>
                     <ul className="text-sm text-muted-foreground mt-2 space-y-1">
                       <li>• Your order has been sent to the cook(s)</li>
-                      <li>• You'll be notified when they accept your order</li>
+                      <li>• You&apos;ll be notified when they accept your order</li>
                       <li>• Track your order progress in real-time</li>
                       <li>• Estimated delivery: 45-60 minutes</li>
                     </ul>
@@ -502,9 +503,11 @@ const CartPage = () => {
                     <CardContent className="p-6">
                       <div className="flex gap-6">
                         <div className="relative">
-                          <img 
+                          <Image 
                             src={item.image} 
                             alt={item.name}
+                            width={96}
+                            height={96}
                             className="w-24 h-24 rounded-xl object-cover shadow-sm"
                             onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
                               e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik00MCA0MEg2MFY2MEg0MFY0MFoiIGZpbGw9IiM5QjlCQTMiLz4KPC9zdmc+';
@@ -720,7 +723,7 @@ const CartPage = () => {
                   />
                   <p className="text-sm text-muted-foreground flex items-center gap-1">
                     <Navigation className="h-3 w-3" />
-                    We'll detect your location automatically for precise delivery
+                    We&apos;ll detect your location automatically for precise delivery
                   </p>
                   
                   {/* Save address prompt */}

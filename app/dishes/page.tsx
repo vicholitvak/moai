@@ -1,18 +1,16 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { DishesService, CooksService } from '@/lib/firebase/dataService';
 import { OptimizedDishesService } from '@/lib/services/optimizedFirebaseService';
-import { LazyImage } from '@/components/ui/lazy-wrapper';
-import { Dish, Cook } from '@/lib/firebase/dataService';
+import type { Dish, Cook } from '@/lib/firebase/dataService';
 import DishesHeroSection from '@/components/DishesHeroSection';
 import EnhancedDishCard from '@/components/EnhancedDishCard';
-import CategoriesCarousel from '@/components/CategoriesCarousel';
 import { RecommendationService } from '@/lib/services/recommendationService';
-import { SmartBadgeService, type DishWithBadges } from '@/lib/services/smartBadgeService';
+import type { DishWithBadges } from '@/lib/services/smartBadgeService';
 import { 
   Search, 
   MapPin, 
@@ -28,11 +26,9 @@ import {
   LogOut,
   Loader2,
   RefreshCw,
-  Truck,
   Sparkles,
   TrendingUp,
   Filter,
-  X,
   ChevronDown,
   Zap,
   Flame,
@@ -41,19 +37,15 @@ import {
   Award,
   Users,
   Calendar,
-  DollarSign,
   SortAsc,
   SortDesc
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { formatPrice } from '@/lib/utils';
-import { CitySelector } from '@/components/CitySelector';
 import { LocationService } from '@/lib/services/locationService';
-import { ChileanCitiesService } from '@/lib/services/chileanCitiesService';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
@@ -126,65 +118,13 @@ const ClientDishesPage = () => {
   // Intelligent features state
   const [timeOfDay, setTimeOfDay] = useState<'desayuno' | 'almuerzo' | 'cena' | 'bajón'>('almuerzo');
   const [recommendations, setRecommendations] = useState<any>(null);
-  const [dishCounts, setDishCounts] = useState<{ [key: string]: number }>({});
   const [showRecommendations, setShowRecommendations] = useState(true);
 
   // Location-based state
   const [selectedCityId, setSelectedCityId] = useState<string>('');
-  const [locationBasedDishes, setLocationBasedDishes] = useState<any[]>([]);
   const [useLocationFilter, setUseLocationFilter] = useState(false);
 
-  // Initialize intelligent features
-  useEffect(() => {
-    // Set current time of day
-    const currentTime = RecommendationService.getTimeOfDay();
-    setTimeOfDay(currentTime);
-    
-    // Fetch dishes
-    fetchDishes();
-  }, []);
-  
-  // Generate recommendations when dishes change
-  useEffect(() => {
-    if (dishes.length > 0) {
-      const filters = {
-        timeOfDay,
-        userPreferences: (user as any)?.preferences || [],
-        location: (user as any)?.location,
-        previousOrders: (user as any)?.orderHistory || []
-      };
-      
-      const recs = RecommendationService.generateRecommendations(dishes, filters);
-      setRecommendations(recs);
-      
-      // Calculate dish counts for categories carousel
-      const counts = RecommendationService.getDishCounts(dishes);
-      setDishCounts(counts);
-    }
-  }, [dishes, timeOfDay, user]);
-
-  // Add refresh functionality
-  useEffect(() => {
-    const handleFocus = () => {
-      fetchDishes();
-    };
-
-    window.addEventListener('focus', handleFocus);
-    
-    // Refresh every 3 minutes
-    const interval = setInterval(() => {
-      if (!loading && !refreshing) {
-        fetchDishes(true);
-      }
-    }, 180000);
-
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-      clearInterval(interval);
-    };
-  }, [loading]);
-
-  const fetchDishes = async (isRefresh = false) => {
+  const fetchDishes = useCallback(async (isRefresh = false) => {
     try {
       if (isRefresh) {
         setRefreshing(true);
@@ -200,7 +140,6 @@ const ClientDishesPage = () => {
       if (selectedCityId && useLocationFilter) {
         console.log('Fetching dishes for city:', selectedCityId);
         const locationDishes = await LocationService.getDishesForChileanCity(selectedCityId);
-        setLocationBasedDishes(locationDishes);
 
         // Convert to DishWithBadges format
         dishesResult = {
@@ -237,7 +176,7 @@ const ClientDishesPage = () => {
             return {
               ...dish,
               cookerName: cook?.displayName || 'Cocinero Desconocido',
-              cookerAvatar: cook?.avatar || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1zbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNSAxNUMzMC41MjI5IDE1IDM1IDEwLjUyMjkgMzUgNUMzNSAyLjc5MDg2IDMzLjIwOTEgMSAzMSAxSDIwQzE3LjI5MDkgMSAxNS40NjA5IDIuNzkwODYgMTUgNUMxNSAxMC41MjI5IDE5LjQ3NzEgMTUgMjUgMTVaIiBmaWxsPSIjOUI5QkEzIi8+CjxwYXRoIGQ9Ik0xMCAzNUMxMCAyNi43MTU3IDE2LjcxNTcgMjAgMjUgMjBDMzMuMjg0MyAyMCA0MCAyNi43MTU3IDQwIDM1VjQ1SDBWMzVaIiBmaWxsPSIjOUI5QkEzIi8+Cjwvc3ZnPgo=',
+              cookerAvatar: cook?.avatar || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNSAxNUMzMC41MjI5IDE1IDM1IDEwLjUyMjkgMzUgNUMzNSAyLjc5MDg2IDMzLjIwOTEgMSAzMSAxSDIwQzE3LjI5MDkgMSAxNS40NjA5IDIuNzkwODYgMTUgNUMxNSAxMC41MjI5IDE5LjQ3NzEgMTUgMjUgMTVaIiBmaWxsPSIjOUI5QkEzIi8+CjxwYXRoIGQ9Ik0xMCAzNUMxMCAyNi43MTU3IDE2LjcxNTcgMjAgMjUgMjBDMzMuMjg0MyAyMCA0MCAyNi43MTU3IDQwIDM1VjQ1SDBWMzVaIiBmaWxsPSIjOUI5QkEzIi8+Cjwvc3ZnPgo=',
               cookerRating: cook?.rating || 4.0,
               distance: 'Cerca',
               cookerSelfDelivery: cook?.settings?.selfDelivery || false,
@@ -278,7 +217,7 @@ const ClientDishesPage = () => {
             return {
               ...dish,
               cookerName: cook?.displayName || 'Cocinero Desconocido',
-              cookerAvatar: cook?.avatar || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1zbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNSAxNUMzMC41MjI5IDE1IDM1IDEwLjUyMjkgMzUgNUMzNSAyLjc5MDg2IDMzLjIwOTEgMSAzMSAxSDIwQzE3LjI5MDkgMSAxNS40NjA5IDIuNzkwODYgMTUgNUMxNSAxMC41MjI5IDE5LjQ3NzEgMTUgMjUgMTVaIiBmaWxsPSIjOUI5QkEzIi8+CjxwYXRoIGQ9Ik0xMCAzNUMxMCAyNi43MTU3IDE2LjcxNTcgMjAgMjUgMjBDMzMuMjg0MyAyMCA0MCAyNi43MTU3IDQwIDM1VjQ1SDBWMzVaIiBmaWxsPSIjOUI5QkEzIi8+Cjwvc3ZnPgo=',
+              cookerAvatar: cook?.avatar || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yNSAxNUMzMC41MjI5IDE1IDM1IDEwLjUyMjkgMzUgNUMzNSAyLjc5MDg2IDMzLjIwOTEgMSAzMSAxSDIwQzE3LjI5MDkgMSAxNS40NjA5IDIuNzkwODYgMTUgNUMxNSAxMC41MjI5IDE5LjQ3NzEgMTUgMjUgMTVaIiBmaWxsPSIjOUI5QkEzIi8+CjxwYXRoIGQ9Olk9IDM1QzEwIDI2LjcxNTcgMTYuNzE1NyAyMCAyNSAyMEMzMy4yODQzIDIwIDQwIDI2LjcxNTcgNDAgMzVWNDVIMFYzNVoiIGZpbGw9IiM5QjlCQTMiLz4KPC9zdmc+',
               cookerRating: cook?.rating || 4.0,
               distance: 'Cerca',
               cookerSelfDelivery: cook?.settings?.selfDelivery || false,
@@ -298,17 +237,60 @@ const ClientDishesPage = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [selectedCityId, useLocationFilter, pageSize, favorites]);
 
-  const handleCitySelect = (city: any) => {
-    setSelectedCityId(city.id);
-    setUseLocationFilter(true);
+  // Initialize intelligent features
+  useEffect(() => {
+    // Set current time of day
+    const currentTime = RecommendationService.getTimeOfDay();
+    setTimeOfDay(currentTime);
+    
+    // Fetch dishes
     fetchDishes();
-  };
+  }, [fetchDishes]);
+  
+  // Generate recommendations when dishes change
+  useEffect(() => {
+    if (dishes.length > 0) {
+      const filters = {
+        timeOfDay,
+        userPreferences: (user as any)?.preferences || [],
+        location: (user as any)?.location,
+        previousOrders: (user as any)?.orderHistory || []
+      };
+      
+      const recs = RecommendationService.generateRecommendations(dishes, filters);
+      setRecommendations(recs);
+    }
+  }, [dishes, timeOfDay, user]);
+
+  // Add refresh functionality
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchDishes();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    
+    // Refresh every 3 minutes
+    const interval = setInterval(() => {
+      if (!loading && !refreshing) {
+        fetchDishes(true);
+      }
+    }, 180000);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      clearInterval(interval);
+    };
+  }, [loading, refreshing, fetchDishes]);
 
   const loadMoreDishes = async () => {
-    if (!hasMoreDishes || loading) return;
-    await fetchDishes(true);
+    if (loading || !hasMoreDishes) return;
+    
+    setLoading(true);
+    await fetchDishes(false); // Use the existing fetchDishes function
+    setLoading(false);
   };
 
   const handleRefresh = () => {
