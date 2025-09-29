@@ -31,6 +31,8 @@ import { Badge } from '../../../components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../../../components/ui/avatar';
 import RecommendedPairings from './recommended-pairings';
 import { ReviewSystem } from '@/components/reviews/ReviewSystem';
+import { DishCustomizationModal } from '@/components/DishCustomizationModal';
+import type { CustomizedDishOrder } from '@/types/dishCustomization';
 
 interface DishWithCookDetails extends Dish {
   cookerBio?: string;
@@ -55,6 +57,7 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [addToCartSuccess, setAddToCartSuccess] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
+  const [showCustomizationModal, setShowCustomizationModal] = useState(false);
 
   useEffect(() => {
     const fetchDishData = async () => {
@@ -114,9 +117,16 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
 
   const handleAddToCart = async () => {
     if (!dish || !user) return;
-    
+
+    // Si el plato tiene personalización habilitada, abrir el modal
+    if (dish.customization?.enabled) {
+      setShowCustomizationModal(true);
+      return;
+    }
+
+    // Si no tiene personalización, agregar directo al carrito
     setIsAddingToCart(true);
-    
+
     try {
       const cartItem = {
         dishId: dish.id,
@@ -132,11 +142,11 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
       };
 
       addToCart(cartItem);
-      
+
       // Show success animation
       setAddToCartSuccess(true);
       setTimeout(() => setAddToCartSuccess(false), 2000);
-      
+
       toast.success(`Added ${dish.name} to cart!`, {
         description: `Quantity: ${quantity}`,
         action: {
@@ -144,16 +154,36 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
           onClick: () => router.push('/cart')
         }
       });
-      
+
       // Reset quantity after adding to cart
       setQuantity(1);
-      
+
     } catch (error) {
       console.error('Error adding to cart:', error);
       toast.error('Failed to add item to cart');
     } finally {
       setIsAddingToCart(false);
     }
+  };
+
+  const handleCustomizedOrderAddToCart = (order: CustomizedDishOrder) => {
+    // Agregar orden personalizada al carrito
+    const cartItem = {
+      dishId: order.dishId,
+      name: order.dishName,
+      price: order.totalPrice,
+      image: dish!.image,
+      cookerName: cook?.displayName || dish!.cookerName,
+      cookerId: dish!.cookerId,
+      cookerAvatar: cook?.avatar || dish!.cookerAvatar,
+      quantity: order.quantity,
+      prepTime: dish!.prepTime,
+      category: dish!.category,
+      customization: order.selections,
+      specialInstructions: order.specialInstructions
+    };
+
+    addToCart(cartItem);
   };
 
   const toggleFavorite = () => {
@@ -336,8 +366,8 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
                       <span>{cook?.reviewCount || reviews.length} reviews</span>
                     </div>
                   </div>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -345,7 +375,7 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
                     }}
                     className="opacity-70 group-hover:opacity-100 transition-opacity duration-200"
                   >
-                    View Profile
+                    Ver Perfil
                   </Button>
                 </div>
                 <p className="text-sm text-muted-foreground mt-3 group-hover:text-foreground/80 transition-colors duration-200">{dish.cookerBio}</p>
@@ -390,36 +420,51 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
 
             {/* Price and Add to Cart */}
             <div className="border-t pt-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <span className="text-3xl font-bold text-primary">{formatPrice(dish.price)}</span>
-                  <span className="text-muted-foreground ml-2">per serving</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    disabled={quantity <= 1}
-                    className="hover:scale-105 transition-transform duration-150 active:scale-95"
-                  >
-                    <Minus className="h-4 w-4" />
-                  </Button>
-                  <div className="w-12 h-10 flex items-center justify-center bg-muted rounded-md border">
-                    <span className="font-medium text-lg animate-in zoom-in-50 duration-200" key={quantity}>
-                      {quantity}
-                    </span>
+              {!dish.customization?.enabled && (
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <span className="text-3xl font-bold text-primary">{formatPrice(dish.price)}</span>
+                    <span className="text-muted-foreground ml-2">por porción</span>
                   </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => setQuantity(quantity + 1)}
-                    className="hover:scale-105 transition-transform duration-150 active:scale-95"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      disabled={quantity <= 1}
+                      className="hover:scale-105 transition-transform duration-150 active:scale-95"
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    <div className="w-12 h-10 flex items-center justify-center bg-muted rounded-md border">
+                      <span className="font-medium text-lg animate-in zoom-in-50 duration-200" key={quantity}>
+                        {quantity}
+                      </span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setQuantity(quantity + 1)}
+                      className="hover:scale-105 transition-transform duration-150 active:scale-95"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {dish.customization?.enabled && (
+                <div className="mb-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-2xl font-bold text-primary">Precio base: {formatPrice(dish.price)}</span>
+                  </div>
+                  <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                    <p className="text-sm text-orange-800 font-medium">
+                      ⚙️ Este plato es personalizable. El precio final dependerá de tus selecciones.
+                    </p>
+                  </div>
+                </div>
+              )}
               <Button 
                 className={`w-full relative overflow-hidden transition-all duration-300 ${
                   addToCartSuccess 
@@ -445,11 +490,13 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
                 ) : (
                   <>
                     <ShoppingCart className={`h-5 w-5 mr-2 transition-transform duration-200 ${isAddingToCart ? 'scale-110' : ''}`} />
-                    {!dish.isAvailable 
-                      ? 'Sold Out'
+                    {!dish.isAvailable
+                      ? 'No Disponible'
                       : !user
-                      ? 'Login to Add to Cart'
-                      : `Add to Cart - ${formatPrice(dish.price * quantity)}`
+                      ? 'Inicia sesión para Agregar'
+                      : dish.customization?.enabled
+                      ? 'Personalizar Pedido'
+                      : `Agregar al Carrito - ${formatPrice(dish.price * quantity)}`
                     }
                   </>
                 )}
@@ -465,97 +512,137 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
 
         {/* Additional Info Tabs */}
         <div className="mt-12 space-y-8">
-          {/* Ingredients */}
-          <Card className="hover:shadow-md transition-shadow duration-300">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <div className="h-5 w-5 bg-primary/10 rounded-full flex items-center justify-center">
-                  <div className="h-2 w-2 bg-primary rounded-full" />
-                </div>
-                Ingredients
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {dish.ingredients.map((ingredient: string, index: number) => (
-                  <div 
-                    key={ingredient} 
-                    className="flex items-center gap-2 p-2 bg-muted rounded hover:bg-muted/70 transition-colors duration-200 animate-in fade-in-50 slide-in-from-left-2"
-                    style={{ animationDelay: `${index * 50}ms` }}
-                  >
-                    <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                    <span className="text-sm">{ingredient}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Nutrition & Allergens */}
-          <div className="grid md:grid-cols-2 gap-6">
-            <Card className="hover:shadow-md transition-shadow duration-300">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  🥗
-                  Nutrition Information
+          {/* Customization Info (if enabled) */}
+          {dish.customization?.enabled && (
+            <Card className="border-2 border-atacama-orange/50 hover:shadow-lg transition-shadow duration-300">
+              <CardHeader className="bg-gradient-to-r from-atacama-orange/10 to-orange-50">
+                <CardTitle className="flex items-center gap-2 text-atacama-brown">
+                  ⚙️ Plato Personalizable
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                {dish.nutritionInfo ? (
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center p-2 rounded hover:bg-muted/50 transition-colors duration-200">
-                      <span>Calories</span>
-                      <span className="font-medium px-2 py-1 bg-primary/10 rounded-full text-primary">{dish.nutritionInfo.calories}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-2 rounded hover:bg-muted/50 transition-colors duration-200">
-                      <span>Protein</span>
-                      <span className="font-medium px-2 py-1 bg-blue-100 rounded-full text-blue-700">{dish.nutritionInfo.protein}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-2 rounded hover:bg-muted/50 transition-colors duration-200">
-                      <span>Carbohydrates</span>
-                      <span className="font-medium px-2 py-1 bg-green-100 rounded-full text-green-700">{dish.nutritionInfo.carbs}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-2 rounded hover:bg-muted/50 transition-colors duration-200">
-                      <span>Fat</span>
-                      <span className="font-medium px-2 py-1 bg-orange-100 rounded-full text-orange-700">{dish.nutritionInfo.fat}</span>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground">Nutrition information not available</p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-md transition-shadow duration-300">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  ⚠️
-                  Allergen Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {dish.allergens && dish.allergens.length > 0 ? (
-                  <div className="space-y-2">
-                    {dish.allergens.map((allergen: string, index: number) => (
-                      <div 
-                        key={allergen} 
-                        className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg hover:bg-yellow-100 transition-colors duration-200 animate-in fade-in-50 slide-in-from-right-2"
-                        style={{ animationDelay: `${index * 100}ms` }}
-                      >
-                        <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
-                        <span className="text-sm font-medium text-yellow-800">Contains {allergen}</span>
+              <CardContent className="pt-6">
+                <div className="space-y-4">
+                  <p className="text-muted-foreground leading-relaxed">
+                    Este plato cuenta con un sistema de personalización completo. Podrás elegir tus ingredientes favoritos y crear tu combinación perfecta.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {dish.customization.groups.map((group, index) => (
+                      <div key={index} className="flex items-start gap-2 p-3 bg-orange-50 rounded-lg">
+                        <div className="w-2 h-2 bg-atacama-orange rounded-full mt-1.5" />
+                        <div>
+                          <p className="font-medium text-sm">{group.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {group.options.length} opciones disponibles
+                          </p>
+                        </div>
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <div className="text-center py-4">
-                    <div className="text-2xl mb-2">✅</div>
-                    <p className="text-muted-foreground">No allergen information available</p>
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      💡 Haz clic en &quot;Personalizar Pedido&quot; para ver todas las opciones y crear tu combinación ideal.
+                    </p>
                   </div>
-                )}
+                </div>
               </CardContent>
             </Card>
-          </div>
+          )}
+
+          {/* Ingredients - only show if no customization */}
+          {!dish.customization?.enabled && (
+            <Card className="hover:shadow-md transition-shadow duration-300">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <div className="h-5 w-5 bg-primary/10 rounded-full flex items-center justify-center">
+                    <div className="h-2 w-2 bg-primary rounded-full" />
+                  </div>
+                  Ingredientes
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {dish.ingredients.map((ingredient: string, index: number) => (
+                    <div
+                      key={ingredient}
+                      className="flex items-center gap-2 p-2 bg-muted rounded hover:bg-muted/70 transition-colors duration-200 animate-in fade-in-50 slide-in-from-left-2"
+                      style={{ animationDelay: `${index * 50}ms` }}
+                    >
+                      <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                      <span className="text-sm">{ingredient}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Nutrition & Allergens - only show if no customization */}
+          {!dish.customization?.enabled && (
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card className="hover:shadow-md transition-shadow duration-300">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    🥗
+                    Información Nutricional
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {dish.nutritionInfo ? (
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center p-2 rounded hover:bg-muted/50 transition-colors duration-200">
+                        <span>Calorías</span>
+                        <span className="font-medium px-2 py-1 bg-primary/10 rounded-full text-primary">{dish.nutritionInfo.calories}</span>
+                      </div>
+                      <div className="flex justify-between items-center p-2 rounded hover:bg-muted/50 transition-colors duration-200">
+                        <span>Proteína</span>
+                        <span className="font-medium px-2 py-1 bg-blue-100 rounded-full text-blue-700">{dish.nutritionInfo.protein}</span>
+                      </div>
+                      <div className="flex justify-between items-center p-2 rounded hover:bg-muted/50 transition-colors duration-200">
+                        <span>Carbohidratos</span>
+                        <span className="font-medium px-2 py-1 bg-green-100 rounded-full text-green-700">{dish.nutritionInfo.carbs}</span>
+                      </div>
+                      <div className="flex justify-between items-center p-2 rounded hover:bg-muted/50 transition-colors duration-200">
+                        <span>Grasas</span>
+                        <span className="font-medium px-2 py-1 bg-orange-100 rounded-full text-orange-700">{dish.nutritionInfo.fat}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground">Información nutricional no disponible</p>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="hover:shadow-md transition-shadow duration-300">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    ⚠️
+                    Información de Alérgenos
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {dish.allergens && dish.allergens.length > 0 ? (
+                    <div className="space-y-2">
+                      {dish.allergens.map((allergen: string, index: number) => (
+                        <div
+                          key={allergen}
+                          className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg hover:bg-yellow-100 transition-colors duration-200 animate-in fade-in-50 slide-in-from-right-2"
+                          style={{ animationDelay: `${index * 100}ms` }}
+                        >
+                          <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
+                          <span className="text-sm font-medium text-yellow-800">Contiene {allergen}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <div className="text-2xl mb-2">✅</div>
+                      <p className="text-muted-foreground">Sin información de alérgenos disponible</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           {/* Reviews Section */}
           <ReviewSystem 
@@ -586,6 +673,22 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
           </div>
         </div>
       </div>
+
+      {/* Customization Modal */}
+      {dish && (
+        <DishCustomizationModal
+          isOpen={showCustomizationModal}
+          onClose={() => setShowCustomizationModal(false)}
+          dish={{
+            id: dish.id,
+            name: dish.name,
+            image: dish.image,
+            price: dish.price,
+            customization: dish.customization
+          }}
+          onAddToCart={handleCustomizedOrderAddToCart}
+        />
+      )}
     </div>
   );
 };

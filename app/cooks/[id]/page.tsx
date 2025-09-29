@@ -123,7 +123,7 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
       name: item.name,
       price: item.price,
       image: item.image || 'placeholder.jpg',
-      cookerName: cook?.name || 'Unknown Cook',
+      cookerName: cook?.displayName || 'Unknown Cook',
       cookerId: cookId,
       cookerAvatar: cook?.avatar || '',
       quantity: 1,
@@ -169,9 +169,9 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <ChefHat className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-2">Cook Not Found</h2>
-          <p className="text-muted-foreground mb-4">The cook you&apos;re looking for doesn&apos;t exist or has been removed.</p>
-          <Button onClick={() => router.push('/dishes')}>Browse Dishes</Button>
+          <h2 className="text-2xl font-bold mb-2">Cocinero No Encontrado</h2>
+          <p className="text-muted-foreground mb-4">El cocinero que buscas no existe o ha sido eliminado.</p>
+          <Button onClick={() => router.push('/dishes')}>Explorar Platos</Button>
         </div>
       </div>
     );
@@ -233,7 +233,7 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
               <div className="flex-1 bg-background/95 backdrop-blur rounded-lg p-6 shadow-lg">
                 <div className="flex flex-col md:flex-row justify-between items-start gap-4">
                   <div>
-                    <h1 className="text-3xl font-bold mb-2">{cook.name}</h1>
+                    <h1 className="text-3xl font-bold mb-2">{cook.displayName}</h1>
                     <div className="flex items-center gap-4 mb-3">
                       <div className="flex items-center gap-1">
                         <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
@@ -455,7 +455,7 @@ const CookProfilePage = ({ params }: { params: Promise<{ id: string }> }) => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="h-5 w-5" />
-                  About {cook.name}
+                  Sobre {cook.displayName}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
