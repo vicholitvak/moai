@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
-import { motion } from 'framer-motion';
-import { ChevronDown, Star, Users, Award, MapPin } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronDown, Star, Users, Award, MapPin, ChefHat, Truck, ShoppingBag } from 'lucide-react';
 
 const Hero = ({ onSignUpClick, onSignInClick }: { onSignUpClick: () => void, onSignInClick: () => void }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -14,19 +14,22 @@ const Hero = ({ onSignUpClick, onSignInClick }: { onSignUpClick: () => void, onS
       image: '/moai-food-hero.jpg',
       title: '¡La mejor comida casera de todo Chile!',
       subtitle: 'Descubre, ordena y disfruta platos auténticos preparados por cocineros locales en tu ciudad.',
-      cta: 'Explora platos cerca de ti'
+      cta: 'Explora platos cerca de ti',
+      icon: ShoppingBag
     },
     {
       image: '/valleluna.jpg',
-      title: 'Sabores únicos, entrega nacional.',
-      subtitle: 'Ahora disponible en todas las regiones de Chile. ¡Prueba especialidades locales!',
-      cta: 'Ver ciudades y cocineros'
+      title: '¿Eres cocinero?',
+      subtitle: 'Convierte tu pasión culinaria en un negocio. Cocina desde casa y comparte tus recetas.',
+      cta: 'Únete como cocinero',
+      icon: ChefHat
     },
     {
-      image: '/llama-icon.jpg',
-      title: 'Únete a la comunidad Moai',
-      subtitle: 'Sé parte de la revolución gastronómica: pide, cocina o reparte.',
-      cta: 'Regístrate gratis'
+      image: '/moai-food-hero.jpg',
+      title: '¿Quieres ganar dinero entregando?',
+      subtitle: 'Sé conductor en Moai. Horarios flexibles y ganancias inmediatas.',
+      cta: 'Regístrate como conductor',
+      icon: Truck
     }
   ];
 
@@ -34,7 +37,7 @@ const Hero = ({ onSignUpClick, onSignInClick }: { onSignUpClick: () => void, onS
     setIsLoaded(true);
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
-    }, 6000);
+    }, 7000);
     return () => clearInterval(interval);
   }, []);
 

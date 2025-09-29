@@ -1,0 +1,405 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { 
+  ChefHat, 
+  Truck, 
+  ShoppingBag, 
+  MapPin, 
+  CreditCard, 
+  Star,
+  CheckCircle,
+  ArrowRight,
+  X,
+  Utensils,
+  Clock,
+  Users
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+interface OnboardingGuideProps {
+  isOpen: boolean;
+  onClose: () => void;
+  userRole?: string;
+}
+
+// Onboarding steps by role
+const ONBOARDING_STEPS = {
+  Client: [
+    {
+      id: 'welcome',
+      title: '¡Bienvenido a LicanÑam!',
+      description: 'Descubre comida casera auténtica de cocineros locales',
+      icon: ShoppingBag,
+      content: {
+        title: 'Tu aventura culinaria comienza aquí',
+        points: [
+          '🍽️ Comida casera de cocineros verificados',
+          '📱 Seguimiento en tiempo real de tus pedidos',
+          '⭐ Sistema de calificaciones y reviews',
+          '💳 Pagos seguros y flexibles'
+        ]
+      }
+    },
+    {
+      id: 'browse',
+      title: 'Explora y Ordena',
+      description: 'Encuentra tu próxima comida favorita',
+      icon: Utensils,
+      content: {
+        title: 'Cómo hacer tu primer pedido',
+        points: [
+          '🔍 Busca por tipo de comida, cocinero o ubicación',
+          '👨‍🍳 Revisa perfiles de cocineros y sus calificaciones',
+          '🛒 Agrega platos a tu carrito',
+          '📍 Confirma tu dirección de entrega'
+        ]
+      }
+    },
+    {
+      id: 'track',
+      title: 'Seguimiento en Tiempo Real',
+      description: 'Mantente informado del estado de tu pedido',
+      icon: MapPin,
+      content: {
+        title: 'Nunca pierdas de vista tu comida',
+        points: [
+          '👀 Seguimiento en vivo del conductor',
+          '⏰ Tiempos de entrega estimados precisos',
+          '📲 Notificaciones en cada etapa',
+          '💬 Chat directo con cocinero y conductor'
+        ]
+      }
+    }
+  ],
+  Cooker: [
+    {
+      id: 'welcome',
+      title: '¡Bienvenido Chef!',
+      description: 'Comparte tu pasión culinaria y genera ingresos',
+      icon: ChefHat,
+      content: {
+        title: 'Convierte tu cocina en un negocio',
+        points: [
+          '🏠 Cocina desde la comodidad de tu hogar',
+          '💰 Establece tus propios precios',
+          '📊 Panel de control completo',
+          '👥 Construye tu base de clientes fieles'
+        ]
+      }
+    },
+    {
+      id: 'setup',
+      title: 'Configura tu Perfil',
+      description: 'Crea un perfil atractivo para atraer clientes',
+      icon: Users,
+      content: {
+        title: 'Tu perfil es tu carta de presentación',
+        points: [
+          '📸 Agrega fotos atractivas de tus platos',
+          '📝 Describe tu estilo culinario único',
+          '🕒 Establece tus horarios de disponibilidad',
+          '📍 Confirma tu zona de cobertura'
+        ]
+      }
+    },
+    {
+      id: 'orders',
+      title: 'Gestiona tus Pedidos',
+      description: 'Herramientas para manejar eficientemente tus órdenes',
+      icon: Clock,
+      content: {
+        title: 'Control total de tu negocio',
+        points: [
+          '📋 Dashboard en tiempo real de pedidos',
+          '⏱️ Gestión de tiempos de preparación',
+          '💬 Comunicación directa con clientes',
+          '📈 Estadísticas y analytics detallados'
+        ]
+      }
+    }
+  ],
+  Driver: [
+    {
+      id: 'welcome',
+      title: '¡Bienvenido Conductor!',
+      description: 'Gana dinero con horarios flexibles',
+      icon: Truck,
+      content: {
+        title: 'La libertad de trabajar cuando quieras',
+        points: [
+          '🚗 Usa tu propio vehículo',
+          '💵 Pagos inmediatos después de cada entrega',
+          '📱 App intuitiva para conductores',
+          '🗺️ Rutas optimizadas automáticamente'
+        ]
+      }
+    },
+    {
+      id: 'vehicle',
+      title: 'Configura tu Vehículo',
+      description: 'Registro y verificación de tu medio de transporte',
+      icon: MapPin,
+      content: {
+        title: 'Preparación para las entregas',
+        points: [
+          '🚗 Registra tu vehículo y documentación',
+          '📄 Verifica tu licencia de conducir',
+          '📍 Establece tu zona de operación',
+          '🔒 Completa verificación de seguridad'
+        ]
+      }
+    },
+    {
+      id: 'delivery',
+      title: 'Realiza Entregas',
+      description: 'Todo lo que necesitas saber para entregar',
+      icon: CheckCircle,
+      content: {
+        title: 'Conviértete en un conductor estrella',
+        points: [
+          '📱 Acepta pedidos en tu zona',
+          '🗺️ Navegación paso a paso',
+          '📸 Confirmación fotográfica de entrega',
+          '⭐ Mantén una alta calificación'
+        ]
+      }
+    }
+  ]
+};
+
+export default function OnboardingGuide({ isOpen, onClose, userRole }: OnboardingGuideProps) {
+  const [currentStep, setCurrentStep] = useState(0);
+  const { user } = useAuth();
+  
+  const steps = userRole ? ONBOARDING_STEPS[userRole as keyof typeof ONBOARDING_STEPS] || [] : [];
+  const currentStepData = steps[currentStep];
+
+  const handleNext = () => {
+    if (currentStep < steps.length - 1) {
+      setCurrentStep(currentStep + 1);
+    } else {
+      // Mark onboarding as completed and close
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('licannam-onboarding-completed', 'true');
+      }
+      onClose();
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const handleSkip = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('licannam-onboarding-skipped', 'true');
+    }
+    onClose();
+  };
+
+  if (!currentStepData) return null;
+
+  const IconComponent = currentStepData.icon;
+  const isLastStep = currentStep === steps.length - 1;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={() => {}}>
+      <DialogContent 
+        className="sm:max-w-2xl max-w-[95vw] border-2 border-atacama-beige/20 shadow-2xl bg-white"
+        hideClose
+      >
+        {/* Custom close button */}
+        <button
+          onClick={handleSkip}
+          className="absolute right-4 top-4 p-2 rounded-full hover:bg-gray-100 transition-colors z-10"
+          aria-label="Cerrar onboarding"
+        >
+          <X className="h-4 w-4 text-gray-500" />
+        </button>
+
+        <div className="p-6">
+          {/* Progress indicator */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex space-x-2">
+              {steps.map((_, index) => (
+                <div
+                  key={index}
+                  className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                    index <= currentStep 
+                      ? 'bg-atacama-orange' 
+                      : 'bg-gray-200'
+                  }`}
+                />
+              ))}
+            </div>
+            <Badge variant="secondary" className="text-xs">
+              {currentStep + 1} de {steps.length}
+            </Badge>
+          </div>
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentStep}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Card className="border-none shadow-none">
+                <CardHeader className="text-center pb-4">
+                  <div className="w-16 h-16 bg-gradient-to-r from-atacama-orange to-orange-600 rounded-full mx-auto mb-4 flex items-center justify-center">
+                    <IconComponent className="h-8 w-8 text-white" />
+                  </div>
+                  <CardTitle className="text-2xl font-bold text-atacama-brown">
+                    {currentStepData.title}
+                  </CardTitle>
+                  <CardDescription className="text-lg text-atacama-brown/70">
+                    {currentStepData.description}
+                  </CardDescription>
+                </CardHeader>
+
+                <CardContent className="space-y-6">
+                  <div className="text-center">
+                    <h3 className="text-xl font-semibold text-atacama-brown mb-4">
+                      {currentStepData.content.title}
+                    </h3>
+                    <div className="space-y-3">
+                      {currentStepData.content.points.map((point, index) => (
+                        <motion.div
+                          key={index}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                          className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg"
+                        >
+                          <div className="text-lg">{point.split(' ')[0]}</div>
+                          <div className="text-sm text-atacama-brown/80 text-left">
+                            {point.substring(point.indexOf(' ') + 1)}
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Special content for different roles */}
+                  {userRole === 'Client' && currentStep === 0 && (
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <h4 className="font-semibold text-blue-900 mb-2">💡 Consejo:</h4>
+                      <p className="text-sm text-blue-800">
+                        Empieza explorando cocineros cerca de ti. Cada cocinero tiene su especialidad única.
+                      </p>
+                    </div>
+                  )}
+
+                  {userRole === 'Cooker' && currentStep === 1 && (
+                    <div className="bg-green-50 p-4 rounded-lg">
+                      <h4 className="font-semibold text-green-900 mb-2">🎯 Importante:</h4>
+                      <p className="text-sm text-green-800">
+                        Las fotos de alta calidad aumentan tus ventas hasta en un 60%. ¡Invierte tiempo en buenas imágenes!
+                      </p>
+                    </div>
+                  )}
+
+                  {userRole === 'Driver' && currentStep === 1 && (
+                    <div className="bg-purple-50 p-4 rounded-lg">
+                      <h4 className="font-semibold text-purple-900 mb-2">📋 Requisitos:</h4>
+                      <p className="text-sm text-purple-800">
+                        Necesitas licencia vigente, seguro del vehículo y completar verificación de antecedentes.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Navigation buttons */}
+          <div className="flex items-center justify-between mt-8">
+            <Button
+              variant="ghost"
+              onClick={handlePrevious}
+              disabled={currentStep === 0}
+              className="text-atacama-brown/70"
+            >
+              Anterior
+            </Button>
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={handleSkip}
+                className="text-atacama-brown border-atacama-beige/40"
+              >
+                Saltar tour
+              </Button>
+              
+              <Button
+                onClick={handleNext}
+                className="bg-atacama-orange hover:bg-atacama-orange/90 text-white"
+              >
+                {isLastStep ? (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    ¡Empezar!
+                  </>
+                ) : (
+                  <>
+                    Siguiente
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Hook to check if onboarding should be shown
+export function useOnboardingCheck() {
+  const { user, role } = useAuth();
+  const [shouldShowOnboarding, setShouldShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    if (!user || !role) return;
+
+    const hasCompletedOnboarding = localStorage.getItem('licannam-onboarding-completed');
+    const hasSkippedOnboarding = localStorage.getItem('licannam-onboarding-skipped');
+    
+    // Show onboarding for new users who haven't completed or skipped it
+    if (!hasCompletedOnboarding && !hasSkippedOnboarding) {
+      // Add a small delay to ensure the user is fully authenticated
+      const timer = setTimeout(() => {
+        setShouldShowOnboarding(true);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [user, role]);
+
+  const closeOnboarding = () => {
+    setShouldShowOnboarding(false);
+  };
+
+  return {
+    shouldShowOnboarding,
+    closeOnboarding,
+    userRole: role
+  };
+}
