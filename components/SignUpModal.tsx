@@ -243,7 +243,7 @@ const SignUpModal = ({ isOpen, onOpenChange }: SignUpModalProps) => {
                   placeholder="name@example.com"
                   className={`pl-10 h-11 border-atacama-beige/40 focus-visible:ring-atacama-orange focus-visible:border-atacama-orange ${emailError ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                   autoComplete="email"
-                  disabled={isLoading || isGoogleLoading}
+                  disabled={isLoading}
                 />
               </div>
               {emailError && (
@@ -269,14 +269,14 @@ const SignUpModal = ({ isOpen, onOpenChange }: SignUpModalProps) => {
                   placeholder="Ingresa tu contraseña segura"
                   className={`pl-10 pr-10 h-11 border-atacama-beige/40 focus-visible:ring-atacama-orange focus-visible:border-atacama-orange ${passwordError ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                   autoComplete="new-password"
-                  disabled={isLoading || isGoogleLoading}
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-atacama-brown/60 hover:text-atacama-brown transition-colors"
                   aria-label={showPassword ? "Hide password" : "Show password"}
-                  disabled={isLoading || isGoogleLoading}
+                  disabled={isLoading}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
