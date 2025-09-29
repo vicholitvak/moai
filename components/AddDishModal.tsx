@@ -37,17 +37,6 @@ export function AddDishModal({
   const [imagePreview, setImagePreview] = useState<string>(defaultImage);
   const [additionalImages, setAdditionalImages] = useState<string[]>([]);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
-  const [showNutrition, setShowNutrition] = useState<boolean>(false);
-  const [nutritionInfo, setNutritionInfo] = useState({
-    calories: 0,
-    protein: '0g',
-    carbs: '0g',
-    fat: '0g',
-    fiber: '0g',
-    sugar: '0g',
-    sodium: '0mg',
-    cholesterol: '0mg'
-  });
   
   const {
     data,
@@ -77,9 +66,6 @@ export function AddDishModal({
       const dishData: Omit<Dish, 'id' | 'createdAt' | 'updatedAt'> = {
         ...validatedData,
         image: validatedData.image,
-        // images: allImages.length > 1 ? allImages : [validatedData.image],
-        // preparationTime: parseInt(validatedData.prepTime.split(' ')[0]) || 30,
-        // servingSize: 1,
         cookerId,
         cookerName,
         cookerAvatar,
@@ -87,16 +73,9 @@ export function AddDishModal({
         tags: [validatedData.category.toLowerCase(), 'nuevo'],
         rating: 0,
         reviewCount: 0,
-        isAvailable: true,
-        allergens: [],
-        nutritionInfo: showNutrition ? nutritionInfo : {
-          calories: 0,
-          protein: '0g',
-          carbs: '0g',
-          fat: '0g'
-        }
+        isAvailable: true
       };
-      
+
       await onSave(dishData);
       handleClose();
     }
@@ -536,147 +515,6 @@ export function AddDishModal({
                 </div>
               </div>
               
-              {/* Nutrition Information Toggle */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Info className="h-4 w-4 text-muted-foreground" />
-                      <Label htmlFor="nutrition-toggle" className="text-sm font-medium">
-                        Información Nutricional
-                      </Label>
-                    </div>
-                    <Switch
-                      checked={showNutrition}
-                      onCheckedChange={setShowNutrition}
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Opcional: Agrega información nutricional detallada de tu plato
-                  </p>
-                </CardHeader>
-                
-                {showNutrition && (
-                  <CardContent className="space-y-3 pt-0">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label htmlFor="calories" className="text-xs">Calorías</Label>
-                        <Input
-                          id="calories"
-                          type="number"
-                          min="0"
-                          value={nutritionInfo.calories || ''}
-                          onChange={(e) => setNutritionInfo(prev => ({
-                            ...prev,
-                            calories: parseInt(e.target.value) || 0
-                          }))}
-                          className="h-8 text-sm mt-1"
-                          placeholder="250"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="protein" className="text-xs">Proteína</Label>
-                        <Input
-                          id="protein"
-                          type="text"
-                          value={nutritionInfo.protein}
-                          onChange={(e) => setNutritionInfo(prev => ({
-                            ...prev,
-                            protein: e.target.value
-                          }))}
-                          className="h-8 text-sm mt-1"
-                          placeholder="15g"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="carbs" className="text-xs">Carbohidratos</Label>
-                        <Input
-                          id="carbs"
-                          type="text"
-                          value={nutritionInfo.carbs}
-                          onChange={(e) => setNutritionInfo(prev => ({
-                            ...prev,
-                            carbs: e.target.value
-                          }))}
-                          className="h-8 text-sm mt-1"
-                          placeholder="30g"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="fat" className="text-xs">Grasas</Label>
-                        <Input
-                          id="fat"
-                          type="text"
-                          value={nutritionInfo.fat}
-                          onChange={(e) => setNutritionInfo(prev => ({
-                            ...prev,
-                            fat: e.target.value
-                          }))}
-                          className="h-8 text-sm mt-1"
-                          placeholder="10g"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="fiber" className="text-xs">Fibra</Label>
-                        <Input
-                          id="fiber"
-                          type="text"
-                          value={nutritionInfo.fiber}
-                          onChange={(e) => setNutritionInfo(prev => ({
-                            ...prev,
-                            fiber: e.target.value
-                          }))}
-                          className="h-8 text-sm mt-1"
-                          placeholder="5g"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="sugar" className="text-xs">Azúcar</Label>
-                        <Input
-                          id="sugar"
-                          type="text"
-                          value={nutritionInfo.sugar}
-                          onChange={(e) => setNutritionInfo(prev => ({
-                            ...prev,
-                            sugar: e.target.value
-                          }))}
-                          className="h-8 text-sm mt-1"
-                          placeholder="8g"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="sodium" className="text-xs">Sodio</Label>
-                        <Input
-                          id="sodium"
-                          type="text"
-                          value={nutritionInfo.sodium}
-                          onChange={(e) => setNutritionInfo(prev => ({
-                            ...prev,
-                            sodium: e.target.value
-                          }))}
-                          className="h-8 text-sm mt-1"
-                          placeholder="300mg"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="cholesterol" className="text-xs">Colesterol</Label>
-                        <Input
-                          id="cholesterol"
-                          type="text"
-                          value={nutritionInfo.cholesterol}
-                          onChange={(e) => setNutritionInfo(prev => ({
-                            ...prev,
-                            cholesterol: e.target.value
-                          }))}
-                          className="h-8 text-sm mt-1"
-                          placeholder="20mg"
-                        />
-                      </div>
-                    </div>
-                  </CardContent>
-                )}
-              </Card>
-
             </div>
           </div>
 
