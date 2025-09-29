@@ -393,52 +393,78 @@ export function DishCustomizationModal({
                 <p className="text-sm text-gray-600 mb-4">
                   Otros platos disponibles del menú
                 </p>
-                <div className="grid grid-cols-1 gap-3">
-                  {complements.map((complement) => (
-                    <div
-                      key={complement.id}
-                      className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:border-atacama-orange transition-all bg-white"
-                    >
-                      <div className="relative w-16 h-16 rounded-lg overflow-hidden shrink-0">
-                        <Image
-                          src={complement.image}
-                          alt={complement.name}
-                          fill
-                          className="object-cover"
-                        />
+                <div className="space-y-6">
+                  {/* Agrupar por categoría */}
+                  {Object.entries(
+                    complements.reduce((acc: any, complement: any) => {
+                      const category = complement.category || 'Otros';
+                      if (!acc[category]) {
+                        acc[category] = [];
+                      }
+                      acc[category].push(complement);
+                      return acc;
+                    }, {})
+                  ).map(([category, items]: [string, any]) => (
+                    <div key={category}>
+                      <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        <span className="text-lg">
+                          {category === 'Bebidas' ? '🥤' :
+                           category === 'Sopapillas' ? '🫓' :
+                           category === 'Sushi' ? '🍣' :
+                           category === 'Acompañamientos' ? '🍟' :
+                           '🍽️'}
+                        </span>
+                        {category}
+                      </h4>
+                      <div className="grid grid-cols-1 gap-3">
+                        {items.map((complement: any) => (
+                          <div
+                            key={complement.id}
+                            className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:border-atacama-orange transition-all bg-white"
+                          >
+                            <div className="relative w-16 h-16 rounded-lg overflow-hidden shrink-0">
+                              <Image
+                                src={complement.image}
+                                alt={complement.name}
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-gray-900 truncate">
+                                {complement.name}
+                              </h4>
+                              <p className="text-sm text-gray-600">
+                                ${complement.price.toLocaleString('es-CL')}
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                if (onAddComplementToCart) {
+                                  onAddComplementToCart({
+                                    dishId: complement.id,
+                                    name: complement.name,
+                                    price: complement.price,
+                                    image: complement.image,
+                                    cookerName: complement.cookerName,
+                                    cookerId: complement.cookerId,
+                                    cookerAvatar: complement.cookerAvatar,
+                                    quantity: 1,
+                                    prepTime: complement.prepTime,
+                                    category: complement.category
+                                  });
+                                  toast.success(`${complement.name} agregado al carrito`);
+                                }
+                              }}
+                              className="shrink-0"
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-gray-900 truncate">
-                          {complement.name}
-                        </h4>
-                        <p className="text-sm text-gray-600">
-                          ${complement.price.toLocaleString('es-CL')}
-                        </p>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          if (onAddComplementToCart) {
-                            onAddComplementToCart({
-                              dishId: complement.id,
-                              name: complement.name,
-                              price: complement.price,
-                              image: complement.image,
-                              cookerName: complement.cookerName,
-                              cookerId: complement.cookerId,
-                              cookerAvatar: complement.cookerAvatar,
-                              quantity: 1,
-                              prepTime: complement.prepTime,
-                              category: complement.category
-                            });
-                            toast.success(`${complement.name} agregado al carrito`);
-                          }
-                        }}
-                        className="shrink-0"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
                     </div>
                   ))}
                 </div>
