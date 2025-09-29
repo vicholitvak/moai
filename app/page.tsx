@@ -294,7 +294,7 @@ export default function Home() {
               </p>
             </motion.div>
             <LocationBasedDishes />
-          </motion.div>
+          </div>
         </motion.section>
 
         {/* Features Section */}
