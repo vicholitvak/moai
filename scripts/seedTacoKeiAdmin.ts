@@ -111,7 +111,12 @@ const tacoKeiDishes = [
       enabled: true,
       groups: PRESET_CUSTOMIZATION_GROUPS.popcorn.map((group, index) => ({
         ...group,
-        id: `popcorn-group-${index}`
+        id: `popcorn-group-${index}`,
+        options: group.options.map((opt, optIndex) => ({
+          ...opt,
+          id: `popcorn-opt-${index}-${optIndex}`,
+          available: true
+        }))
       }))
     }
   },
@@ -141,7 +146,12 @@ const tacoKeiDishes = [
       enabled: true,
       groups: PRESET_CUSTOMIZATION_GROUPS.choclitos.map((group, index) => ({
         ...group,
-        id: `choclitos-group-${index}`
+        id: `choclitos-group-${index}`,
+        options: group.options.map((opt, optIndex) => ({
+          ...opt,
+          id: `choclitos-opt-${index}-${optIndex}`,
+          available: true
+        }))
       }))
     }
   },
@@ -171,7 +181,12 @@ const tacoKeiDishes = [
       enabled: true,
       groups: PRESET_CUSTOMIZATION_GROUPS.sopapillas.map((group, index) => ({
         ...group,
-        id: `sopapillas-group-${index}`
+        id: `sopapillas-group-${index}`,
+        options: group.options.map((opt, optIndex) => ({
+          ...opt,
+          id: `sopapillas-opt-${index}-${optIndex}`,
+          available: true
+        }))
       }))
     }
   },
@@ -201,7 +216,12 @@ const tacoKeiDishes = [
       enabled: true,
       groups: PRESET_CUSTOMIZATION_GROUPS.armaturoll.map((group, index) => ({
         ...group,
-        id: `armaturoll-group-${index}`
+        id: `armaturoll-group-${index}`,
+        options: group.options.map((opt, optIndex) => ({
+          ...opt,
+          id: `armaturoll-opt-${index}-${optIndex}`,
+          available: true
+        }))
       }))
     }
   },
@@ -231,7 +251,12 @@ const tacoKeiDishes = [
       enabled: true,
       groups: PRESET_CUSTOMIZATION_GROUPS.gohan.map((group, index) => ({
         ...group,
-        id: `gohan-group-${index}`
+        id: `gohan-group-${index}`,
+        options: group.options.map((opt, optIndex) => ({
+          ...opt,
+          id: `gohan-opt-${index}-${optIndex}`,
+          available: true
+        }))
       }))
     }
   },
@@ -261,7 +286,12 @@ const tacoKeiDishes = [
       enabled: true,
       groups: PRESET_CUSTOMIZATION_GROUPS.tacos.map((group, index) => ({
         ...group,
-        id: `tacos-group-${index}`
+        id: `tacos-group-${index}`,
+        options: group.options.map((opt, optIndex) => ({
+          ...opt,
+          id: `tacos-opt-${index}-${optIndex}`,
+          available: true
+        }))
       }))
     }
   }

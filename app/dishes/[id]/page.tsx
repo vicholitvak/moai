@@ -67,7 +67,7 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
 
         // Fetch dish data from Firebase
         const dishData = await DishesService.getDishById(resolvedParams.id);
-        
+
         if (!dishData) {
           setError('Dish not found');
           return;
@@ -75,7 +75,7 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
 
         // Fetch cook data
         const cookData = await CooksService.getCookById(dishData.cookerId);
-        
+
         // Fetch reviews for this dish/cook
         const reviewsData = await ReviewsService.getReviewsByCook(dishData.cookerId);
 
@@ -91,6 +91,12 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
         setDish(dishWithDetails);
         setCook(cookData);
         setReviews(reviewsData);
+
+        // Si el plato tiene personalización, abrir el modal automáticamente
+        if (dishData.customization?.enabled && user) {
+          setShowCustomizationModal(true);
+        }
+
         // Check if dish is in user's favorites
         if (user) {
           try {
@@ -103,7 +109,7 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
         } else {
           setIsFavorite(false);
         }
-        
+
       } catch (error) {
         console.error('Error fetching dish data:', error);
         setError('Error loading dish details');
