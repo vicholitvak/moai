@@ -3,7 +3,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, AuthError } from 'firebase/auth';
+import { signInWithEmailAndPassword, AuthError } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Eye, EyeOff, Loader2, Mail, Lock } from 'lucide-react';
 import Link from 'next/link';
+import GoogleAuthWithRole from '@/components/GoogleAuthWithRole';
 
 // Utility function to convert Firebase errors to user-friendly messages
 const getFirebaseErrorMessage = (error: AuthError): string => {
@@ -41,7 +42,6 @@ function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
@@ -95,27 +95,13 @@ function LoginForm() {
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    setError('');
-    setGoogleLoading(true);
-    
-    try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({
-        prompt: 'select_account'
-      });
-      
-      await signInWithPopup(auth, provider);
-      toast.success('¡Bienvenido de vuelta! Has iniciado sesión con Google exitosamente.');
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error && 'code' in error
-        ? getFirebaseErrorMessage(error as AuthError)
-        : 'Ocurrió un error inesperado. Por favor, intenta de nuevo.';
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setGoogleLoading(false);
-    }
+  const handleGoogleSuccess = () => {
+    toast.success('¡Bienvenido de vuelta! Has iniciado sesión con Google exitosamente.');
+    // Router push will be handled by AuthContext redirect
+  };
+
+  const handleGoogleError = (errorMessage: string) => {
+    setError(errorMessage);
   };
 
   return (
@@ -131,21 +117,12 @@ function LoginForm() {
 
           <div className="space-y-6 mt-6">
             {/* Google Sign In Button */}
-            <Button 
-              variant="outline" 
-              className="w-full h-11 font-medium border-2 border-atacama-beige/30 hover:bg-atacama-beige/10 hover:border-atacama-orange/30 transition-colors" 
-              onClick={handleGoogleSignIn} 
-              disabled={loading || googleLoading}
-            >
-              {googleLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <div className="mr-2 w-4 h-4 bg-gradient-to-r from-atacama-orange via-atacama-brown to-atacama-beige rounded-sm flex items-center justify-center text-white text-xs font-bold">
-                  G
-                </div>
-              )}
-              Continuar con Google
-            </Button>
+            <GoogleAuthWithRole
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              disabled={loading}
+              buttonText="Continuar con Google"
+            />
 
             {/* Divider */}
             <div className="relative">
@@ -174,7 +151,7 @@ function LoginForm() {
                     placeholder="name@example.com"
                     className="pl-10 h-11 border-atacama-beige/40 focus-visible:ring-atacama-orange focus-visible:border-atacama-orange"
                     autoComplete="email"
-                    disabled={loading || googleLoading}
+                    disabled={loading}
                     required
                   />
                 </div>
@@ -204,7 +181,7 @@ function LoginForm() {
                     placeholder="Ingresa tu contraseña"
                     className="pl-10 pr-10 h-11 border-atacama-beige/40 focus-visible:ring-atacama-orange focus-visible:border-atacama-orange"
                     autoComplete="current-password"
-                    disabled={loading || googleLoading}
+                    disabled={loading}
                     required
                   />
                   <button
@@ -212,7 +189,7 @@ function LoginForm() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-atacama-brown/60 hover:text-atacama-brown transition-colors"
                     aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                    disabled={loading || googleLoading}
+                    disabled={loading}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -230,7 +207,7 @@ function LoginForm() {
               <Button 
                 type="submit" 
                 className="w-full h-11 font-semibold bg-atacama-orange hover:bg-atacama-orange/90 text-white" 
-                disabled={loading || googleLoading || !email || !password}
+                disabled={loading || !email || !password}
               >
                 {loading ? (
                   <>

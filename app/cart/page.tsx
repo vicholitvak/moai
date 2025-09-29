@@ -362,7 +362,7 @@ const CartPage = () => {
             </Card>
 
             <div className="space-y-3">
-              <Button className="w-full" onClick={() => router.push('/dishes')}>
+              <Button className="w-full bg-atacama-orange hover:bg-atacama-orange/90 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200" onClick={() => router.push('/dishes')}>
                 Continue Shopping
               </Button>
               <Button variant="outline" className="w-full" onClick={() => router.push('/client/home')}>
@@ -540,7 +540,7 @@ const CartPage = () => {
                 </Card>
 
                 <Button 
-                  className="w-full" 
+                  className="w-full bg-atacama-orange hover:bg-atacama-orange/90 text-white font-semibold shadow-md hover:shadow-lg transition-all duration-200" 
                   size="lg"
                   onClick={() => setCurrentStep('checkout')}
                 >
@@ -584,7 +584,7 @@ const CartPage = () => {
                         <Button
                           size="sm"
                           onClick={saveAddressToProfile}
-                          className="bg-blue-600 hover:bg-blue-700"
+                          className="bg-atacama-orange hover:bg-atacama-orange/90 text-white font-medium shadow-sm hover:shadow-md transition-all duration-200"
                         >
                           <Save className="h-4 w-4 mr-1" />
                           Guardar
@@ -868,8 +868,8 @@ const CartPage = () => {
                 Back to Cart
               </Button>
               <Button 
-                className={`flex-1 relative overflow-hidden transition-all duration-300 ${
-                  isProcessing ? 'bg-primary hover:bg-primary/90' : 'hover:scale-105'
+                className={`flex-1 relative overflow-hidden transition-all duration-300 bg-atacama-orange hover:bg-atacama-orange/90 text-white font-semibold shadow-md hover:shadow-lg ${
+                  isProcessing ? 'bg-atacama-orange hover:bg-atacama-orange/90' : 'hover:scale-105'
                 }`}
                 onClick={handleCheckout}
                 disabled={isProcessing || !orderForm.deliveryAddress || !orderForm.phone}

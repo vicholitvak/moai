@@ -11,20 +11,20 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-gradient-to-r from-moai-500 to-moai-600 text-white shadow-lg hover:shadow-xl hover:shadow-moai-500/25 border-0 hover:from-moai-600 hover:to-moai-700",
+          "bg-gradient-to-r from-atacama-orange to-orange-600 text-white shadow-lg hover:shadow-xl hover:shadow-atacama-orange/25 border-0 hover:from-orange-600 hover:to-orange-700",
         destructive:
           "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg hover:shadow-xl hover:shadow-red-500/25 hover:from-red-600 hover:to-red-700",
         outline:
-          "border-2 border-moai-200 bg-background/80 backdrop-blur-sm shadow-sm hover:bg-moai-50 hover:text-moai-700 hover:border-moai-300 hover:shadow-md",
+          "border-2 border-atacama-beige/40 bg-background/80 backdrop-blur-sm shadow-sm hover:bg-atacama-beige/10 hover:text-atacama-brown hover:border-atacama-orange/50 hover:shadow-md",
         secondary:
           "bg-gradient-to-r from-pacific-500 to-pacific-600 text-white shadow-lg hover:shadow-xl hover:shadow-pacific-500/25 hover:from-pacific-600 hover:to-pacific-700",
         ghost:
-          "hover:bg-moai-50/80 hover:text-moai-700 hover:backdrop-blur-sm",
-        link: "text-moai-600 underline-offset-4 hover:underline hover:text-moai-700 p-0 h-auto shadow-none hover:shadow-none",
+          "hover:bg-atacama-beige/20 hover:text-atacama-brown hover:backdrop-blur-sm",
+        link: "text-atacama-orange underline-offset-4 hover:underline hover:text-atacama-orange/80 p-0 h-auto shadow-none hover:shadow-none",
         glass:
           "bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-lg hover:bg-white/20 hover:shadow-xl",
         premium:
-          "bg-gradient-to-r from-amber-400 via-orange-500 to-red-500 text-white shadow-lg hover:shadow-xl hover:shadow-orange-500/30 hover:from-amber-500 hover:via-orange-600 hover:to-red-600",
+          "bg-gradient-to-r from-amber-400 via-atacama-orange to-red-500 text-white shadow-lg hover:shadow-xl hover:shadow-atacama-orange/30 hover:from-amber-500 hover:via-orange-600 hover:to-red-600",
       },
       size: {
         default: "h-11 px-6 py-2",
@@ -79,7 +79,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
         {/* Glow Effect */}
         {glow && (
-          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-moai-500/20 to-pacific-500/20 blur-xl group-hover:blur-2xl transition-all duration-300 opacity-0 group-hover:opacity-100" />
+          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-atacama-orange/20 to-orange-500/20 blur-xl group-hover:blur-2xl transition-all duration-300 opacity-0 group-hover:opacity-100" />
         )}
 
         {/* Loading Spinner */}

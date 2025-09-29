@@ -14,6 +14,7 @@ import { ThemeScript } from './theme-script';
 import { SupportButton } from '../components/support/SupportButton';
 import ServiceWorkerRegistration from '../components/ServiceWorkerRegistration';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import OnboardingHandler from '../components/OnboardingHandler';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -54,6 +55,7 @@ export default function RootLayout({
                   <NotificationInitializer />
                   <ChatNotificationHandler />
                   <AuthHandler>{children}</AuthHandler>
+                  <OnboardingHandler />
                   <FloatingChatButton />
                   <SupportButton />
                   <Toaster />
