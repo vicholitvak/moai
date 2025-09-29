@@ -219,7 +219,7 @@ export default function OnboardingGuide({ isOpen, onClose, userRole }: Onboardin
   return (
     <Dialog open={isOpen} onOpenChange={() => {}}>
       <DialogContent
-        className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto border-2 border-atacama-beige/20 shadow-2xl bg-white p-0"
+        className="w-[95vw] max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-hidden border-2 border-atacama-beige/20 shadow-2xl bg-white p-0"
         hideClose
       >
         {/* Custom close button */}
@@ -231,10 +231,10 @@ export default function OnboardingGuide({ isOpen, onClose, userRole }: Onboardin
           <X className="h-5 w-5 sm:h-4 sm:w-4 text-gray-500" />
         </button>
 
-        <div className="p-4 sm:p-6">
+        <div className="p-3 sm:p-6 max-h-[90vh] overflow-y-auto overflow-x-hidden">
           {/* Progress indicator */}
-          <div className="flex items-center justify-between mb-4 sm:mb-6 pr-8 sm:pr-0">
-            <div className="flex space-x-1.5 sm:space-x-2">
+          <div className="flex items-center justify-between mb-4 sm:mb-6 pr-10 sm:pr-0">
+            <div className="flex space-x-1 sm:space-x-2 flex-wrap">
               {steps.map((_, index) => (
                 <div
                   key={index}
@@ -246,7 +246,7 @@ export default function OnboardingGuide({ isOpen, onClose, userRole }: Onboardin
                 />
               ))}
             </div>
-            <Badge variant="secondary" className="text-xs shrink-0">
+            <Badge variant="secondary" className="text-[10px] sm:text-xs shrink-0 whitespace-nowrap ml-2">
               {currentStep + 1} de {steps.length}
             </Badge>
           </div>
@@ -259,22 +259,22 @@ export default function OnboardingGuide({ isOpen, onClose, userRole }: Onboardin
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.3 }}
             >
-              <Card className="border-none shadow-none">
-                <CardHeader className="text-center pb-3 sm:pb-4 px-2 sm:px-6">
-                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-atacama-orange to-orange-600 rounded-full mx-auto mb-3 sm:mb-4 flex items-center justify-center">
+              <Card className="border-none shadow-none overflow-hidden">
+                <CardHeader className="text-center pb-3 sm:pb-4 px-1 sm:px-6">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-atacama-orange to-orange-600 rounded-full mx-auto mb-3 sm:mb-4 flex items-center justify-center shrink-0">
                     <IconComponent className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
                   </div>
-                  <CardTitle className="text-xl sm:text-2xl font-bold text-atacama-brown">
+                  <CardTitle className="text-lg sm:text-2xl font-bold text-atacama-brown px-2 break-words">
                     {currentStepData.title}
                   </CardTitle>
-                  <CardDescription className="text-sm sm:text-lg text-atacama-brown/70 mt-1">
+                  <CardDescription className="text-xs sm:text-lg text-atacama-brown/70 mt-1 px-2 break-words">
                     {currentStepData.description}
                   </CardDescription>
                 </CardHeader>
 
-                <CardContent className="space-y-4 sm:space-y-6 px-2 sm:px-6">
+                <CardContent className="space-y-3 sm:space-y-6 px-1 sm:px-6">
                   <div className="text-center">
-                    <h3 className="text-base sm:text-xl font-semibold text-atacama-brown mb-3 sm:mb-4">
+                    <h3 className="text-sm sm:text-xl font-semibold text-atacama-brown mb-2 sm:mb-4 px-2 break-words">
                       {currentStepData.content.title}
                     </h3>
                     <div className="space-y-2 sm:space-y-3">
@@ -284,10 +284,10 @@ export default function OnboardingGuide({ isOpen, onClose, userRole }: Onboardin
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: index * 0.1 }}
-                          className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-orange-50 rounded-lg"
+                          className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-orange-50 rounded-lg overflow-hidden"
                         >
-                          <div className="text-base sm:text-lg shrink-0">{point.split(' ')[0]}</div>
-                          <div className="text-xs sm:text-sm text-atacama-brown/80 text-left">
+                          <div className="text-sm sm:text-lg shrink-0">{point.split(' ')[0]}</div>
+                          <div className="text-[11px] sm:text-sm text-atacama-brown/80 text-left break-words flex-1 min-w-0">
                             {point.substring(point.indexOf(' ') + 1)}
                           </div>
                         </motion.div>
@@ -297,27 +297,27 @@ export default function OnboardingGuide({ isOpen, onClose, userRole }: Onboardin
 
                   {/* Special content for different roles */}
                   {userRole === 'Client' && currentStep === 0 && (
-                    <div className="bg-blue-50 p-3 sm:p-4 rounded-lg">
-                      <h4 className="font-semibold text-blue-900 mb-1 sm:mb-2 text-sm sm:text-base">💡 Consejo:</h4>
-                      <p className="text-xs sm:text-sm text-blue-800">
+                    <div className="bg-blue-50 p-2 sm:p-4 rounded-lg overflow-hidden">
+                      <h4 className="font-semibold text-blue-900 mb-1 sm:mb-2 text-xs sm:text-base break-words">💡 Consejo:</h4>
+                      <p className="text-[11px] sm:text-sm text-blue-800 break-words">
                         Empieza explorando cocineros cerca de ti. Cada cocinero tiene su especialidad única.
                       </p>
                     </div>
                   )}
 
                   {userRole === 'Cooker' && currentStep === 1 && (
-                    <div className="bg-green-50 p-3 sm:p-4 rounded-lg">
-                      <h4 className="font-semibold text-green-900 mb-1 sm:mb-2 text-sm sm:text-base">🎯 Importante:</h4>
-                      <p className="text-xs sm:text-sm text-green-800">
+                    <div className="bg-green-50 p-2 sm:p-4 rounded-lg overflow-hidden">
+                      <h4 className="font-semibold text-green-900 mb-1 sm:mb-2 text-xs sm:text-base break-words">🎯 Importante:</h4>
+                      <p className="text-[11px] sm:text-sm text-green-800 break-words">
                         Las fotos de alta calidad aumentan tus ventas hasta en un 60%. ¡Invierte tiempo en buenas imágenes!
                       </p>
                     </div>
                   )}
 
                   {userRole === 'Driver' && currentStep === 1 && (
-                    <div className="bg-purple-50 p-3 sm:p-4 rounded-lg">
-                      <h4 className="font-semibold text-purple-900 mb-1 sm:mb-2 text-sm sm:text-base">📋 Requisitos:</h4>
-                      <p className="text-xs sm:text-sm text-purple-800">
+                    <div className="bg-purple-50 p-2 sm:p-4 rounded-lg overflow-hidden">
+                      <h4 className="font-semibold text-purple-900 mb-1 sm:mb-2 text-xs sm:text-base break-words">📋 Requisitos:</h4>
+                      <p className="text-[11px] sm:text-sm text-purple-800 break-words">
                         Necesitas licencia vigente, seguro del vehículo y completar verificación de antecedentes.
                       </p>
                     </div>
@@ -328,41 +328,39 @@ export default function OnboardingGuide({ isOpen, onClose, userRole }: Onboardin
           </AnimatePresence>
 
           {/* Navigation buttons */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mt-6 sm:mt-8">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3 mt-4 sm:mt-8">
             <Button
               variant="ghost"
               onClick={handlePrevious}
               disabled={currentStep === 0}
-              className="text-atacama-brown/70 text-sm sm:text-base"
-              size="sm"
+              className="text-atacama-brown/70 text-xs sm:text-base h-9 sm:h-10"
             >
               Anterior
             </Button>
 
-            <div className="flex gap-2 sm:gap-3">
+            <div className="flex gap-2 sm:gap-3 flex-1 sm:flex-none">
               <Button
                 variant="outline"
                 onClick={handleSkip}
-                className="text-atacama-brown border-atacama-beige/40 flex-1 sm:flex-none text-sm sm:text-base"
-                size="sm"
+                className="text-atacama-brown border-atacama-beige/40 flex-1 sm:flex-none text-xs sm:text-base h-9 sm:h-10 whitespace-nowrap"
               >
                 Saltar
               </Button>
 
               <Button
                 onClick={handleNext}
-                className="bg-atacama-orange hover:bg-atacama-orange/90 text-white flex-1 sm:flex-none text-sm sm:text-base"
-                size="sm"
+                className="bg-atacama-orange hover:bg-atacama-orange/90 text-white flex-1 sm:flex-none text-xs sm:text-base h-9 sm:h-10 whitespace-nowrap"
               >
                 {isLastStep ? (
                   <>
-                    <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                    ¡Empezar!
+                    <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                    <span className="hidden xs:inline">¡Empezar!</span>
+                    <span className="xs:hidden">Empezar</span>
                   </>
                 ) : (
                   <>
-                    Siguiente
-                    <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 ml-1 sm:ml-2" />
+                    <span>Siguiente</span>
+                    <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
                   </>
                 )}
               </Button>
