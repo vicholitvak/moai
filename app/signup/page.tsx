@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, AuthError } from 'firebase/auth';
 import { setDoc, doc, getDoc } from 'firebase/firestore';
@@ -110,7 +110,7 @@ const getPasswordStrength = (password: string): { strength: number; label: strin
   return { strength, label: 'Fuerte', color: 'bg-green-500' };
 };
 
-export default function SignUpPage() {
+function SignUpPageContent() {
   const [step, setStep] = useState<'role' | 'form'>('role');
   const [selectedRole, setSelectedRole] = useState<string>('');
   const [email, setEmail] = useState('');
@@ -509,5 +509,20 @@ export default function SignUpPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-atacama-orange mx-auto mb-4"></div>
+          <p className="text-atacama-brown/70">Cargando...</p>
+        </div>
+      </div>
+    }>
+      <SignUpPageContent />
+    </Suspense>
   );
 }
