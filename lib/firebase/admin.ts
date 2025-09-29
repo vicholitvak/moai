@@ -4,33 +4,57 @@ import * as dotenv from 'dotenv';
 
 dotenv.config({ path: '.env.local' });
 
+// Helper to validate if a private key looks legitimate
+function isValidPrivateKey(key: string | undefined): boolean {
+  if (!key) return false;
+  
+  // Check for mock/placeholder values
+  if (key.includes('MockKeyForBuildOnly') || 
+      key.includes('mock-') || 
+      key.length < 100) {
+    return false;
+  }
+  
+  // Check for proper PEM format
+  return key.includes('-----BEGIN PRIVATE KEY-----') && 
+         key.includes('-----END PRIVATE KEY-----');
+}
+
 // Initialize Firebase Admin only if credentials are available
 let isInitialized = false;
 
 if (!admin.apps.length) {
-  const serviceAccount = {
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-  };
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
-  // Only initialize if all credentials are present
-  if (serviceAccount.projectId && serviceAccount.clientEmail && serviceAccount.privateKey) {
+  // Validate all credentials are present and legitimate (not mock values)
+  const hasValidProjectId = projectId && !projectId.includes('mock');
+  const hasValidClientEmail = clientEmail && !clientEmail.includes('mock') && clientEmail.includes('@');
+  const hasValidPrivateKey = isValidPrivateKey(privateKey);
+
+  if (hasValidProjectId && hasValidClientEmail && hasValidPrivateKey) {
     try {
       admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+        credential: admin.credential.cert({
+          projectId,
+          clientEmail,
+          privateKey,
+        } as admin.ServiceAccount),
       });
       isInitialized = true;
       console.log('✅ Firebase Admin initialized successfully');
     } catch (error) {
       console.error('❌ Error initializing Firebase Admin:', error);
+      console.error('This is likely due to invalid credentials. Server-side features will be unavailable.');
     }
   } else {
-    console.warn('⚠️ Firebase Admin credentials not available - running in build mode or missing env vars');
-    console.warn('Missing:', {
-      projectId: !serviceAccount.projectId,
-      clientEmail: !serviceAccount.clientEmail,
-      privateKey: !serviceAccount.privateKey,
+    console.warn('⚠️ Firebase Admin credentials not available or are mock values');
+    console.warn('Server-side Firebase features will be unavailable during this build.');
+    console.warn('Status:', {
+      projectId: hasValidProjectId ? '✓' : '✗',
+      clientEmail: hasValidClientEmail ? '✓' : '✗',
+      privateKey: hasValidPrivateKey ? '✓' : '✗',
     });
   }
 }
