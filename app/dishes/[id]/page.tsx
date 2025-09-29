@@ -74,7 +74,15 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
         }
 
         // Fetch cook data
-        const cookData = await CooksService.getCookById(dishData.cookerId);
+        let cookData = null;
+        try {
+          cookData = await CooksService.getCookById(dishData.cookerId);
+          if (!cookData) {
+            console.warn('Cook profile not found for cookerId:', dishData.cookerId);
+          }
+        } catch (error) {
+          console.warn('Error loading cook profile:', error);
+        }
 
         // Fetch reviews for this dish/cook
         const reviewsData = await ReviewsService.getReviewsByCook(dishData.cookerId);
@@ -580,74 +588,6 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
                 </div>
               </CardContent>
             </Card>
-          )}
-
-          {/* Nutrition & Allergens - only show if no customization */}
-          {!dish.customization?.enabled && (
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card className="hover:shadow-md transition-shadow duration-300">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    🥗
-                    Información Nutricional
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {dish.nutritionInfo ? (
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center p-2 rounded hover:bg-muted/50 transition-colors duration-200">
-                        <span>Calorías</span>
-                        <span className="font-medium px-2 py-1 bg-primary/10 rounded-full text-primary">{dish.nutritionInfo.calories}</span>
-                      </div>
-                      <div className="flex justify-between items-center p-2 rounded hover:bg-muted/50 transition-colors duration-200">
-                        <span>Proteína</span>
-                        <span className="font-medium px-2 py-1 bg-blue-100 rounded-full text-blue-700">{dish.nutritionInfo.protein}</span>
-                      </div>
-                      <div className="flex justify-between items-center p-2 rounded hover:bg-muted/50 transition-colors duration-200">
-                        <span>Carbohidratos</span>
-                        <span className="font-medium px-2 py-1 bg-green-100 rounded-full text-green-700">{dish.nutritionInfo.carbs}</span>
-                      </div>
-                      <div className="flex justify-between items-center p-2 rounded hover:bg-muted/50 transition-colors duration-200">
-                        <span>Grasas</span>
-                        <span className="font-medium px-2 py-1 bg-orange-100 rounded-full text-orange-700">{dish.nutritionInfo.fat}</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground">Información nutricional no disponible</p>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card className="hover:shadow-md transition-shadow duration-300">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    ⚠️
-                    Información de Alérgenos
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {dish.allergens && dish.allergens.length > 0 ? (
-                    <div className="space-y-2">
-                      {dish.allergens.map((allergen: string, index: number) => (
-                        <div
-                          key={allergen}
-                          className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg hover:bg-yellow-100 transition-colors duration-200 animate-in fade-in-50 slide-in-from-right-2"
-                          style={{ animationDelay: `${index * 100}ms` }}
-                        >
-                          <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
-                          <span className="text-sm font-medium text-yellow-800">Contiene {allergen}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-4">
-                      <div className="text-2xl mb-2">✅</div>
-                      <p className="text-muted-foreground">Sin información de alérgenos disponible</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
           )}
 
           {/* Reviews Section */}
