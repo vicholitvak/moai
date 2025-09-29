@@ -204,14 +204,14 @@ export function DishCustomizationConfig({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => loadPreset('wraps')}
                   className="text-xs"
                 >
-                  🌯 Wraps/Tacos
+                  🌯 Wraps
                 </Button>
                 <Button
                   variant="outline"
@@ -219,7 +219,7 @@ export function DishCustomizationConfig({
                   onClick={() => loadPreset('sushi')}
                   className="text-xs"
                 >
-                  🍣 Sushi
+                  🍣 Sushi Básico
                 </Button>
                 <Button
                   variant="outline"
@@ -244,6 +244,54 @@ export function DishCustomizationConfig({
                   className="text-xs"
                 >
                   🥗 Ensaladas
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => loadPreset('popcorn')}
+                  className="text-xs"
+                >
+                  🍿 Popcorn
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => loadPreset('choclitos')}
+                  className="text-xs"
+                >
+                  🌽 Choclitos
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => loadPreset('sopapillas')}
+                  className="text-xs"
+                >
+                  🫓 Sopapillas
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => loadPreset('armaturoll')}
+                  className="text-xs"
+                >
+                  🍱 Arma tu Roll
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => loadPreset('gohan')}
+                  className="text-xs"
+                >
+                  🍚 Gohan
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => loadPreset('tacos')}
+                  className="text-xs"
+                >
+                  🌮 Tacos
                 </Button>
               </div>
             </CardContent>

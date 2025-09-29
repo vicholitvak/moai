@@ -255,6 +255,461 @@ export const PRESET_CUSTOMIZATION_GROUPS = {
     }
   ],
 
+  // Para popcorn
+  popcorn: [
+    {
+      name: 'Sabor',
+      required: true,
+      selectionType: 'single' as OptionSelectionType,
+      options: [
+        { name: 'Caramelo', price: 0 },
+        { name: 'Mantequilla Sal', price: 0 },
+        { name: 'Mantequilla Merkén', price: 0 },
+        { name: 'Blue Raspberry', price: 0 },
+        { name: 'Canela', price: 0 },
+        { name: 'Chocolate', price: 0 },
+        { name: 'Caramelo Coco', price: 1000 },
+        { name: 'Chocolate Coco', price: 1000 }
+      ]
+    }
+  ],
+
+  // Para choclitos
+  choclitos: [
+    {
+      name: 'Base de Mantequilla',
+      required: false,
+      selectionType: 'single' as OptionSelectionType,
+      options: [
+        { name: 'Merkén', price: 0 },
+        { name: 'Orégano', price: 0 },
+        { name: 'Pimentón', price: 0 },
+        { name: 'Sin base', price: 0 }
+      ]
+    },
+    {
+      name: 'Primera Salsa',
+      required: true,
+      selectionType: 'single' as OptionSelectionType,
+      options: [
+        { name: 'Aceituna', price: 0 },
+        { name: 'Albahaca', price: 0 },
+        { name: 'Ciboullette', price: 0 },
+        { name: 'Cilantro', price: 0 },
+        { name: 'Cheddar', price: 0 },
+        { name: 'Huancaina', price: 0 },
+        { name: 'Tari', price: 0 },
+        { name: 'Inferno Jalapeño', price: 0 },
+        { name: 'Salsa Spicy', price: 0 },
+        { name: 'Ají Chipotle', price: 0 },
+        { name: 'Golden (BBQ, mostaza y miel)', price: 0 },
+        { name: 'Mostaza Miel', price: 0 },
+        { name: 'BBQ', price: 0 },
+        { name: 'Salsa Secreta', price: 0 },
+        { name: 'NotCo Mayo', price: 0 },
+        { name: 'NotCo Mayo Ají', price: 0 },
+        { name: 'NotCo Special Sauce', price: 0 },
+        { name: 'NotCo Mayo Doritos', price: 0 },
+        { name: 'NotCo Mayo Oliva', price: 0 }
+      ]
+    },
+    {
+      name: 'Segunda Salsa (Opcional)',
+      required: false,
+      selectionType: 'single' as OptionSelectionType,
+      options: [
+        { name: 'Sin segunda salsa', price: 0 },
+        { name: 'Aceituna', price: 2000 },
+        { name: 'Albahaca', price: 2000 },
+        { name: 'Ciboullette', price: 2000 },
+        { name: 'Cilantro', price: 2000 },
+        { name: 'Cheddar', price: 2000 },
+        { name: 'Huancaina', price: 2000 },
+        { name: 'Tari', price: 2000 },
+        { name: 'Inferno Jalapeño', price: 2000 },
+        { name: 'Salsa Spicy', price: 2000 },
+        { name: 'Ají Chipotle', price: 2000 },
+        { name: 'Golden', price: 2000 },
+        { name: 'Mostaza Miel', price: 2000 },
+        { name: 'BBQ', price: 2000 },
+        { name: 'Salsa Secreta', price: 2000 },
+        { name: 'NotCo Mayo', price: 2000 },
+        { name: 'NotCo Mayo Ají', price: 2000 },
+        { name: 'NotCo Special Sauce', price: 2000 },
+        { name: 'NotCo Mayo Doritos', price: 2000 },
+        { name: 'NotCo Mayo Oliva', price: 2000 }
+      ]
+    },
+    {
+      name: 'Primer Topping',
+      required: true,
+      selectionType: 'single' as OptionSelectionType,
+      options: [
+        { name: 'Guacamole', price: 0 },
+        { name: 'Pebre', price: 0 },
+        { name: 'Papas Hilo', price: 0 },
+        { name: 'Choclo', price: 0 },
+        { name: 'Jalapeño', price: 0 },
+        { name: 'Aceituna', price: 0 },
+        { name: 'Pepinillos', price: 0 },
+        { name: 'Tomate', price: 0 },
+        { name: 'Cebolla Crispy', price: 0 },
+        { name: 'Cebolla Caramelizada', price: 0 },
+        { name: 'Chucrut', price: 0 },
+        { name: 'Salsa Verde', price: 0 },
+        { name: 'Queso Llanero', price: 0 },
+        { name: 'Queso de Cabra', price: 0 },
+        { name: 'Porotos Refritos', price: 0 },
+        { name: 'Maní', price: 0 },
+        { name: 'Almendras', price: 0 },
+        { name: 'Nueces', price: 0 },
+        { name: 'Ají Verde', price: 0 },
+        { name: 'Cilantro', price: 0 },
+        { name: 'Cebollín', price: 0 },
+        { name: 'Sweet Relish', price: 0 },
+        { name: 'Takis', price: 0 },
+        { name: 'Doritos', price: 0 }
+      ]
+    },
+    {
+      name: 'Segundo Topping (Opcional)',
+      required: false,
+      selectionType: 'single' as OptionSelectionType,
+      options: [
+        { name: 'Sin segundo topping', price: 0 },
+        { name: 'Guacamole', price: 1000 },
+        { name: 'Pebre', price: 1000 },
+        { name: 'Papas Hilo', price: 1000 },
+        { name: 'Choclo', price: 1000 },
+        { name: 'Jalapeño', price: 1000 },
+        { name: 'Aceituna', price: 1000 },
+        { name: 'Pepinillos', price: 1000 },
+        { name: 'Tomate', price: 1000 },
+        { name: 'Cebolla Crispy', price: 1000 },
+        { name: 'Cebolla Caramelizada', price: 1000 },
+        { name: 'Chucrut', price: 1000 },
+        { name: 'Salsa Verde', price: 1000 },
+        { name: 'Queso Llanero', price: 1000 },
+        { name: 'Queso de Cabra', price: 1000 },
+        { name: 'Porotos Refritos', price: 1000 },
+        { name: 'Maní', price: 1000 },
+        { name: 'Almendras', price: 1000 },
+        { name: 'Nueces', price: 1000 },
+        { name: 'Ají Verde', price: 1000 },
+        { name: 'Cilantro', price: 1000 },
+        { name: 'Cebollín', price: 1000 },
+        { name: 'Sweet Relish', price: 1000 },
+        { name: 'Takis', price: 1000 },
+        { name: 'Doritos', price: 1000 }
+      ]
+    }
+  ],
+
+  // Para sopapillas
+  sopapillas: [
+    {
+      name: 'Estilo',
+      required: true,
+      selectionType: 'single' as OptionSelectionType,
+      options: [
+        { name: 'Clásicas (ketchup, mayo, mostaza)', price: 0 },
+        { name: 'A la Chilena (con pebre)', price: 1000 },
+        { name: 'Mexicanas (con guacamole)', price: 2000 },
+        { name: 'Dulces (con manjar)', price: 1000 },
+        { name: 'Salseras (con 2 salsas a elección)', price: 2000 }
+      ]
+    },
+    {
+      name: 'Salsa Extra 1 (solo para Salseras)',
+      required: false,
+      selectionType: 'single' as OptionSelectionType,
+      options: [
+        { name: 'N/A', price: 0 },
+        { name: 'Aceituna', price: 0 },
+        { name: 'Albahaca', price: 0 },
+        { name: 'Ciboullette', price: 0 },
+        { name: 'Cilantro', price: 0 },
+        { name: 'Cheddar', price: 0 },
+        { name: 'Huancaina', price: 0 },
+        { name: 'Tari', price: 0 },
+        { name: 'Inferno Jalapeño', price: 0 },
+        { name: 'Salsa Spicy', price: 0 }
+      ]
+    },
+    {
+      name: 'Salsa Extra 2 (solo para Salseras)',
+      required: false,
+      selectionType: 'single' as OptionSelectionType,
+      options: [
+        { name: 'N/A', price: 0 },
+        { name: 'BBQ', price: 0 },
+        { name: 'Mostaza Miel', price: 0 },
+        { name: 'NotCo Mayo', price: 0 },
+        { name: 'NotCo Mayo Ají', price: 0 },
+        { name: 'Tártara', price: 0 },
+        { name: 'Ají Crema', price: 0 },
+        { name: 'Mayo Deli', price: 0 }
+      ]
+    }
+  ],
+
+  // Para armar rolls (sushi)
+  armaturoll: [
+    {
+      name: 'Proteína',
+      required: true,
+      selectionType: 'single' as OptionSelectionType,
+      options: [
+        { name: 'Salmón', price: 0 },
+        { name: 'Camarón', price: 0 },
+        { name: 'Kanikama', price: -2000 },
+        { name: 'Pollo', price: -1000 },
+        { name: 'Atún', price: 0 },
+        { name: 'Seitán', price: -2000 },
+        { name: 'Champiñón', price: -1000 },
+        { name: 'Tofu', price: -1000 }
+      ]
+    },
+    {
+      name: 'Envoltura',
+      required: true,
+      selectionType: 'single' as OptionSelectionType,
+      options: [
+        { name: 'Sésamo Tostado', price: 0 },
+        { name: 'Nori', price: 0 },
+        { name: 'Anguila', price: 0 },
+        { name: 'Zanahoria', price: 0 },
+        { name: 'Panko', price: 0 }
+      ]
+    },
+    {
+      name: 'Envoltura Premium (Opcional)',
+      required: false,
+      selectionType: 'single' as OptionSelectionType,
+      options: [
+        { name: 'Sin envoltura premium', price: 0 },
+        { name: 'Salmón', price: 1500 },
+        { name: 'Palta', price: 1500 },
+        { name: 'Queso Crema', price: 1500 },
+        { name: 'Mango', price: 1500 },
+        { name: 'Jamón Serrano', price: 1500 }
+      ]
+    },
+    {
+      name: 'Verduras',
+      required: true,
+      selectionType: 'multiple' as OptionSelectionType,
+      maxSelections: 3,
+      options: [
+        { name: 'Pepino', price: 0 },
+        { name: 'Cebolla', price: 0 },
+        { name: 'Zucchini Furay', price: 0 },
+        { name: 'Zanahoria', price: 0 },
+        { name: 'Jalapeño', price: 0 },
+        { name: 'Aceituna', price: 0 },
+        { name: 'Palmito', price: 0 },
+        { name: 'Apio', price: 0 },
+        { name: 'Pepinillo', price: 0 },
+        { name: 'Ají Verde', price: 0 },
+        { name: 'Papa Camote', price: 0 },
+        { name: 'Espárragos', price: 0 }
+      ]
+    },
+    {
+      name: 'Toppings',
+      required: false,
+      selectionType: 'multiple' as OptionSelectionType,
+      maxSelections: 2,
+      options: [
+        { name: 'Maní', price: 0 },
+        { name: 'Almendras', price: 0 },
+        { name: 'Nuez', price: 0 },
+        { name: 'Cebolla Crispy', price: 0 },
+        { name: 'Salsa Verde', price: 0 },
+        { name: 'Cebolla Caramelizada', price: 0 },
+        { name: 'Queso Rallado', price: 0 },
+        { name: 'Merkén', price: 0 },
+        { name: 'Coco Rallado', price: 0 },
+        { name: 'Siracha', price: 0 },
+        { name: 'Salsa Spicy', price: 0 },
+        { name: 'Sweet Relish', price: 0 },
+        { name: 'Papas Hilo', price: 0 },
+        { name: 'Salsa de Cilantro', price: 0 },
+        { name: 'Salsa Albahaca', price: 0 },
+        { name: 'Salsa Ciboullette', price: 0 },
+        { name: 'Salsa de Aceitunas', price: 0 },
+        { name: 'Tártara', price: 0 },
+        { name: 'Doritos', price: 0 },
+        { name: 'Acevichada Vegan', price: 0 }
+      ]
+    }
+  ],
+
+  // Para gohan (bowls de arroz)
+  gohan: [
+    {
+      name: 'Proteína',
+      required: true,
+      selectionType: 'single' as OptionSelectionType,
+      options: [
+        { name: 'Salmón', price: 0 },
+        { name: 'Camarón', price: 0 },
+        { name: 'Kanikama', price: -2000 },
+        { name: 'Pollo', price: -1000 },
+        { name: 'Atún', price: 0 },
+        { name: 'Seitán', price: -2000 },
+        { name: 'Champiñón', price: -1000 },
+        { name: 'Tofu', price: -1000 }
+      ]
+    },
+    {
+      name: 'Verduras (Elige 2)',
+      required: true,
+      selectionType: 'multiple' as OptionSelectionType,
+      minSelections: 2,
+      maxSelections: 2,
+      options: [
+        { name: 'Pepino', price: 0 },
+        { name: 'Zanahoria', price: 0 },
+        { name: 'Cebolla', price: 0 },
+        { name: 'Jalapeño', price: 0 },
+        { name: 'Aceituna', price: 0 },
+        { name: 'Tomate', price: 0 },
+        { name: 'Palmito', price: 0 },
+        { name: 'Choclo', price: 0 }
+      ]
+    },
+    {
+      name: 'Topping',
+      required: true,
+      selectionType: 'single' as OptionSelectionType,
+      options: [
+        { name: 'Maní', price: 0 },
+        { name: 'Almendras', price: 0 },
+        { name: 'Nuez', price: 0 },
+        { name: 'Cebolla Crispy', price: 0 },
+        { name: 'Merkén', price: 0 },
+        { name: 'Coco Rallado', price: 0 },
+        { name: 'Cebolla Caramelizada', price: 0 },
+        { name: 'Salsa de Cilantro', price: 0 },
+        { name: 'Salsa Albahaca', price: 0 },
+        { name: 'Salsa Ciboullette', price: 0 },
+        { name: 'Salsa de Aceitunas', price: 0 },
+        { name: 'Takis', price: 0 },
+        { name: 'Doritos', price: 0 },
+        { name: 'Tártara', price: 0 },
+        { name: 'Acevichada Vegan', price: 0 },
+        { name: 'Sweet Relish', price: 0 },
+        { name: 'Papas Hilo', price: 0 },
+        { name: 'Salsa Spicy', price: 0 },
+        { name: 'Salsa Verde', price: 0 },
+        { name: 'Cebollín', price: 0 }
+      ]
+    }
+  ],
+
+  // Para tacos
+  tacos: [
+    {
+      name: 'Proteína',
+      required: true,
+      selectionType: 'single' as OptionSelectionType,
+      options: [
+        { name: 'Cerdo', price: 0 },
+        { name: 'Vacuno', price: 0 },
+        { name: 'Champiñón', price: -1000 },
+        { name: 'Seitán', price: -2000 },
+        { name: 'Carne de Soya', price: -2000 }
+      ]
+    },
+    {
+      name: 'Tortilla',
+      required: true,
+      selectionType: 'single' as OptionSelectionType,
+      options: [
+        { name: 'Clásica', price: 0 },
+        { name: 'Tomate Albahaca', price: 0 },
+        { name: 'Chía Linaza', price: 0 }
+      ]
+    },
+    {
+      name: 'Verduras',
+      required: true,
+      selectionType: 'multiple' as OptionSelectionType,
+      maxSelections: 3,
+      options: [
+        { name: 'Lechuga', price: 0 },
+        { name: 'Pepino', price: 0 },
+        { name: 'Zuccini', price: 0 },
+        { name: 'Zanahoria', price: 0 },
+        { name: 'Apio', price: 0 },
+        { name: 'Choclo', price: 0 },
+        { name: 'Mango', price: 0 },
+        { name: 'Aceituna', price: 0 },
+        { name: 'Jalapeño', price: 0 },
+        { name: 'Pepinillo', price: 0 },
+        { name: 'Pimentón', price: 0 },
+        { name: 'Palmito', price: 0 },
+        { name: 'Cebolla', price: 0 },
+        { name: 'Tomate', price: 0 }
+      ]
+    },
+    {
+      name: 'Salsa',
+      required: true,
+      selectionType: 'single' as OptionSelectionType,
+      options: [
+        { name: 'Aceituna', price: 0 },
+        { name: 'Albahaca', price: 0 },
+        { name: 'Ciboullette', price: 0 },
+        { name: 'Cilantro', price: 0 },
+        { name: 'Cheddar', price: 0 },
+        { name: 'Huancaina', price: 0 },
+        { name: 'Tari', price: 0 },
+        { name: 'Inferno Jalapeño', price: 0 },
+        { name: 'Salsa de Ajo', price: 0 },
+        { name: 'Ají Chipotle', price: 0 },
+        { name: 'Golden (BBQ, mostaza y miel)', price: 0 },
+        { name: 'Mostaza Miel', price: 0 },
+        { name: 'BBQ', price: 0 },
+        { name: 'Salsa Secreta', price: 0 },
+        { name: 'NotCo Mayo', price: 0 },
+        { name: 'NotCo Mayo Ají', price: 0 },
+        { name: 'NotCo Mayo Doritos', price: 0 },
+        { name: 'NotCo Mayo Oliva', price: 0 },
+        { name: 'Salsa Spicy', price: 0 },
+        { name: 'NotCo Special Sauce', price: 0 }
+      ]
+    },
+    {
+      name: 'Topping',
+      required: true,
+      selectionType: 'single' as OptionSelectionType,
+      options: [
+        { name: 'Guacamole', price: 0 },
+        { name: 'Pebre', price: 0 },
+        { name: 'Papas Hilo', price: 0 },
+        { name: 'Cebolla Crispy', price: 0 },
+        { name: 'Chucrut', price: 0 },
+        { name: 'Salsa Verde', price: 0 },
+        { name: 'Tocino', price: 0 },
+        { name: 'Cebolla Caramelizada', price: 0 },
+        { name: 'Queso Llanero', price: 0 },
+        { name: 'Queso Cabra', price: 0 },
+        { name: 'Porotos Refritos', price: 0 },
+        { name: 'Maní', price: 0 },
+        { name: 'Almendras', price: 0 },
+        { name: 'Nueces', price: 0 },
+        { name: 'Ají Verde', price: 0 },
+        { name: 'Cilantro', price: 0 },
+        { name: 'Cebollín', price: 0 },
+        { name: 'Sweet Relish', price: 0 },
+        { name: 'Takis', price: 0 },
+        { name: 'Doritos', price: 0 }
+      ]
+    }
+  ],
+
   // Para ensaladas
   salads: [
     {
