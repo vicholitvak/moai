@@ -661,22 +661,40 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
             }}
           />
 
-          {/* Recommended Pairings */}
-          <div className="mt-8">
-            <h3 className="text-xl font-bold mb-4">Complementa tu Pedido</h3>
-            <RecommendedPairings 
-              cookId={dish.cookerId} 
-              onAddToCart={(item) => {
-                addToCart(item);
-                toast.success(`Added ${item.name} to cart!`, {
-                  action: {
-                    label: 'View Cart',
-                    onClick: () => router.push('/cart')
-                  }
-                });
-              }} 
-            />
-          </div>
+          {/* All Cook Menu */}
+          <Card className="mt-8">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-xl">Menú Completo de {cook?.displayName || dish.cookerName}</CardTitle>
+                  <CardDescription className="mt-1">
+                    Explora todos los platos disponibles y agrega más a tu pedido
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => router.push(`/cooks/${dish.cookerId}`)}
+                  className="shrink-0"
+                >
+                  Ver Perfil Completo
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <RecommendedPairings
+                cookId={dish.cookerId}
+                onAddToCart={(item) => {
+                  addToCart(item);
+                  toast.success(`${item.name} agregado al carrito!`, {
+                    action: {
+                      label: 'Ver Carrito',
+                      onClick: () => router.push('/cart')
+                    }
+                  });
+                }}
+              />
+            </CardContent>
+          </Card>
         </div>
       </div>
 
@@ -690,9 +708,19 @@ const DishDetailsPage = ({ params }: { params: Promise<{ id: string }> }) => {
             name: dish.name,
             image: dish.image,
             price: dish.price,
+            cookerId: dish.cookerId,
             customization: dish.customization
           }}
           onAddToCart={handleCustomizedOrderAddToCart}
+          onAddComplementToCart={(item) => {
+            addToCart(item);
+            toast.success(`${item.name} agregado al carrito!`, {
+              action: {
+                label: 'Ver Carrito',
+                onClick: () => router.push('/cart')
+              }
+            });
+          }}
         />
       )}
     </div>

@@ -14,6 +14,8 @@ import {
   CustomizedDishOrder,
   DishCustomization
 } from '@/types/dishCustomization';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase/client';
 
 interface DishCustomizationModalProps {
   isOpen: boolean;
@@ -23,21 +25,26 @@ interface DishCustomizationModalProps {
     name: string;
     image: string;
     price: number;
+    cookerId: string;
     customization?: DishCustomization;
   };
   onAddToCart: (order: CustomizedDishOrder) => void;
+  onAddComplementToCart?: (item: any) => void;
 }
 
 export function DishCustomizationModal({
   isOpen,
   onClose,
   dish,
-  onAddToCart
+  onAddToCart,
+  onAddComplementToCart
 }: DishCustomizationModalProps) {
   const [quantity, setQuantity] = useState(1);
   const [selections, setSelections] = useState<CustomerSelection[]>([]);
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [complements, setComplements] = useState<any[]>([]);
+  const [loadingComplements, setLoadingComplements] = useState(true);
 
   useEffect(() => {
     if (isOpen && dish.customization?.enabled) {
@@ -52,6 +59,49 @@ export function DishCustomizationModal({
       setSpecialInstructions('');
     }
   }, [isOpen, dish]);
+
+  // Cargar complementos del mismo cocinero
+  useEffect(() => {
+    const fetchComplements = async () => {
+      if (!isOpen || !dish.cookerId) {
+        console.log('❌ No cargar complementos:', { isOpen, cookerId: dish.cookerId });
+        return;
+      }
+
+      console.log('🔍 Cargando complementos para cookerId:', dish.cookerId);
+      setLoadingComplements(true);
+      try {
+        const dishesRef = collection(db, 'dishes');
+        const q = query(
+          dishesRef,
+          where('cookerId', '==', dish.cookerId),
+          where('isAvailable', '==', true)
+        );
+
+        const snapshot = await getDocs(q);
+        console.log('📦 Total platos encontrados:', snapshot.docs.length);
+
+        const allDishes = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+
+        // Filtrar todos los platos excepto el actual
+        const complementDishes = allDishes.filter((d: any) => d.id !== dish.id);
+
+        console.log('✅ Complementos filtrados:', complementDishes.length);
+        console.log('🍽️  Complementos:', complementDishes.map(d => d.name));
+
+        setComplements(complementDishes);
+      } catch (error) {
+        console.error('❌ Error cargando complementos:', error);
+      } finally {
+        setLoadingComplements(false);
+      }
+    };
+
+    fetchComplements();
+  }, [isOpen, dish.cookerId, dish.id]);
 
   const handleOptionSelect = (groupId: string, optionId: string, group: CustomizationGroup) => {
     setSelections(prev => {
@@ -156,9 +206,30 @@ export function DishCustomizationModal({
     onClose();
   };
 
+  const isAddToCartEnabled = (): boolean => {
+    if (!dish.customization?.enabled) return true;
+
+    // Verificar que todos los grupos requeridos tengan selecciones
+    return dish.customization.groups.every(group => {
+      const selection = selections.find(s => s.groupId === group.id);
+      const selectedCount = selection?.selectedOptions.length || 0;
+
+      if (group.required && selectedCount === 0) {
+        return false;
+      }
+
+      if (group.minSelections && selectedCount < group.minSelections) {
+        return false;
+      }
+
+      return true;
+    });
+  };
+
   if (!isOpen) return null;
 
   const totalPrice = calculateTotalPrice();
+  const canAddToCart = isAddToCartEnabled();
 
   return (
     <div className="fixed inset-0 bg-black/75 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
@@ -312,6 +383,67 @@ export function DishCustomizationModal({
                 className="resize-none"
               />
             </div>
+
+            {/* Complementos del mismo cocinero */}
+            {complements.length > 0 && (
+              <div className="border-t border-gray-200 pt-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  ¿Quieres agregar algo más?
+                </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Otros platos disponibles del menú
+                </p>
+                <div className="grid grid-cols-1 gap-3">
+                  {complements.map((complement) => (
+                    <div
+                      key={complement.id}
+                      className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-lg hover:border-atacama-orange transition-all bg-white"
+                    >
+                      <div className="relative w-16 h-16 rounded-lg overflow-hidden shrink-0">
+                        <Image
+                          src={complement.image}
+                          alt={complement.name}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-gray-900 truncate">
+                          {complement.name}
+                        </h4>
+                        <p className="text-sm text-gray-600">
+                          ${complement.price.toLocaleString('es-CL')}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          if (onAddComplementToCart) {
+                            onAddComplementToCart({
+                              dishId: complement.id,
+                              name: complement.name,
+                              price: complement.price,
+                              image: complement.image,
+                              cookerName: complement.cookerName,
+                              cookerId: complement.cookerId,
+                              cookerAvatar: complement.cookerAvatar,
+                              quantity: 1,
+                              prepTime: complement.prepTime,
+                              category: complement.category
+                            });
+                            toast.success(`${complement.name} agregado al carrito`);
+                          }
+                        }}
+                        className="shrink-0"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -345,9 +477,13 @@ export function DishCustomizationModal({
           {/* Add to cart button */}
           <Button
             onClick={handleAddToCart}
-            className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-atacama-orange to-orange-600 hover:from-orange-600 hover:to-orange-700"
+            disabled={!canAddToCart}
+            className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-atacama-orange to-orange-600 hover:from-orange-600 hover:to-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Agregar al carrito • ${totalPrice.toLocaleString('es-CL')}
+            {canAddToCart
+              ? `Agregar al carrito • ${totalPrice.toLocaleString('es-CL')}`
+              : 'Completa las opciones requeridas'
+            }
           </Button>
         </div>
       </div>

@@ -293,6 +293,46 @@ export function DishCustomizationConfig({
                 >
                   🌮 Tacos
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => loadPreset('tabla1')}
+                  className="text-xs"
+                >
+                  🍱 Tabla Sushi 1
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => loadPreset('tabla2')}
+                  className="text-xs"
+                >
+                  🍱 Tabla Sushi 2
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => loadPreset('tabla3')}
+                  className="text-xs"
+                >
+                  🍱 Tabla Sushi 3
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => loadPreset('tabla4vegan')}
+                  className="text-xs"
+                >
+                  🌱 Tabla 4 Vegan
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => loadPreset('tabla5vegan')}
+                  className="text-xs"
+                >
+                  🌱 Tabla 5 Vegan
+                </Button>
               </div>
             </CardContent>
           </Card>
