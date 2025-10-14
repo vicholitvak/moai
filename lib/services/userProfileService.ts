@@ -97,17 +97,20 @@ export class UserProfileService {
         }
       });
 
+      // Remove undefined fields to prevent Firestore errors
+      const cleanUpdates = this.removeUndefinedFields(updates);
+
       const updateData = {
-        ...updates,
+        ...cleanUpdates,
         isProfileComplete: isComplete,
         updatedAt: Timestamp.now()
       };
 
       // Update full address if address components are provided
-      if (updates.address) {
+      if (cleanUpdates.address) {
         updateData.address = {
-          ...updates.address,
-          fullAddress: this.formatFullAddress(updates.address)
+          ...cleanUpdates.address,
+          fullAddress: this.formatFullAddress(cleanUpdates.address)
         };
       }
 
@@ -119,12 +122,27 @@ export class UserProfileService {
     }
   }
 
+  // Remove undefined fields recursively to prevent Firestore errors
+  private static removeUndefinedFields<T extends Record<string, any>>(obj: T): Partial<T> {
+    const cleaned: any = {};
+    for (const key in obj) {
+      if (obj[key] !== undefined) {
+        if (obj[key] && typeof obj[key] === 'object' && !Array.isArray(obj[key]) && !(obj[key] instanceof Timestamp)) {
+          cleaned[key] = this.removeUndefinedFields(obj[key]);
+        } else {
+          cleaned[key] = obj[key];
+        }
+      }
+    }
+    return cleaned;
+  }
+
   // Check if profile is complete (has required fields)
   private static checkProfileComplete(profile: Partial<UserProfile>): boolean {
     return !!(
-      profile.phone && 
-      profile.address?.street && 
-      profile.address?.city && 
+      profile.phone &&
+      profile.address?.street &&
+      profile.address?.city &&
       profile.address?.district
     );
   }
