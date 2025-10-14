@@ -12,7 +12,8 @@ export const loadGoogleMapsApi = (): Promise<typeof google> => {
   }
 
   googleMapsPromise = new Promise((resolve, reject) => {
-    if (window.google?.maps) {
+    // Check if already loaded
+    if (window.google?.maps?.Geocoder) {
       resolve(window.google);
       return;
     }
@@ -20,8 +21,21 @@ export const loadGoogleMapsApi = (): Promise<typeof google> => {
     const existingScript = document.querySelector<HTMLScriptElement>('script[data-google-maps]');
 
     if (existingScript) {
-      existingScript.addEventListener('load', () => resolve(window.google));
-      existingScript.addEventListener('error', () => reject(new Error('Google Maps script failed to load.')));
+      // Wait for the API to be fully available
+      const checkLoaded = setInterval(() => {
+        if (window.google?.maps?.Geocoder) {
+          clearInterval(checkLoaded);
+          resolve(window.google);
+        }
+      }, 100);
+
+      // Timeout after 10 seconds
+      setTimeout(() => {
+        clearInterval(checkLoaded);
+        if (!window.google?.maps?.Geocoder) {
+          reject(new Error('Google Maps API timeout'));
+        }
+      }, 10000);
       return;
     }
 
@@ -38,7 +52,25 @@ export const loadGoogleMapsApi = (): Promise<typeof google> => {
     script.async = true;
     script.defer = true;
     script.dataset.googleMaps = 'true';
-    script.onload = () => resolve(window.google);
+
+    script.onload = () => {
+      // Wait for Geocoder to be available
+      const checkLoaded = setInterval(() => {
+        if (window.google?.maps?.Geocoder) {
+          clearInterval(checkLoaded);
+          resolve(window.google);
+        }
+      }, 100);
+
+      // Timeout after 10 seconds
+      setTimeout(() => {
+        clearInterval(checkLoaded);
+        if (!window.google?.maps?.Geocoder) {
+          reject(new Error('Google Maps API timeout'));
+        }
+      }, 10000);
+    };
+
     script.onerror = () => reject(new Error('Google Maps script failed to load.'));
     document.head.appendChild(script);
   });

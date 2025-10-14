@@ -68,13 +68,9 @@ export default function GoogleAddressAutocomplete({
         setIsLoadingPlaces(true);
         const googleApi = await loadGoogleMapsApi();
 
-        // Wait for maps to be fully initialized
-        if (googleApi && googleApi.maps && googleApi.maps.Geocoder) {
-          geocoderRef.current = new googleApi.maps.Geocoder();
-          setIsApiLoaded(true);
-        } else {
-          throw new Error('Google Maps API not fully loaded');
-        }
+        // The loader already waits for Geocoder to be available
+        geocoderRef.current = new googleApi.maps.Geocoder();
+        setIsApiLoaded(true);
       } catch (err) {
         console.error('Error initializing Google Maps services', err);
         setError('No pudimos cargar el servicio de direcciones. Intenta recargar la página.');
