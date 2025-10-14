@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { DriversService, OrdersService, CooksService, DishesService } from '@/lib/firebase/dataService';
+import { DeliveryTrackingService } from '@/lib/services/deliveryTrackingService';
 import DriverOnboarding from '@/components/DriverOnboarding';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -55,8 +56,10 @@ import DeliveryFeed from '@/components/DeliveryFeed';
 import ActiveDeliveryView from '@/components/ActiveDeliveryView';
 import DeliveryGuidanceFlow from '@/components/DeliveryGuidanceFlow';
 import { IdleDriverTrackingService } from '@/lib/services/idleDriverTrackingService';
-import RouteOptimizationService, { OptimizedRoute, RoutePoint } from '@/lib/services/routeOptimizationService';
+import RouteOptimizationService, { OptimizedRoute } from '@/lib/services/routeOptimizationService';
 import { format } from 'date-fns';
+import googlePolyline from 'google-polyline';
+import { Timestamp } from 'firebase/firestore';
 
 interface DriverStats {
   totalEarnings: number;
@@ -90,7 +93,6 @@ export default function DriverDashboard() {
   const [driverData, setDriverData] = useState<Driver | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [profileCompleted, setProfileCompleted] = useState(false);
   const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [orderFilter, setOrderFilter] = useState('available');
@@ -186,7 +188,6 @@ export default function DriverDashboard() {
       
       console.log('DriverDashboard: Driver profile is complete, proceeding with dashboard');
       setDriverData(driver);
-      setProfileCompleted(true);
       
       // Continue with existing logic if profile is complete
       if (!driver) {
@@ -510,7 +511,15 @@ export default function DriverDashboard() {
 
   const handleStartDeliveryTracking = async (orderId: string) => {
     if (!user) return;
-    
+
+    const order = orders.find((o) => o.id === orderId);
+    const destinationCoords = order?.deliveryInfo?.coordinates;
+
+    if (!destinationCoords?.latitude || !destinationCoords?.longitude) {
+      toast.error('No hay coordenadas de destino disponibles para este pedido');
+      return;
+    }
+
     try {
       // Get current location using geolocation API
       if (!navigator.geolocation) {
@@ -519,24 +528,50 @@ export default function DriverDashboard() {
       }
 
       toast.info('Obteniendo ubicación...');
-      
+
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const { latitude, longitude } = position.coords;
-          
+
           const success = await OrdersService.startDeliveryTracking(orderId, {
             latitude,
             longitude,
             accuracy: position.coords.accuracy,
             heading: position.coords.heading || undefined,
             speed: position.coords.speed || undefined
+          }, {
+            latitude: destinationCoords.latitude,
+            longitude: destinationCoords.longitude,
+            accuracy: destinationCoords.accuracy
           });
 
           if (success) {
+            await DeliveryTrackingService.updateDeliveryTracking({
+              orderId,
+              driverId: user.uid,
+              driverName: user.displayName || user.email || 'Conductor',
+              currentLocation: {
+                lat: latitude,
+                lng: longitude,
+                timestamp: Timestamp.now()
+              },
+              estimatedPickupTime: 'En curso',
+              estimatedDeliveryTime: 'Calculando...',
+              totalEstimatedTime: 'Calculando...',
+              currentStep: 'heading_to_delivery',
+              destination: {
+                lat: destinationCoords.latitude,
+                lng: destinationCoords.longitude
+              }
+            });
+
             toast.success('¡Viaje iniciado! El cliente puede seguir tu ubicación.');
-            
+
             // Start continuous location tracking
-            startLocationTracking(orderId);
+            startLocationTracking(orderId, position.coords, {
+              lat: destinationCoords.latitude,
+              lng: destinationCoords.longitude
+            });
           } else {
             toast.error('Error al iniciar el seguimiento');
           }
@@ -557,7 +592,11 @@ export default function DriverDashboard() {
     }
   };
 
-  const startLocationTracking = (orderId: string) => {
+  const startLocationTracking = (
+    orderId: string,
+    initialCoords?: GeolocationCoordinates,
+    destination?: { lat: number; lng: number }
+  ) => {
     if (locationWatchId) {
       navigator.geolocation.clearWatch(locationWatchId);
     }
@@ -568,13 +607,25 @@ export default function DriverDashboard() {
         
         try {
           // Update location in Firebase
-          await OrdersService.updateDriverLocation(orderId, {
-            latitude,
-            longitude,
-            accuracy: position.coords.accuracy,
-            heading: position.coords.heading || undefined,
-            speed: position.coords.speed || undefined
-          });
+          await OrdersService.updateDriverLocation(
+            orderId,
+            {
+              latitude,
+              longitude,
+              accuracy: position.coords.accuracy,
+              heading: position.coords.heading || undefined,
+              speed: position.coords.speed || undefined
+            }
+          );
+
+          await DeliveryTrackingService.updateDriverLocation(
+            orderId,
+            {
+              lat: latitude,
+              lng: longitude
+            },
+            destination
+          );
         } catch (error) {
           console.error('Error updating driver location:', error);
         }

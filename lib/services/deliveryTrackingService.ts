@@ -1,5 +1,14 @@
 import { db } from '@/lib/firebase/client';
 import { doc, setDoc, onSnapshot, updateDoc, Timestamp } from 'firebase/firestore';
+import { getDirections } from '@/lib/services/directionsService';
+
+export interface RouteInfo {
+  durationText?: string;
+  durationValue?: number;
+  distanceText?: string;
+  distanceValue?: number;
+  polyline?: string;
+}
 
 export interface DeliveryTracking {
   orderId: string;
@@ -15,19 +24,34 @@ export interface DeliveryTracking {
   totalEstimatedTime: string;
   currentStep: 'heading_to_pickup' | 'at_pickup' | 'heading_to_delivery' | 'delivered';
   lastUpdated: Timestamp;
+  route?: RouteInfo;
+  destination?: {
+    lat: number;
+    lng: number;
+    timestamp?: Timestamp;
+  };
 }
 
 export class DeliveryTrackingService {
   private static collection = 'deliveryTracking';
 
   // Update driver location and ETA
-  static async updateDeliveryTracking(data: Omit<DeliveryTracking, 'lastUpdated'>): Promise<boolean> {
+  static async updateDeliveryTracking(data: Omit<DeliveryTracking, 'lastUpdated'> & { destination?: { lat: number; lng: number } }): Promise<boolean> {
     try {
       const docRef = doc(db, this.collection, data.orderId);
-      await setDoc(docRef, {
+      const payload: Record<string, unknown> = {
         ...data,
         lastUpdated: Timestamp.now()
-      }, { merge: true });
+      };
+
+      if (data.destination) {
+        payload['destination'] = {
+          ...data.destination,
+          timestamp: Timestamp.now()
+        };
+      }
+
+      await setDoc(docRef, payload, { merge: true });
       return true;
     } catch (error) {
       console.error('Error updating delivery tracking:', error);
@@ -55,16 +79,38 @@ export class DeliveryTrackingService {
   }
 
   // Update only location
-  static async updateDriverLocation(orderId: string, location: { lat: number; lng: number }): Promise<boolean> {
+  static async updateDriverLocation(
+    orderId: string,
+    location: { lat: number; lng: number },
+    destination?: { lat: number; lng: number },
+    waypoints: { lat: number; lng: number }[] = []
+  ): Promise<boolean> {
     try {
       const docRef = doc(db, this.collection, orderId);
-      await updateDoc(docRef, {
+      const updatePayload: Record<string, unknown> = {
         currentLocation: {
           ...location,
           timestamp: Timestamp.now()
         },
         lastUpdated: Timestamp.now()
-      });
+      };
+
+      if (destination) {
+        const directions = await getDirections(location, destination, waypoints);
+
+        if (directions) {
+          updatePayload['route'] = {
+            distanceText: directions.distanceText,
+            distanceValue: directions.distanceValue,
+            durationText: directions.durationText,
+            durationValue: directions.durationValue,
+            polyline: directions.polyline
+          } satisfies RouteInfo;
+          updatePayload['totalEstimatedTime'] = directions.durationText;
+        }
+      }
+
+      await updateDoc(docRef, updatePayload);
       return true;
     } catch (error) {
       console.error('Error updating driver location:', error);

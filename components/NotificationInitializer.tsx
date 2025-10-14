@@ -14,16 +14,14 @@ export default function NotificationInitializer() {
   });
 
   useEffect(() => {
-    // Register service worker on component mount
     if ('serviceWorker' in navigator) {
-      // Small delay to not block initial page load
       setTimeout(() => {
-        navigator.serviceWorker.register('/sw.js')
+        navigator.serviceWorker.register('/firebase-messaging-sw.js')
           .then(() => {
-            console.log('Service Worker registered for notifications');
+            console.log('FCM Service Worker registered');
           })
           .catch((error) => {
-            console.error('Service Worker registration failed:', error);
+            console.error('FCM Service Worker registration failed:', error);
           });
       }, 1000);
     }

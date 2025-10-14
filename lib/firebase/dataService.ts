@@ -132,6 +132,14 @@ export interface Order {
     address: string;
     phone: string;
     instructions?: string;
+    coordinates?: {
+      latitude: number;
+      longitude: number;
+      accuracy?: number;
+      placeId?: string;
+      formattedAddress?: string;
+      source?: string;
+    };
   };
   deliveryCode: string;
   isDelivered: boolean;
@@ -693,9 +701,22 @@ export class OrdersService {
     try {
       const now = Timestamp.now();
       const { generateDeliveryCode } = await import('../../lib/utils');
-      
+
+      const deliveryInfo = {
+        ...orderData.deliveryInfo,
+        coordinates: orderData.deliveryInfo.coordinates ? {
+          latitude: orderData.deliveryInfo.coordinates.latitude,
+          longitude: orderData.deliveryInfo.coordinates.longitude,
+          accuracy: orderData.deliveryInfo.coordinates.accuracy ?? null,
+          placeId: orderData.deliveryInfo.coordinates.placeId ?? null,
+          formattedAddress: orderData.deliveryInfo.coordinates.formattedAddress ?? orderData.deliveryInfo.address,
+          source: orderData.deliveryInfo.coordinates.source ?? 'manual'
+        } : null
+      };
+
       const docRef = await addDoc(collection(db, this.collection), {
         ...orderData,
+        deliveryInfo,
         deliveryCode: orderData.deliveryCode || generateDeliveryCode(),
         isDelivered: false,
         createdAt: now,
@@ -799,13 +820,26 @@ export class OrdersService {
     }
   }
 
-  static async updateOrder(orderId: string, updates: Partial<Order>): Promise<boolean> {
+  static async updateOrder(orderId: string, data: Partial<Order>): Promise<boolean> {
     try {
       const docRef = doc(db, this.collection, orderId);
-      await updateDoc(docRef, {
-        ...updates,
+      const updateData: any = {
+        ...data,
         updatedAt: Timestamp.now()
-      });
+      };
+
+      if (data.deliveryInfo?.coordinates) {
+        updateData['deliveryInfo.coordinates'] = {
+          latitude: data.deliveryInfo.coordinates.latitude,
+          longitude: data.deliveryInfo.coordinates.longitude,
+          accuracy: data.deliveryInfo.coordinates.accuracy ?? null,
+          placeId: data.deliveryInfo.coordinates.placeId ?? null,
+          formattedAddress: data.deliveryInfo.coordinates.formattedAddress ?? data.deliveryInfo.address,
+          source: data.deliveryInfo.coordinates.source ?? 'manual'
+        };
+      }
+
+      await updateDoc(docRef, updateData);
       return true;
     } catch (error) {
       console.error('Error updating order:', error);
@@ -1121,10 +1155,14 @@ export class OrdersService {
     heading?: number;
     speed?: number;
     accuracy?: number;
+  }, destination?: {
+    latitude: number;
+    longitude: number;
+    accuracy?: number;
   }): Promise<boolean> {
     try {
       const now = Timestamp.now();
-      await updateDoc(doc(db, this.collection, orderId), {
+      const updateData: Record<string, unknown> = {
         status: 'en_viaje',
         tracking: {
           driverLocation: {
@@ -1135,7 +1173,16 @@ export class OrdersService {
           lastLocationUpdate: now
         },
         updatedAt: now
-      });
+      };
+
+      if (destination) {
+        (updateData.tracking as any).destination = {
+          ...destination,
+          timestamp: now
+        };
+      }
+
+      await updateDoc(doc(db, this.collection, orderId), updateData);
       return true;
     } catch (error) {
       console.error('Error starting delivery tracking:', error);

@@ -8,7 +8,7 @@ export default function ServiceWorkerRegistration() {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       const registerServiceWorker = async () => {
         try {
-          const registration = await navigator.serviceWorker.register('/enhanced-sw.js', {
+          const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
             scope: '/'
           });
 

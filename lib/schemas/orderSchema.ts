@@ -32,14 +32,29 @@ export const deliveryAddressSchema = z.object({
     .max(50, 'La región no puede exceder 50 caracteres')
     .default('Región Metropolitana'),
   zipCode: z.string()
-    .regex(/^\d{7}$/, 'El código postal debe tener 7 dígitos')
+    .regex(/^[0-9]{4,8}$/i, 'Formato de código postal inválido')
     .optional(),
   apartment: z.string()
     .max(20, 'El número de apartamento no puede exceder 20 caracteres')
     .optional(),
   deliveryInstructions: z.string()
     .max(300, 'Las instrucciones de entrega no pueden exceder 300 caracteres')
-    .optional()
+    .optional(),
+  coordinates: z.object({
+    latitude: z.number()
+      .min(-90, 'Latitud inválida')
+      .max(90, 'Latitud inválida'),
+    longitude: z.number()
+      .min(-180, 'Longitud inválida')
+      .max(180, 'Longitud inválida'),
+    accuracy: z.number()
+      .min(0, 'Precisión inválida')
+      .max(1000, 'Precisión inválida')
+      .optional(),
+    placeId: z.string().optional(),
+    formattedAddress: z.string().optional(),
+    source: z.enum(['autocomplete', 'geocoded', 'manual']).default('manual')
+  }).optional()
 });
 
 // Payment method schema
@@ -72,7 +87,42 @@ export const createOrderSchema = z.object({
   items: z.array(orderItemSchema)
     .min(1, 'Debe tener al menos un item en el pedido')
     .max(20, 'Máximo 20 items por pedido'),
-  deliveryAddress: deliveryAddressSchema,
+  deliveryAddress: deliveryAddressSchema.superRefine((address, ctx) => {
+    if (!address.coordinates) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Debes seleccionar una dirección válida',
+        path: ['coordinates']
+      });
+      return;
+    }
+
+    const { latitude, longitude, accuracy, source } = address.coordinates;
+
+    if (source !== 'manual' && (!address.coordinates.placeId || !address.coordinates.formattedAddress)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Selecciona una dirección de la lista de sugerencias',
+        path: ['coordinates']
+      });
+    }
+
+    if (source === 'manual' && accuracy && accuracy > 200) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'La precisión de la ubicación es muy baja, verifica la dirección',
+        path: ['coordinates', 'accuracy']
+      });
+    }
+
+    if (Math.abs(latitude) < 0.01 && Math.abs(longitude) < 0.01) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'La ubicación seleccionada no es válida',
+        path: ['coordinates']
+      });
+    }
+  }),
   paymentMethod: paymentMethodSchema,
   tip: z.number()
     .min(0, 'La propina no puede ser negativa')
@@ -83,10 +133,9 @@ export const createOrderSchema = z.object({
     .optional()
 }).refine(
   (data) => {
-    // Calculate total to ensure it's reasonable
     const subtotal = data.items.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
     const total = subtotal + data.tip;
-    return total >= 1000 && total <= 500000; // Between $1,000 and $500,000 CLP
+    return total >= 1000 && total <= 500000;
   },
   {
     message: 'El total del pedido debe estar entre $1,000 y $500,000 CLP',

@@ -81,7 +81,8 @@ function PaymentSuccessContent() {
           deliveryInfo: {
             address: orderForm.deliveryAddress,
             phone: orderForm.phone,
-            instructions: orderForm.specialInstructions
+            instructions: orderForm.specialInstructions,
+            coordinates: orderForm.deliveryCoordinates
           },
           paymentMethod: 'card' as const,
           paymentId: authorizedPaymentId

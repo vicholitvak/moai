@@ -144,6 +144,14 @@ export interface Order {
     address: string;
     phone: string;
     instructions?: string;
+    coordinates?: {
+      latitude: number;
+      longitude: number;
+      accuracy?: number;
+      placeId?: string;
+      formattedAddress?: string;
+      source?: 'autocomplete' | 'geocoded' | 'manual';
+    };
   };
   deliveryCode: string;
   isDelivered: boolean;

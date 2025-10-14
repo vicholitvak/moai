@@ -1,6 +1,8 @@
 'use client';
 
 import { toast } from 'sonner';
+import { messagingPromise } from '@/lib/firebase/client';
+import { getToken, onMessage } from 'firebase/messaging';
 
 export interface NotificationData {
   id: string;
@@ -24,31 +26,75 @@ export class NotificationService {
   private static listeners: Set<(notifications: NotificationData[]) => void> = new Set();
   private static soundEnabled = true;
   private static pushEnabled = false;
+  private static fcmToken: string | null = null;
 
   // Configuración de notificaciones
-  static initialize() {
-    this.requestPermission();
-    this.setupServiceWorker();
+  static async initialize(userId?: string) {
+    await this.requestPermission();
+    await this.registerServiceWorker();
+    await this.loadFCMToken(userId);
     this.loadPreferences();
+    this.listenForegroundMessages();
   }
 
   private static async requestPermission() {
-    if ('Notification' in window) {
+    if ('Notification' in window && Notification.permission !== 'granted') {
       const permission = await Notification.requestPermission();
       this.pushEnabled = permission === 'granted';
+    } else {
+      this.pushEnabled = Notification.permission === 'granted';
     }
   }
 
-  private static setupServiceWorker() {
+  private static async registerServiceWorker() {
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(registration => {
-          console.log('Service Worker registered:', registration);
-        })
-        .catch(error => {
-          console.error('Service Worker registration failed:', error);
-        });
+      const registration = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
+      if (!registration) {
+        await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+      }
     }
+  }
+
+  private static async loadFCMToken(userId?: string) {
+    try {
+      if (!this.pushEnabled) return;
+      const messaging = await messagingPromise;
+      if (!messaging) return;
+
+      const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+      const token = await getToken(messaging, { vapidKey });
+      if (!token) return;
+
+      this.fcmToken = token;
+      if (userId) {
+        await fetch('/api/fcm/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, token })
+        });
+      }
+    } catch (error) {
+      console.error('Error loading FCM token', error);
+    }
+  }
+
+  private static listenForegroundMessages() {
+    messagingPromise.then((messaging) => {
+      if (!messaging) return;
+      onMessage(messaging, (payload) => {
+        const title = payload.notification?.title || 'Moai';
+        const body = payload.notification?.body || '';
+
+        this.create({
+          title,
+          message: body,
+          type: 'info',
+          priority: payload.data?.priority === 'high' ? 'high' : 'medium',
+          category: (payload.data?.category as NotificationData['category']) || 'system',
+          metadata: payload.data ? { ...payload.data } : undefined
+        });
+      });
+    });
   }
 
   private static loadPreferences() {
@@ -56,6 +102,18 @@ export class NotificationService {
     if (preferences) {
       const { soundEnabled } = JSON.parse(preferences);
       this.soundEnabled = soundEnabled;
+    }
+  }
+
+  static async sendPushNotification(payload: Omit<NotificationData, 'id' | 'timestamp' | 'read'> & { userId?: string; token?: string }) {
+    try {
+      await fetch('/api/fcm/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch (error) {
+      console.error('Error sending push notification:', error);
     }
   }
 
@@ -72,8 +130,11 @@ export class NotificationService {
     this.notifyListeners();
     this.showToast(notification);
     this.playSound(notification);
-    this.showPushNotification(notification);
     this.persistNotifications();
+
+    if (this.pushEnabled) {
+      this.sendPushNotification(data);
+    }
 
     return notification.id;
   }

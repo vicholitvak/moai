@@ -53,6 +53,7 @@ const CartPage = () => {
   const [currentStep, setCurrentStep] = useState<'cart' | 'checkout' | 'confirmation'>('cart');
   const [orderForm, setOrderForm] = useState({
     deliveryAddress: profile?.address?.fullAddress ?? '',
+    deliveryCoordinates: profile?.address?.coordinates ?? null,
     phone: profile?.phone ?? '',
     specialInstructions: '',
     paymentMethod: 'mercadopago' as 'mercadopago' | 'cash'
@@ -60,6 +61,14 @@ const CartPage = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [addressToSave, setAddressToSave] = useState<{
     address: string;
+    coordinates: {
+      latitude: number;
+      longitude: number;
+      accuracy?: number;
+      placeId?: string;
+      formattedAddress?: string;
+      source?: 'autocomplete' | 'geocoded' | 'manual';
+    } | null;
     fullAddressData?: google.maps.places.PlaceResult;
   } | null>(null);
 
@@ -171,7 +180,7 @@ const CartPage = () => {
       }, {} as Record<string, typeof cartItems>);
 
       const orderPromises = Object.entries(ordersByCook).map(async ([cookerId, items]) => {
-        const orderData = {
+          const orderData = {
           customerId: user.uid,
           customerName: user.displayName ?? user.email ?? 'Cliente',
           customerEmail: user.email ?? '',
@@ -192,7 +201,8 @@ const CartPage = () => {
           deliveryInfo: {
             address: orderForm.deliveryAddress,
             phone: orderForm.phone,
-            instructions: orderForm.specialInstructions
+            instructions: orderForm.specialInstructions,
+            coordinates: orderForm.deliveryCoordinates
           },
           paymentMethod: 'cash_on_delivery' as const
         };
@@ -231,15 +241,35 @@ const CartPage = () => {
 
   // updateQuantity and removeFromCart are now from cart context
 
+  const validateCheckout = () => {
+    if (!orderForm.deliveryAddress || orderForm.deliveryAddress.length < 10) {
+      toast.error('Ingresa una dirección de entrega válida');
+      return false;
+    }
+
+    if (!orderForm.deliveryCoordinates) {
+      toast.error('Selecciona una dirección de la lista o valida manualmente para asegurar la ubicación exacta.');
+      return false;
+    }
+
+    if (!orderForm.phone || orderForm.phone.length < 8) {
+      toast.error('Ingresa un teléfono de contacto válido');
+      return false;
+    }
+
+    return true;
+  };
+
   const handleCheckout = async () => {
     if (!user || cartItems.length === 0) return;
-    
-    // All payments now require approval by default
+    // Validaciones de dirección y contacto
+    if (!validateCheckout()) return;
+
     if (orderForm.paymentMethod === 'cash') {
       return handleCashOrderWithApproval();
-    } else {
-      return handleDigitalOrderWithApproval();
     }
+
+    return handleDigitalOrderWithApproval();
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -247,12 +277,26 @@ const CartPage = () => {
   };
 
   // Handle address change with optional profile saving
-  const handleAddressChange = async (address: string, fullAddressData?: google.maps.places.PlaceResult) => {
-    setOrderForm(prev => ({ ...prev, deliveryAddress: address }));
+  const handleAddressChange = async (
+    address: string,
+    coordinates?: {
+      latitude: number;
+      longitude: number;
+      accuracy?: number;
+      placeId?: string;
+      formattedAddress?: string;
+      source?: 'autocomplete' | 'geocoded' | 'manual';
+    },
+    fullAddressData?: google.maps.places.PlaceResult
+  ) => {
+    setOrderForm(prev => ({
+      ...prev,
+      deliveryAddress: address,
+      deliveryCoordinates: coordinates ?? null
+    }));
 
-    // If address is different from saved address, offer to save it
-    if (user && profile && address && address !== profile.address?.fullAddress) {
-      setAddressToSave({ address, fullAddressData });
+    if (user && profile && address && address !== profile.address?.fullAddress && coordinates) {
+    setAddressToSave({ address, coordinates, fullAddressData });
     } else {
       setAddressToSave(null);
     }
@@ -270,7 +314,8 @@ const CartPage = () => {
         city: profile.address?.city ?? 'Santiago',
         district: profile.address?.district ?? '',
         details: profile.address?.details ?? '',
-        instructions: profile.address?.instructions ?? ''
+        instructions: profile.address?.instructions ?? '',
+        coordinates: addressToSave.coordinates ?? profile.address?.coordinates ?? undefined
       };
 
       // If we have detailed address data from Google Places, use it
@@ -289,13 +334,14 @@ const CartPage = () => {
         
         const district = components.find(c => 
           c.types.includes('sublocality') || c.types.includes('administrative_area_level_3')
-        )?.long_name ?? '';
+        )?.long_name ?? profile.address?.district ?? '';
 
         addressUpdate = {
           ...addressUpdate,
           street,
           city,
-          district
+          district,
+          coordinates: addressToSave.coordinates ?? addressUpdate.coordinates
         };
       }
 

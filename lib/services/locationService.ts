@@ -95,7 +95,7 @@ export class LocationService {
   }
 
   // Reverse geocoding to get address from coordinates
-  static async getAddressFromCoordinates(lat: number, lng: number): Promise<Address> {
+  static async getAddressFromCoordinates(lat: number, lng: number): Promise<Address & { coordinates: { latitude: number; longitude: number; accuracy?: number; source: 'geocoded'; placeId?: string; formattedAddress?: string } }> {
     // Check if OpenCage API key is available
     const apiKey = process.env.NEXT_PUBLIC_OPENCAGE_API_KEY;
 
@@ -112,7 +112,12 @@ export class LocationService {
           state: closestCity.region,
           zipCode: '',
           country: 'Chile',
-          fullAddress: `${closestCity.name}, ${closestCity.region}, Chile`
+          fullAddress: `${closestCity.name}, ${closestCity.region}, Chile`,
+          coordinates: {
+            latitude: lat,
+            longitude: lng,
+            source: 'geocoded'
+          }
         };
       }
 
@@ -123,7 +128,12 @@ export class LocationService {
         state: 'Región Metropolitana',
         zipCode: '',
         country: 'Chile',
-        fullAddress: 'Santiago, Región Metropolitana, Chile'
+        fullAddress: 'Santiago, Región Metropolitana, Chile',
+        coordinates: {
+          latitude: lat,
+          longitude: lng,
+          source: 'geocoded'
+        }
       };
     }
 
@@ -150,7 +160,15 @@ export class LocationService {
           state: components.state || 'Región Metropolitana',
           zipCode: components.postcode || '',
           country: components.country || 'Chile',
-          fullAddress: result.formatted
+          fullAddress: result.formatted,
+          coordinates: {
+            latitude: lat,
+            longitude: lng,
+            accuracy: components.confidence || undefined,
+            placeId: result.place_id,
+            formattedAddress: result.formatted,
+            source: 'geocoded'
+          }
         };
       } else {
         // Try Chilean cities fallback
@@ -159,13 +177,18 @@ export class LocationService {
 
         if (nearbyCities.length > 0) {
           const closestCity = nearbyCities[0];
-          return {
+        return {
             street: 'Dirección no disponible',
             city: closestCity.name,
             state: closestCity.region,
             zipCode: '',
             country: 'Chile',
-            fullAddress: `${closestCity.name}, ${closestCity.region}, Chile`
+          fullAddress: `${closestCity.name}, ${closestCity.region}, Chile`,
+          coordinates: {
+            latitude: lat,
+            longitude: lng,
+            source: 'geocoded'
+          }
           };
         }
 
@@ -176,7 +199,12 @@ export class LocationService {
           state: 'Región Metropolitana',
           zipCode: '',
           country: 'Chile',
-          fullAddress: 'Santiago, Región Metropolitana, Chile'
+        fullAddress: 'Santiago, Región Metropolitana, Chile',
+        coordinates: {
+          latitude: lat,
+          longitude: lng,
+          source: 'geocoded'
+        }
         };
       }
     } catch (error) {
@@ -192,7 +220,12 @@ export class LocationService {
           state: closestCity.region,
           zipCode: '',
           country: 'Chile',
-          fullAddress: `${closestCity.name}, ${closestCity.region}, Chile`
+          fullAddress: `${closestCity.name}, ${closestCity.region}, Chile`,
+          coordinates: {
+            latitude: lat,
+            longitude: lng,
+            source: 'geocoded'
+          }
         };
       }
 

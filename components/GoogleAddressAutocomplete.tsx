@@ -3,11 +3,25 @@
 import { useState, useEffect, useRef } from 'react';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
-import { MapPin, Edit2, Save } from 'lucide-react';
+import { MapPin, Edit2, Save, Crosshair, AlertCircle } from 'lucide-react';
+import { LocationService } from '@/lib/services/locationService';
+
+interface Coordinates {
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+  placeId?: string;
+  formattedAddress?: string;
+  source?: 'autocomplete' | 'geocoded' | 'manual';
+}
 
 interface GoogleAddressAutocompleteProps {
   value: string;
-  onChange: (address: string, fullAddressData?: google.maps.places.PlaceResult) => void;
+  onChange: (
+    address: string,
+    coordinates?: Coordinates,
+    fullAddressData?: google.maps.places.PlaceResult
+  ) => void;
   placeholder?: string;
   defaultAddress?: string;
   userSavedAddress?: string;
@@ -18,61 +32,62 @@ interface GoogleAddressAutocompleteProps {
 export default function GoogleAddressAutocomplete({
   value,
   onChange,
-  placeholder = "Ingresa tu dirección...",
+  placeholder = 'Ingresa tu dirección...',
   defaultAddress,
   userSavedAddress,
-  className = "",
+  className = '',
   disabled = false
 }: GoogleAddressAutocompleteProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [isLoadingPlaces, setIsLoadingPlaces] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteService = useRef<google.maps.places.AutocompleteService | null>(null);
   const placesService = useRef<google.maps.places.PlacesService | null>(null);
+  const geocoderRef = useRef<google.maps.Geocoder | null>(null);
 
-  // Initialize Google Places API
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.google) {
+    if (typeof window === 'undefined') return;
+
+    const initializeServices = () => {
+      if (!window.google) return;
       autocompleteService.current = new window.google.maps.places.AutocompleteService();
-      
-      // Create a dummy div for PlacesService (required by Google API)
       const dummyDiv = document.createElement('div');
       placesService.current = new window.google.maps.places.PlacesService(dummyDiv);
+      geocoderRef.current = new window.google.maps.Geocoder();
+    };
+
+    if (window.google) {
+      initializeServices();
     } else {
-      // Load Google Places API if not loaded
       const script = document.createElement('script');
       script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`;
       script.async = true;
-      script.onload = () => {
-        autocompleteService.current = new window.google.maps.places.AutocompleteService();
-        const dummyDiv = document.createElement('div');
-        placesService.current = new window.google.maps.places.PlacesService(dummyDiv);
-      };
+      script.onload = initializeServices;
       document.head.appendChild(script);
     }
   }, []);
 
-  // Use saved address as default
   useEffect(() => {
     if (userSavedAddress && !value && !isEditing) {
-      onChange(userSavedAddress);
+      onChange(userSavedAddress, undefined, undefined);
     }
-  }, [userSavedAddress, value, onChange, isEditing]);
+  }, [userSavedAddress, value, isEditing, onChange]);
 
   const handleInputChange = (inputValue: string) => {
-    onChange(inputValue);
-    
+    onChange(inputValue, undefined, undefined);
+    setError(null);
+
     if (!autocompleteService.current || inputValue.length < 3) {
       setSuggestions([]);
       return;
     }
 
-    // Get autocomplete suggestions
     autocompleteService.current.getPlacePredictions(
       {
         input: inputValue,
-        componentRestrictions: { country: 'CL' }, // Restrict to Chile
+        componentRestrictions: { country: 'CL' },
         types: ['address']
       },
       (predictions, status) => {
@@ -85,21 +100,119 @@ export default function GoogleAddressAutocomplete({
     );
   };
 
+  const buildCoordinates = (
+    lat: number,
+    lng: number,
+    options?: Partial<Coordinates>
+  ): Coordinates => ({
+    latitude: lat,
+    longitude: lng,
+    accuracy: options?.accuracy,
+    placeId: options?.placeId,
+    formattedAddress: options?.formattedAddress,
+    source: options?.source ?? 'geocoded'
+  });
+
   const handleSuggestionSelect = (prediction: google.maps.places.AutocompletePrediction) => {
     if (!placesService.current) return;
-    
     setIsLoadingPlaces(true);
-    
-    // Get detailed place information
+    setError(null);
+
     placesService.current.getDetails(
       { placeId: prediction.place_id },
       (place, status) => {
         setIsLoadingPlaces(false);
-        
-        if (status === window.google.maps.places.PlacesServiceStatus.OK && place) {
-          onChange(prediction.description, place);
-          setSuggestions([]);
+        if (status !== window.google.maps.places.PlacesServiceStatus.OK || !place || !place.geometry?.location) {
+          setError('No se pudo obtener la ubicación seleccionada. Intenta nuevamente.');
+          return;
         }
+
+        const lat = place.geometry.location.lat();
+        const lng = place.geometry.location.lng();
+        const coords = buildCoordinates(lat, lng, {
+          placeId: place.place_id,
+          formattedAddress: place.formatted_address ?? prediction.description,
+          source: 'autocomplete'
+        });
+
+        onChange(place.formatted_address ?? prediction.description, coords, place);
+        setSuggestions([]);
+        setIsEditing(false);
+      }
+    );
+  };
+
+  const handleUseCurrentAddress = () => {
+    if (!navigator.geolocation) {
+      setError('Tu navegador no soporta geolocalización');
+      return;
+    }
+
+    setIsLoadingPlaces(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude, accuracy } = position.coords;
+          const address = await LocationService.getAddressFromCoordinates(latitude, longitude);
+          const coords = buildCoordinates(latitude, longitude, {
+            accuracy,
+            formattedAddress: address.fullAddress,
+            source: 'manual'
+          });
+          onChange(address.fullAddress, coords, undefined);
+          setSuggestions([]);
+          setIsEditing(false);
+        } catch (geoError) {
+          console.error('Error realizando geocoding inverso:', geoError);
+          setError('No pudimos obtener tu dirección actual. Intenta de nuevo.');
+        } finally {
+          setIsLoadingPlaces(false);
+        }
+      },
+      (error) => {
+        console.error('Error obteniendo ubicación:', error);
+        setIsLoadingPlaces(false);
+        setError('No pudimos acceder a tu ubicación. Revisa los permisos.');
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000
+      }
+    );
+  };
+
+  const handleManualGeocode = async () => {
+    if (!geocoderRef.current || value.length < 5) {
+      setError('Ingresa una dirección más específica');
+      return;
+    }
+
+    setIsLoadingPlaces(true);
+    setError(null);
+    geocoderRef.current.geocode(
+      {
+        address: value,
+        region: 'cl'
+      },
+      (results, status) => {
+        setIsLoadingPlaces(false);
+        if (status !== 'OK' || !results || results.length === 0 || !results[0].geometry?.location) {
+          setError('No se encontró la dirección. Ajusta e intenta nuevamente.');
+          return;
+        }
+
+        const result = results[0];
+        const lat = result.geometry.location.lat();
+        const lng = result.geometry.location.lng();
+        const coords = buildCoordinates(lat, lng, {
+          placeId: result.place_id,
+          formattedAddress: result.formatted_address,
+          source: 'geocoded'
+        });
+        onChange(result.formatted_address, coords, undefined);
+        setSuggestions([]);
+        setIsEditing(false);
       }
     );
   };
@@ -107,39 +220,10 @@ export default function GoogleAddressAutocomplete({
   const handleEditToggle = () => {
     setIsEditing(!isEditing);
     if (!isEditing) {
-      // Focus input when starting to edit
       setTimeout(() => inputRef.current?.focus(), 0);
     }
   };
 
-  const handleUseCurrentAddress = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const geocoder = new google.maps.Geocoder();
-          geocoder.geocode(
-            {
-              location: {
-                lat: position.coords.latitude,
-                lng: position.coords.longitude
-              }
-            },
-            (results, status) => {
-              if (status === 'OK' && results && results[0]) {
-                onChange(results[0].formatted_address);
-                setIsEditing(false);
-              }
-            }
-          );
-        },
-        (error) => {
-          console.error('Error getting location:', error);
-        }
-      );
-    }
-  };
-
-  // Show saved address with option to edit
   if (userSavedAddress && !isEditing && value === userSavedAddress) {
     return (
       <div className={`space-y-2 ${className}`}>
@@ -190,7 +274,13 @@ export default function GoogleAddressAutocomplete({
         )}
       </div>
 
-      {/* Suggestions dropdown */}
+      {error && (
+        <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+          <AlertCircle className="h-4 w-4" />
+          <span>{error}</span>
+        </div>
+      )}
+
       {suggestions.length > 0 && (
         <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
           {suggestions.map((prediction) => (
@@ -213,29 +303,32 @@ export default function GoogleAddressAutocomplete({
         </div>
       )}
 
-      {/* Quick actions */}
       <div className="flex gap-2">
         <Button
           variant="outline"
           size="sm"
           onClick={handleUseCurrentAddress}
-          className="text-xs flex-1"
+          disabled={isLoadingPlaces}
         >
-          <MapPin className="h-3 w-3 mr-1" />
+          <Crosshair className="h-4 w-4 mr-1" />
           Usar mi ubicación
         </Button>
-        {isEditing && userSavedAddress && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleManualGeocode}
+          disabled={isLoadingPlaces || value.length < 5}
+        >
+          <Save className="h-4 w-4 mr-1" />
+          Validar dirección
+        </Button>
+        {defaultAddress && (
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            onClick={() => {
-              onChange(userSavedAddress);
-              setIsEditing(false);
-            }}
-            className="text-xs"
+            onClick={() => onChange(defaultAddress)}
           >
-            <Save className="h-3 w-3 mr-1" />
-            Usar guardada
+            Restablecer
           </Button>
         )}
       </div>
