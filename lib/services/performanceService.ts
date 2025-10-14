@@ -332,7 +332,7 @@ export class PerformanceService {
         timestamp: Timestamp.now(),
         sessionId: this.sessionId || this.generateSessionId(),
         userAgent: navigator.userAgent,
-        metadata
+        ...(metadata && Object.keys(metadata).length > 0 && { metadata })
       };
 
       await addDoc(collection(db, 'performanceMetrics'), metric);
