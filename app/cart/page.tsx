@@ -734,12 +734,12 @@ const CartPage = (): JSX.Element => {
                 <div className="space-y-3">
                   <Label className="text-sm font-semibold">Método de Pago</Label>
                   <div className="grid gap-3">
-                    {/* MercadoPago Option - Enhanced */}
+                    {/* MercadoPago Option - Enhanced with MP branding */}
                     <label
                       className={`group relative flex items-center p-5 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
                         orderForm.paymentMethod === 'mercadopago'
-                          ? 'border-primary bg-gradient-to-br from-primary/10 via-primary/5 to-transparent shadow-sm'
-                          : 'border-border hover:border-primary/40 hover:shadow-sm'
+                          ? 'border-[#009EE3] bg-gradient-to-br from-[#009EE3]/10 via-[#009EE3]/5 to-transparent shadow-lg shadow-[#009EE3]/10'
+                          : 'border-border hover:border-[#009EE3]/40 hover:shadow-sm'
                       }`}
                     >
                       <input
@@ -751,17 +751,19 @@ const CartPage = (): JSX.Element => {
                         className="sr-only"
                       />
                       <div className="flex items-center gap-4 flex-1">
-                        <div className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground px-4 py-2 rounded-lg text-sm font-bold shadow-sm">
+                        <div className="bg-gradient-to-br from-[#009EE3] to-[#0084C6] text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md">
                           MP
                         </div>
                         <div className="flex-1">
                           <div className="font-semibold text-foreground text-base">Pago Online Seguro</div>
-                          <div className="text-xs text-primary font-medium mt-0.5">⚡ Requiere aprobación del cocinero</div>
+                          <div className={`text-xs font-medium mt-0.5 ${orderForm.paymentMethod === 'mercadopago' ? 'text-[#009EE3]' : 'text-muted-foreground'}`}>
+                            ⚡ Requiere aprobación del cocinero
+                          </div>
                         </div>
                         <div className={`w-5 h-5 rounded-full border-2 transition-all duration-200 flex items-center justify-center ${
                           orderForm.paymentMethod === 'mercadopago'
-                            ? 'border-primary bg-primary scale-110'
-                            : 'border-muted-foreground/30 group-hover:border-primary/50'
+                            ? 'border-[#009EE3] bg-[#009EE3] scale-110 shadow-sm shadow-[#009EE3]/30'
+                            : 'border-muted-foreground/30 group-hover:border-[#009EE3]/50'
                         }`}>
                           {orderForm.paymentMethod === 'mercadopago' && (
                             <div className="w-2 h-2 bg-white rounded-full"></div>
