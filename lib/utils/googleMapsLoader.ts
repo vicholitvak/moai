@@ -33,7 +33,8 @@ export const loadGoogleMapsApi = (): Promise<typeof google> => {
     }
 
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&language=es`;
+    // Updated to use loading=async for Places API (New) support
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,marker&loading=async&language=es`;
     script.async = true;
     script.defer = true;
     script.dataset.googleMaps = 'true';

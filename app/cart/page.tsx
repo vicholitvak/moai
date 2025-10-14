@@ -622,15 +622,26 @@ const CartPage = (): JSX.Element => {
           </div>
         ) : (
           /* Checkout Form */
-          <div className="max-w-2xl mx-auto space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Delivery Information</CardTitle>
-                <CardDescription>Where should we deliver your order?</CardDescription>
+          <div className="max-w-3xl mx-auto space-y-6">
+            {/* Delivery Information Card - Enhanced */}
+            <Card className="border-border/60 shadow-sm hover:shadow-md transition-shadow duration-300">
+              <CardHeader className="space-y-1 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <MapPin className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl">Información de Entrega</CardTitle>
+                    <CardDescription className="text-sm">¿Dónde debemos entregar tu pedido?</CardDescription>
+                  </div>
+                </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="address">Delivery Address</Label>
+              <CardContent className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="address" className="text-sm font-semibold flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    Dirección de entrega
+                  </Label>
                   <GoogleAddressAutocomplete
                     value={orderForm.deliveryAddress}
                     onChange={handleAddressChange}
@@ -639,72 +650,94 @@ const CartPage = (): JSX.Element => {
                     hasVerifiedCoordinates={Boolean(orderForm.deliveryCoordinates)}
                     className="mt-2"
                   />
-                  <p className="text-sm text-muted-foreground mt-1">
-                    La dirección será detectada automáticamente para una entrega más precisa
+                  <p className="text-xs text-muted-foreground mt-2 flex items-start gap-1.5">
+                    <ShieldCheck className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-emerald-600" />
+                    <span>La dirección será detectada automáticamente para una entrega más precisa</span>
                   </p>
-                  {/* Save address button */}
+                  {/* Save address button - Enhanced */}
                   {addressToSave && (
-                    <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-blue-900">Nueva dirección detectada</p>
-                          <p className="text-xs text-blue-700">
-                            ¿Quieres guardar esta dirección en tu perfil para futuros pedidos?
-                          </p>
+                    <div className="mt-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl animate-in slide-in-from-top-2 duration-300">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3 flex-1">
+                          <div className="p-2 bg-blue-500 text-white rounded-lg">
+                            <Save className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-blue-900 mb-1">Nueva dirección detectada</p>
+                            <p className="text-xs text-blue-700 leading-relaxed">
+                              ¿Quieres guardar esta dirección en tu perfil para futuros pedidos?
+                            </p>
+                          </div>
                         </div>
                         <Button
                           size="sm"
                           onClick={saveAddressToProfile}
-                          className="bg-atacama-orange hover:bg-atacama-orange/90 text-white font-medium shadow-sm hover:shadow-md transition-all duration-200"
+                          className="bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm hover:shadow-md transition-all duration-200 whitespace-nowrap"
                         >
-                          <Save className="h-4 w-4 mr-1" />
+                          <Save className="h-3.5 w-3.5 mr-1.5" />
                           Guardar
                         </Button>
                       </div>
                     </div>
                   )}
                 </div>
-                <div>
-                  <Label htmlFor="phone">Número de contacto</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="Your phone number"
-                    value={orderForm.phone}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('phone', e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="instructions">Indicaciones especiales (opcional)</Label>
-                  <Textarea
-                    id="instructions"
-                    placeholder="Any special delivery instructions..."
-                    value={orderForm.specialInstructions}
-                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange('specialInstructions', e.target.value)}
-                  />
+
+                <div className="grid sm:grid-cols-2 gap-5">
+                  <div className="space-y-2">
+                    <Label htmlFor="phone" className="text-sm font-semibold flex items-center gap-2">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      Número de contacto
+                    </Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      placeholder="+56 9 1234 5678"
+                      value={orderForm.phone}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('phone', e.target.value)}
+                      className="h-11"
+                    />
+                  </div>
+
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="instructions" className="text-sm font-semibold">
+                      Indicaciones especiales (opcional)
+                    </Label>
+                    <Textarea
+                      id="instructions"
+                      placeholder="Ej: Tocar el timbre dos veces, dejar en portería..."
+                      value={orderForm.specialInstructions}
+                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange('specialInstructions', e.target.value)}
+                      className="min-h-[80px] resize-none"
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="hover:shadow-md transition-shadow duration-300">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="h-5 w-5 text-primary" />
-                  Información de Pago
-                </CardTitle>
-                <CardDescription>Elige tu método de pago preferido</CardDescription>
+            {/* Payment Information Card - Enhanced */}
+            <Card className="border-border/60 shadow-sm hover:shadow-md transition-shadow duration-300">
+              <CardHeader className="space-y-1 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <CreditCard className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl">Información de Pago</CardTitle>
+                    <CardDescription className="text-sm">Elige tu método de pago preferido</CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Payment Method Selection */}
                 <div className="space-y-3">
-                  <Label className="text-sm font-medium">Método de Pago</Label>
-                  <div className="space-y-3">
-                    {/* MercadoPago Option */}
-                    <label 
-                      className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:bg-primary/5 ${
-                        orderForm.paymentMethod === 'mercadopago' 
-                          ? 'border-primary bg-primary/5' 
-                          : 'border-border hover:border-primary/30'
+                  <Label className="text-sm font-semibold">Método de Pago</Label>
+                  <div className="grid gap-3">
+                    {/* MercadoPago Option - Enhanced */}
+                    <label
+                      className={`group relative flex items-center p-5 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
+                        orderForm.paymentMethod === 'mercadopago'
+                          ? 'border-primary bg-gradient-to-br from-primary/10 via-primary/5 to-transparent shadow-sm'
+                          : 'border-border hover:border-primary/40 hover:shadow-sm'
                       }`}
                     >
                       <input
@@ -715,32 +748,32 @@ const CartPage = (): JSX.Element => {
                         onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
                         className="sr-only"
                       />
-                      <div className="flex items-center gap-3 flex-1">
-                        <div className="bg-primary text-primary-foreground px-3 py-1 rounded text-sm font-semibold">
-                          MercadoPago
+                      <div className="flex items-center gap-4 flex-1">
+                        <div className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground px-4 py-2 rounded-lg text-sm font-bold shadow-sm">
+                          MP
                         </div>
                         <div className="flex-1">
-                          <div className="font-medium text-foreground">Pago Online Seguro</div>
-                          <div className="text-sm text-blue-600">⚡ Requiere aprobación del cocinero</div>
+                          <div className="font-semibold text-foreground text-base">Pago Online Seguro</div>
+                          <div className="text-xs text-primary font-medium mt-0.5">⚡ Requiere aprobación del cocinero</div>
                         </div>
-                        <div className={`w-4 h-4 rounded-full border-2 transition-colors duration-200 ${
-                          orderForm.paymentMethod === 'mercadopago' 
-                            ? 'border-primary bg-primary' 
-                            : 'border-muted-foreground/30'
+                        <div className={`w-5 h-5 rounded-full border-2 transition-all duration-200 flex items-center justify-center ${
+                          orderForm.paymentMethod === 'mercadopago'
+                            ? 'border-primary bg-primary scale-110'
+                            : 'border-muted-foreground/30 group-hover:border-primary/50'
                         }`}>
                           {orderForm.paymentMethod === 'mercadopago' && (
-                            <div className="w-2 h-2 bg-white rounded-full mx-auto mt-0.5"></div>
+                            <div className="w-2 h-2 bg-white rounded-full"></div>
                           )}
                         </div>
                       </div>
                     </label>
 
-                    {/* Cash on Delivery Option */}
-                    <label 
-                      className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:bg-orange-50 ${
-                        orderForm.paymentMethod === 'cash' 
-                          ? 'border-orange-500 bg-orange-50' 
-                          : 'border-border hover:border-orange-300'
+                    {/* Cash on Delivery Option - Enhanced */}
+                    <label
+                      className={`group relative flex items-center p-5 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
+                        orderForm.paymentMethod === 'cash'
+                          ? 'border-orange-500 bg-gradient-to-br from-orange-50 via-orange-50/50 to-transparent shadow-sm'
+                          : 'border-border hover:border-orange-300 hover:shadow-sm'
                       }`}
                     >
                       <input
@@ -751,24 +784,24 @@ const CartPage = (): JSX.Element => {
                         onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
                         className="sr-only"
                       />
-                      <div className="flex items-center gap-3 flex-1">
-                        <div className="bg-orange-500 text-white px-3 py-1 rounded text-sm font-semibold flex items-center gap-1">
+                      <div className="flex items-center gap-4 flex-1">
+                        <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm flex items-center gap-1.5">
                           <Banknote className="h-4 w-4" />
                           Efectivo
                         </div>
                         <div className="flex-1">
-                          <div className="font-medium text-foreground">Pago contra entrega</div>
-                          <div className="text-sm text-orange-600">
+                          <div className="font-semibold text-foreground text-base">Pago contra entrega</div>
+                          <div className="text-xs text-orange-600 font-medium mt-0.5">
                             ⚡ Requiere aprobación del cocinero
                           </div>
                         </div>
-                        <div className={`w-4 h-4 rounded-full border-2 transition-colors duration-200 ${
-                          orderForm.paymentMethod === 'cash' 
-                            ? 'border-orange-500 bg-orange-500' 
-                            : 'border-muted-foreground/30'
+                        <div className={`w-5 h-5 rounded-full border-2 transition-all duration-200 flex items-center justify-center ${
+                          orderForm.paymentMethod === 'cash'
+                            ? 'border-orange-500 bg-orange-500 scale-110'
+                            : 'border-muted-foreground/30 group-hover:border-orange-400'
                         }`}>
                           {orderForm.paymentMethod === 'cash' && (
-                            <div className="w-2 h-2 bg-white rounded-full mx-auto mt-0.5"></div>
+                            <div className="w-2 h-2 bg-white rounded-full"></div>
                           )}
                         </div>
                       </div>
@@ -891,56 +924,71 @@ const CartPage = (): JSX.Element => {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Order Summary</CardTitle>
+            {/* Order Summary Card - Enhanced */}
+            <Card className="border-border/60 shadow-sm hover:shadow-md transition-shadow duration-300 bg-gradient-to-br from-background to-muted/20">
+              <CardHeader className="space-y-1 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <ShoppingCart className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl">Resumen del Pedido</CardTitle>
+                    <CardDescription className="text-sm">{cartItems.length} {cartItems.length === 1 ? 'producto' : 'productos'}</CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {cartItems.map((item) => (
-                    <div key={item.id} className="flex justify-between items-center">
-                      <div>
-                        <span className="font-medium">{item.name}</span>
-                        <span className="text-muted-foreground ml-2">x{item.quantity}</span>
+                <div className="space-y-4">
+                  {/* Items List */}
+                  <div className="space-y-2.5 max-h-[200px] overflow-y-auto pr-1">
+                    {cartItems.map((item) => (
+                      <div key={item.id} className="flex justify-between items-start gap-3 p-2 rounded-lg hover:bg-muted/40 transition-colors">
+                        <div className="flex-1 min-w-0">
+                          <span className="font-medium text-sm block truncate">{item.name}</span>
+                          <span className="text-xs text-muted-foreground">Cantidad: {item.quantity}</span>
+                        </div>
+                        <span className="font-semibold text-sm whitespace-nowrap">{formatPrice(item.price * item.quantity)}</span>
                       </div>
-                      <span>{formatPrice(item.price * item.quantity)}</span>
+                    ))}
+                  </div>
+
+                  {/* Totals */}
+                  <div className="border-t pt-4 space-y-2.5">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Subtotal</span>
+                      <span className="font-medium">{formatPrice(subtotal)}</span>
                     </div>
-                  ))}
-                  <div className="border-t pt-3 space-y-2">
-                    <div className="flex justify-between">
-                      <span>Subtotal</span>
-                      <span>{formatPrice(subtotal)}</span>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Delivery Fee</span>
+                      <span className="font-medium">{formatPrice(deliveryFee)}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Delivery Fee</span>
-                      <span>{formatPrice(deliveryFee)}</span>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Service Fee (12%)</span>
+                      <span className="font-medium">{formatPrice(serviceFee)}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Service Fee</span>
-                      <span>{formatPrice(serviceFee)}</span>
-                    </div>
-                    <div className="flex justify-between font-semibold text-lg">
-                      <span>Total</span>
-                      <span>{formatPrice(total)}</span>
+                    <div className="border-t pt-3 flex justify-between items-center">
+                      <span className="text-lg font-bold">Total</span>
+                      <span className="text-2xl font-bold text-primary">{formatPrice(total)}</span>
                     </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <div className="flex gap-4">
-              <Button 
-                variant="outline" 
-                className="flex-1 hover:scale-105 transition-transform duration-150"
+            {/* Action Buttons - Enhanced */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sticky bottom-4 bg-background/95 backdrop-blur-sm p-4 rounded-xl border border-border/50 shadow-lg">
+              <Button
+                variant="outline"
+                className="flex-1 h-12 hover:bg-muted transition-all duration-200 font-medium border-2"
                 onClick={() => setCurrentStep('cart')}
                 disabled={isProcessing}
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Cart
+                Volver al Carro
               </Button>
-              <Button 
-                className={`flex-1 relative overflow-hidden transition-all duration-300 bg-atacama-orange hover:bg-atacama-orange/90 text-white font-semibold shadow-md hover:shadow-lg ${
-                  isProcessing ? 'bg-atacama-orange hover:bg-atacama-orange/90' : 'hover:scale-105'
+              <Button
+                className={`flex-1 h-12 relative overflow-hidden transition-all duration-300 bg-gradient-to-r from-atacama-orange to-orange-600 hover:from-atacama-orange/90 hover:to-orange-600/90 text-white font-bold shadow-md hover:shadow-xl ${
+                  isProcessing ? '' : 'hover:scale-[1.02]'
                 }`}
                 onClick={handleCheckout}
                 disabled={isProcessing || !orderForm.deliveryAddress || !orderForm.phone}

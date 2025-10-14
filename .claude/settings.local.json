@@ -38,7 +38,8 @@
       "Read(/D:\\Moai\\moai-app\\components/**)",
       "Read(/D:\\Moai\\moai-app\\lib\\services/**)",
       "Read(/D:\\Moai\\moai-app\\app/**)",
-      "Read(/D:\\Moai\\moai-app\\components/**)"
+      "Read(/D:\\Moai\\moai-app\\components/**)",
+      "WebFetch(domain:developers.google.com)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

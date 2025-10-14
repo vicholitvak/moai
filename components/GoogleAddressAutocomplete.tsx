@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { MapPin, Edit2, Save, Crosshair, AlertCircle, ShieldCheck } from 'lucide-react';
@@ -30,6 +30,20 @@ interface GoogleAddressAutocompleteProps {
   hasVerifiedCoordinates?: boolean;
 }
 
+// Extend HTMLElement for the new PlaceAutocompleteElement
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'gmp-place-autocomplete': React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElement> & {
+          ref?: React.Ref<HTMLElement>;
+        },
+        HTMLElement
+      >;
+    }
+  }
+}
+
 export default function GoogleAddressAutocomplete({
   value,
   onChange,
@@ -40,65 +54,31 @@ export default function GoogleAddressAutocomplete({
   hasVerifiedCoordinates = false
 }: GoogleAddressAutocompleteProps): JSX.Element {
   const [isEditing, setIsEditing] = useState(false);
-  const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [isLoadingPlaces, setIsLoadingPlaces] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const autocompleteInstance = useRef<google.maps.places.Autocomplete | null>(null);
-  const placesClient = useRef<google.maps.places.PlacesService | null>(null);
-  const sessionToken = useRef<google.maps.places.AutocompleteSessionToken | null>(null);
+  const [isApiLoaded, setIsApiLoaded] = useState(false);
+  const autocompleteRef = useRef<HTMLElement | null>(null);
   const geocoderRef = useRef<google.maps.Geocoder | null>(null);
-
-  const initServices = useMemo(() => async (): Promise<void> => {
-    try {
-      setIsLoadingPlaces(true);
-      const googleApi = await loadGoogleMapsApi();
-      sessionToken.current = new googleApi.maps.places.AutocompleteSessionToken();
-      geocoderRef.current = new googleApi.maps.Geocoder();
-      const dummyEl = document.createElement('div');
-      placesClient.current = new googleApi.maps.places.PlacesService(dummyEl);
-
-      if (inputRef.current) {
-        autocompleteInstance.current = new googleApi.maps.places.Autocomplete(inputRef.current, {
-          componentRestrictions: { country: 'CL' },
-          fields: ['place_id', 'formatted_address', 'geometry', 'address_components'],
-          types: ['address']
-        });
-
-        autocompleteInstance.current.addListener('place_changed', () => {
-          const place = autocompleteInstance.current?.getPlace();
-
-          if (!place?.geometry?.location) {
-            setError('No se pudo obtener la ubicación seleccionada. Intenta nuevamente.');
-            return;
-          }
-
-          const lat = place.geometry.location.lat();
-          const lng = place.geometry.location.lng();
-          const coords = buildCoordinates(lat, lng, {
-            placeId: place.place_id,
-            formattedAddress: place.formatted_address ?? value,
-            source: 'autocomplete'
-          });
-
-          onChange(place.formatted_address ?? value, coords, place);
-          setSuggestions([]);
-          setIsEditing(false);
-          sessionToken.current = new googleApi.maps.places.AutocompleteSessionToken();
-        });
-      }
-    } catch (err) {
-      console.error('Error initializing Google Maps services', err);
-      setError('No pudimos cargar el servicio de direcciones. Intenta recargar la página.');
-    } finally {
-      setIsLoadingPlaces(false);
-    }
-  }, [onChange, value]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
+    const initServices = async (): Promise<void> => {
+      try {
+        setIsLoadingPlaces(true);
+        const googleApi = await loadGoogleMapsApi();
+        geocoderRef.current = new googleApi.maps.Geocoder();
+        setIsApiLoaded(true);
+      } catch (err) {
+        console.error('Error initializing Google Maps services', err);
+        setError('No pudimos cargar el servicio de direcciones. Intenta recargar la página.');
+      } finally {
+        setIsLoadingPlaces(false);
+      }
+    };
+
     initServices();
-  }, [initServices]);
+  }, []);
 
   useEffect(() => {
     if (userSavedAddress && !value && !isEditing) {
@@ -106,34 +86,66 @@ export default function GoogleAddressAutocomplete({
     }
   }, [userSavedAddress, value, isEditing, onChange]);
 
+  useEffect(() => {
+    if (!autocompleteRef.current || !isApiLoaded) return;
+
+    const handlePlaceSelect = async (event: Event): Promise<void> => {
+      const customEvent = event as CustomEvent<{ place: google.maps.places.Place }>;
+      const place = customEvent.detail?.place;
+
+      if (!place) {
+        setError('No se pudo obtener la ubicación seleccionada. Intenta nuevamente.');
+        return;
+      }
+
+      try {
+        // Fetch place details
+        await place.fetchFields({
+          fields: ['location', 'formattedAddress', 'addressComponents', 'id']
+        });
+
+        const location = place.location;
+        if (!location) {
+          setError('No se pudo obtener la ubicación seleccionada. Intenta nuevamente.');
+          return;
+        }
+
+        const lat = location.lat();
+        const lng = location.lng();
+        const coords = buildCoordinates(lat, lng, {
+          placeId: place.id,
+          formattedAddress: place.formattedAddress ?? value,
+          source: 'autocomplete'
+        });
+
+        onChange(place.formattedAddress ?? value, coords, undefined);
+        setIsEditing(false);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching place details:', err);
+        setError('No se pudo obtener la ubicación seleccionada. Intenta nuevamente.');
+      }
+    };
+
+    const handleError = (event: Event): void => {
+      console.error('Place autocomplete error:', event);
+      setError('Error al buscar direcciones. Por favor, intenta nuevamente.');
+    };
+
+    autocompleteRef.current.addEventListener('gmp-placeselect', handlePlaceSelect);
+    autocompleteRef.current.addEventListener('gmp-error', handleError);
+
+    return () => {
+      if (autocompleteRef.current) {
+        autocompleteRef.current.removeEventListener('gmp-placeselect', handlePlaceSelect);
+        autocompleteRef.current.removeEventListener('gmp-error', handleError);
+      }
+    };
+  }, [isApiLoaded, onChange, value]);
+
   const handleInputChange = (inputValue: string): void => {
     onChange(inputValue, undefined, undefined);
     setError(null);
-
-    if (!autocompleteInstance.current || inputValue.length < 3 || !sessionToken.current) {
-      setSuggestions([]);
-      return;
-    }
-
-    const googleMaps = window.google;
-    if (!googleMaps?.maps?.places) return;
-
-    const service = new googleMaps.maps.places.AutocompleteService();
-    service.getPlacePredictions(
-      {
-        input: inputValue,
-        componentRestrictions: { country: 'CL' },
-        types: ['address'],
-        sessionToken: sessionToken.current
-      },
-      (predictions, status) => {
-        if (status === googleMaps.maps.places.PlacesServiceStatus.OK && predictions) {
-          setSuggestions(predictions);
-        } else {
-          setSuggestions([]);
-        }
-      }
-    );
   };
 
   const buildCoordinates = (
@@ -148,40 +160,6 @@ export default function GoogleAddressAutocomplete({
     formattedAddress: options?.formattedAddress,
     source: options?.source ?? 'geocoded'
   });
-
-  const handleSuggestionSelect = (prediction: google.maps.places.AutocompletePrediction): void => {
-    if (!placesClient.current || !sessionToken.current) return;
-    setIsLoadingPlaces(true);
-    setError(null);
-
-    placesClient.current.getDetails(
-      {
-        placeId: prediction.place_id,
-        fields: ['formatted_address', 'geometry', 'address_components', 'place_id'],
-        sessionToken: sessionToken.current
-      },
-      (place, status) => {
-        setIsLoadingPlaces(false);
-        if (status !== window.google.maps.places.PlacesServiceStatus.OK || !place?.geometry?.location) {
-          setError('No se pudo obtener la ubicación seleccionada. Intenta nuevamente.');
-          return;
-        }
-
-        const lat = place.geometry.location.lat();
-        const lng = place.geometry.location.lng();
-        const coords = buildCoordinates(lat, lng, {
-          placeId: place.place_id,
-          formattedAddress: place.formatted_address ?? prediction.description,
-          source: 'autocomplete'
-        });
-
-        onChange(place.formatted_address ?? prediction.description, coords, place);
-        setSuggestions([]);
-        setIsEditing(false);
-        sessionToken.current = new window.google.maps.places.AutocompleteSessionToken();
-      }
-    );
-  };
 
   const handleUseCurrentAddress = (): void => {
     if (!navigator.geolocation) {
@@ -296,14 +274,30 @@ export default function GoogleAddressAutocomplete({
       ) : (
         <>
           <div className="relative">
-            <Input
-              ref={inputRef}
-              value={value}
-              onChange={(e) => handleInputChange(e.target.value)}
-              placeholder={placeholder}
-              disabled={disabled || isLoadingPlaces}
-              className="pr-10"
-            />
+            {isApiLoaded ? (
+              <gmp-place-autocomplete
+                ref={autocompleteRef}
+                placeholder={placeholder}
+                style={{
+                  width: '100%',
+                  height: '40px',
+                  borderRadius: '6px',
+                  border: '1px solid hsl(var(--border))',
+                  padding: '0 12px',
+                  fontSize: '14px',
+                  fontFamily: 'inherit',
+                  outline: 'none'
+                }}
+              />
+            ) : (
+              <Input
+                value={value}
+                onChange={(e) => handleInputChange(e.target.value)}
+                placeholder={placeholder}
+                disabled={disabled || isLoadingPlaces}
+                className="pr-10"
+              />
+            )}
             {isLoadingPlaces && (
               <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
@@ -315,28 +309,6 @@ export default function GoogleAddressAutocomplete({
             <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
               <AlertCircle className="h-4 w-4" />
               <span>{error}</span>
-            </div>
-          )}
-
-          {suggestions.length > 0 && (
-            <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-              {suggestions.map((prediction) => (
-                <button
-                  key={prediction.place_id}
-                  onClick={() => handleSuggestionSelect(prediction)}
-                  className="w-full p-3 text-left hover:bg-gray-50 flex items-start gap-2 border-b border-gray-100 last:border-b-0"
-                >
-                  <MapPin className="h-4 w-4 text-gray-400 mt-1 flex-shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {prediction.structured_formatting.main_text}
-                    </p>
-                    <p className="text-xs text-gray-500 truncate">
-                      {prediction.structured_formatting.secondary_text}
-                    </p>
-                  </div>
-                </button>
-              ))}
             </div>
           )}
 
