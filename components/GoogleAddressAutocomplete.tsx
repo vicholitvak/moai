@@ -67,8 +67,14 @@ export default function GoogleAddressAutocomplete({
       try {
         setIsLoadingPlaces(true);
         const googleApi = await loadGoogleMapsApi();
-        geocoderRef.current = new googleApi.maps.Geocoder();
-        setIsApiLoaded(true);
+
+        // Wait for maps to be fully initialized
+        if (googleApi && googleApi.maps && googleApi.maps.Geocoder) {
+          geocoderRef.current = new googleApi.maps.Geocoder();
+          setIsApiLoaded(true);
+        } else {
+          throw new Error('Google Maps API not fully loaded');
+        }
       } catch (err) {
         console.error('Error initializing Google Maps services', err);
         setError('No pudimos cargar el servicio de direcciones. Intenta recargar la página.');
@@ -179,7 +185,6 @@ export default function GoogleAddressAutocomplete({
             source: 'manual'
           });
           onChange(address.fullAddress, coords, undefined);
-          setSuggestions([]);
           setIsEditing(false);
         } catch (geoError) {
           console.error('Error realizando geocoding inverso:', geoError);
@@ -230,7 +235,6 @@ export default function GoogleAddressAutocomplete({
           source: 'geocoded'
         });
         onChange(result.formatted_address, coords, undefined);
-        setSuggestions([]);
         setIsEditing(false);
       }
     );
@@ -238,9 +242,6 @@ export default function GoogleAddressAutocomplete({
 
   const handleEditToggle = (): void => {
     setIsEditing(!isEditing);
-    if (!isEditing) {
-      setTimeout(() => inputRef.current?.focus(), 0);
-    }
   };
 
   const showVerifiedBanner = hasVerifiedCoordinates && !isEditing;
