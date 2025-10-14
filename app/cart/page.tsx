@@ -6,7 +6,6 @@ import Image from 'next/image';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useUserProfile } from '../../context/UserProfileContext';
-import type { Order } from '@/lib/firebase/dataService';
 import { MercadoPagoService } from '@/lib/services/mercadoPagoService';
 import { OrderApprovalService } from '@/lib/services/orderApprovalService';
 import { toast } from 'sonner';
@@ -35,7 +34,7 @@ import { formatPrice } from '../../lib/utils';
 
 // Remove mock data - using cart context now
 
-const CartPage = () => {
+const CartPage = (): JSX.Element => {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { profile, updateProfile } = useUserProfile();
@@ -90,7 +89,7 @@ const CartPage = () => {
   const total = getTotal();
 
   // Handle digital payment orders with approval (requires MercadoPago hold)
-  const handleDigitalOrderWithApproval = async () => {
+  const handleDigitalOrderWithApproval = async (): Promise<void> => {
     if (!user || cartItems.length === 0) return;
     
     setIsProcessing(true);
@@ -164,7 +163,7 @@ const CartPage = () => {
   };
 
   // Handle cash payment orders with approval
-  const handleCashOrderWithApproval = async () => {
+  const handleCashOrderWithApproval = async (): Promise<void> => {
     if (!user || cartItems.length === 0) return;
     
     setIsProcessing(true);
@@ -241,7 +240,7 @@ const CartPage = () => {
 
   // updateQuantity and removeFromCart are now from cart context
 
-  const validateCheckout = () => {
+  const validateCheckout = (): boolean => {
     if (!orderForm.deliveryAddress || orderForm.deliveryAddress.length < 10) {
       toast.error('Ingresa una dirección de entrega válida');
       return false;
@@ -260,7 +259,7 @@ const CartPage = () => {
     return true;
   };
 
-  const handleCheckout = async () => {
+  const handleCheckout = async (): Promise<void> => {
     if (!user || cartItems.length === 0) return;
     // Validaciones de dirección y contacto
     if (!validateCheckout()) return;
@@ -272,7 +271,7 @@ const CartPage = () => {
     return handleDigitalOrderWithApproval();
   };
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: string): void => {
     setOrderForm(prev => ({ ...prev, [field]: value }));
   };
 
@@ -288,7 +287,7 @@ const CartPage = () => {
       source?: 'autocomplete' | 'geocoded' | 'manual';
     },
     fullAddressData?: google.maps.places.PlaceResult
-  ) => {
+  ): Promise<void> => {
     setOrderForm(prev => ({
       ...prev,
       deliveryAddress: address,
@@ -303,7 +302,7 @@ const CartPage = () => {
   };
 
   // Save new address to user profile
-  const saveAddressToProfile = async () => {
+  const saveAddressToProfile = async (): Promise<void> => {
     if (!user || !profile || !addressToSave) return;
 
     try {
@@ -422,92 +421,115 @@ const CartPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+    <div className="min-h-screen bg-gradient-to-b from-background via-background to-background/80">
+      <div className="border-b bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+        <div className="container mx-auto px-4 md:px-6 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <Button variant="ghost" size="sm" onClick={() => router.back()}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
+                Volver
               </Button>
               <div>
-                <h1 className="text-2xl font-bold">
-                  {currentStep === 'cart' ? 'Shopping Cart' : 'Checkout'}
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+                  {currentStep === 'cart' ? 'Tu pedido' : 'Confirmar entrega'}
                 </h1>
-                <p className="text-muted-foreground">
-                  {currentStep === 'cart' 
-                    ? `${cartItems.length} items in your cart`
-                    : 'Complete your order'
-                  }
-                </p>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Badge variant="secondary" className="rounded-full capitalize">
+                    Paso {currentStep === 'cart' ? '1' : '2'} de 2
+                  </Badge>
+                  <span>
+                    {currentStep === 'cart'
+                      ? `${cartItems.length} ${cartItems.length === 1 ? 'producto' : 'productos'} en tu carro`
+                      : 'Verifica dirección y pago'}
+                  </span>
+                </div>
               </div>
             </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={logout}
-              className="text-muted-foreground hover:text-destructive"
-            >
-              <User className="h-4 w-4 mr-2" />
-              Logout
-            </Button>
+            <div className="flex items-center gap-3">
+              <div className="hidden md:flex items-center gap-2 text-xs text-muted-foreground bg-muted/60 px-3 py-1 rounded-full">
+                <Shield className="h-3 w-3" />
+                Compra 100% protegida
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={logout}
+                className="text-muted-foreground hover:text-destructive"
+              >
+                <User className="h-4 w-4 mr-2" />
+                Cerrar sesión
+              </Button>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-4 md:px-6 py-8">
         {currentStep === 'cart' ? (
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Cart Items */}
-            <div className="lg:col-span-2 space-y-4">
+          <div className="grid xl:grid-cols-3 gap-8">
+            <div className="xl:col-span-2 space-y-4">
               {cartItems.length === 0 ? (
-                <Card>
-                  <CardContent className="p-8 text-center">
-                    <ShoppingCart className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Your cart is empty</h3>
-                    <p className="text-muted-foreground mb-4">
-                      Discover delicious dishes from local cooks
+                <Card className="border-dashed">
+                  <CardContent className="p-12 text-center">
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-muted mb-4">
+                      <ShoppingCart className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-1">Tu carro está vacío</h3>
+                    <p className="text-muted-foreground mb-6">
+                      Descubre platos únicos de cocineros locales y agrégalos a tu pedido.
                     </p>
-                    <Button onClick={() => router.push('/dishes')}>
-                      Browse Dishes
-                    </Button>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                      <Button onClick={() => router.push('/dishes')} className="shadow-sm">
+                        Explorar platos
+                      </Button>
+                      <Button variant="outline" onClick={() => router.push('/client/home')}>
+                        Volver al inicio
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ) : (
                 cartItems.map((item) => (
-                  <Card key={item.id}>
-                    <CardContent className="p-4">
+                  <Card key={item.id} className="border-border/70">
+                    <CardContent className="p-4 sm:p-5">
                       <div className="flex gap-4">
-                        <img 
-                          src={item.image} 
-                          alt={item.name}
-                          className="w-20 h-20 rounded-lg object-cover"
-                          onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                            e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik00MCA0MEg2MFY2MEg0MFY0MFoiIGZpbGw9IiM5QjlCQTMiLz4KPC9zdmc+';
-                          }}
-                        />
+                    <div className="w-20 h-20 rounded-lg overflow-hidden bg-muted">
+                      <Image
+                        src={item.image}
+                        alt={item.name}
+                        width={80}
+                        height={80}
+                        className="h-full w-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik00MCA0MEg2MFY2MEg0MFY0MFoiIGZpbGw9IiM5QjlCQTMiLz4KPC9zdmc+';
+                        }}
+                      />
+                    </div>
                         <div className="flex-1">
-                          <div className="flex justify-between items-start mb-2">
-                            <h3 className="font-semibold">{item.name}</h3>
+                          <div className="flex justify-between items-start gap-3 mb-3">
+                            <div>
+                              <h3 className="font-semibold text-base leading-tight">{item.name}</h3>
+                              <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                                <Avatar className="h-5 w-5">
+                                  <AvatarImage src={item.cookerAvatar} />
+                                  <AvatarFallback className="text-xs">{item.cookerName?.slice(0, 2).toUpperCase()}</AvatarFallback>
+                                </Avatar>
+                                <span>{item.cookerName}</span>
+                                <Badge variant="outline" className="text-xs py-0 px-2">
+                                  {item.category}
+                                </Badge>
+                              </div>
+                            </div>
                             <Button 
                               variant="ghost" 
-                              size="sm" 
+                              size="icon" 
                               onClick={() => removeFromCart(item.id)}
-                              className="text-muted-foreground hover:text-destructive"
+                              className="text-muted-foreground hover:text-destructive/90"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
-                          </div>
-                          
-                          <div className="flex items-center gap-2 mb-2">
-                            <Avatar className="h-5 w-5">
-                              <AvatarImage src={item.cookerAvatar} />
-                              <AvatarFallback className="text-xs">C</AvatarFallback>
-                            </Avatar>
-                            <span className="text-sm text-muted-foreground">{item.cookerName}</span>
-                            <Badge variant="outline" className="text-xs">{item.category}</Badge>
                           </div>
                           
                           <div className="flex items-center justify-between">
@@ -517,21 +539,23 @@ const CartPage = () => {
                                 size="sm" 
                                 onClick={() => updateQuantity(item.id, item.quantity - 1)}
                                 disabled={item.quantity <= 1}
+                                className="h-8 w-8 rounded-lg"
                               >
                                 <Minus className="h-3 w-3" />
                               </Button>
-                              <span className="w-8 text-center font-medium">{item.quantity}</span>
+                              <span className="w-8 text-center font-medium text-sm">{item.quantity}</span>
                               <Button 
                                 variant="outline" 
                                 size="sm" 
                                 onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                className="h-8 w-8 rounded-lg"
                               >
                                 <Plus className="h-3 w-3" />
                               </Button>
                             </div>
                             <div className="text-right">
-                              <p className="font-semibold">{formatPrice(item.price * item.quantity)}</p>
-                              <p className="text-sm text-muted-foreground">{formatPrice(item.price)} each</p>
+                              <p className="font-semibold text-base">{formatPrice(item.price * item.quantity)}</p>
+                              <p className="text-xs text-muted-foreground">{formatPrice(item.price)} c/u</p>
                             </div>
                           </div>
                         </div>
@@ -542,12 +566,11 @@ const CartPage = () => {
               )}
             </div>
 
-            {/* Order Summary */}
             {cartItems.length > 0 && (
               <div className="space-y-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Order Summary</CardTitle>
+                    <CardTitle>Resumen del Pedido</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex justify-between">
@@ -640,7 +663,7 @@ const CartPage = () => {
                   )}
                 </div>
                 <div>
-                  <Label htmlFor="phone">Phone Number</Label>
+                  <Label htmlFor="phone">Número de contacto</Label>
                   <Input
                     id="phone"
                     type="tel"
@@ -650,7 +673,7 @@ const CartPage = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="instructions">Special Instructions (Optional)</Label>
+                  <Label htmlFor="instructions">Indicaciones especiales (opcional)</Label>
                   <Textarea
                     id="instructions"
                     placeholder="Any special delivery instructions..."
