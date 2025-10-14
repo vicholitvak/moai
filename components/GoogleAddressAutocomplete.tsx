@@ -359,11 +359,11 @@ export default function GoogleAddressAutocomplete({
               <Save className="h-4 w-4 mr-1" />
               Validar dirección
             </Button>
-            {defaultAddress && (
+            {userSavedAddress && userSavedAddress !== value && (
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => onChange(defaultAddress)}
+                onClick={() => onChange(userSavedAddress)}
               >
                 Restablecer
               </Button>
@@ -371,85 +371,6 @@ export default function GoogleAddressAutocomplete({
           </div>
         </>
       )}
-    </div>
-  );
-
-  return (
-    <div className={`space-y-2 ${className}`}>
-      <div className="relative">
-        <Input
-          ref={inputRef}
-          value={value}
-          onChange={(e) => handleInputChange(e.target.value)}
-          placeholder={placeholder}
-          disabled={disabled || isLoadingPlaces}
-          className="pr-10"
-        />
-        {isLoadingPlaces && (
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-          </div>
-        )}
-      </div>
-
-      {error && (
-        <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
-          <AlertCircle className="h-4 w-4" />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {suggestions.length > 0 && (
-        <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-          {suggestions.map((prediction) => (
-            <button
-              key={prediction.place_id}
-              onClick={() => handleSuggestionSelect(prediction)}
-              className="w-full p-3 text-left hover:bg-gray-50 flex items-start gap-2 border-b border-gray-100 last:border-b-0"
-            >
-              <MapPin className="h-4 w-4 text-gray-400 mt-1 flex-shrink-0" />
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-gray-900 truncate">
-                  {prediction.structured_formatting.main_text}
-                </p>
-                <p className="text-xs text-gray-500 truncate">
-                  {prediction.structured_formatting.secondary_text}
-                </p>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div className="flex gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleUseCurrentAddress}
-          disabled={isLoadingPlaces}
-        >
-          <Crosshair className="h-4 w-4 mr-1" />
-          Usar mi ubicación
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleManualGeocode}
-          disabled={isLoadingPlaces || value.length < 5}
-        >
-          <Save className="h-4 w-4 mr-1" />
-          Validar dirección
-        </Button>
-        {defaultAddress && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onChange(defaultAddress)}
-          >
-            Restablecer
-          </Button>
-        )}
-      </div>
     </div>
   );
 }
