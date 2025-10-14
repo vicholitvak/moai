@@ -9,18 +9,20 @@ import { useUserProfile } from '../../context/UserProfileContext';
 import { MercadoPagoService } from '@/lib/services/mercadoPagoService';
 import { OrderApprovalService } from '@/lib/services/orderApprovalService';
 import { toast } from 'sonner';
-import { 
-  ArrowLeft, 
-  Trash2, 
-  Plus, 
-  Minus, 
-  ShoppingCart, 
+import {
+  ArrowLeft,
+  Trash2,
+  Plus,
+  Minus,
+  ShoppingCart,
   CreditCard,
   Banknote,
   User,
   CheckCircle,
   Shield,
-  Save
+  Save,
+  MapPin,
+  ShieldCheck
 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
