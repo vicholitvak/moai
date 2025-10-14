@@ -635,6 +635,7 @@ const CartPage = (): JSX.Element => {
                     onChange={handleAddressChange}
                     placeholder="Ingresa tu dirección de entrega..."
                     userSavedAddress={profile?.address?.fullAddress}
+                    hasVerifiedCoordinates={Boolean(orderForm.deliveryCoordinates)}
                     className="mt-2"
                   />
                   <p className="text-sm text-muted-foreground mt-1">

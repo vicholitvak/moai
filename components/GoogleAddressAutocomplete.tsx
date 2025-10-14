@@ -24,20 +24,20 @@ interface GoogleAddressAutocompleteProps {
     fullAddressData?: google.maps.places.PlaceResult
   ) => void;
   placeholder?: string;
-  defaultAddress?: string;
   userSavedAddress?: string;
   className?: string;
   disabled?: boolean;
+  hasVerifiedCoordinates?: boolean;
 }
 
 export default function GoogleAddressAutocomplete({
   value,
   onChange,
   placeholder = 'Ingresa tu dirección...',
-  defaultAddress,
   userSavedAddress,
   className = '',
-  disabled = false
+  disabled = false,
+  hasVerifiedCoordinates = false
 }: GoogleAddressAutocompleteProps): JSX.Element {
   const [isEditing, setIsEditing] = useState(false);
   const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
@@ -265,7 +265,7 @@ export default function GoogleAddressAutocomplete({
     }
   };
 
-  const showVerifiedBanner = orderFormHasCoordinates && !isEditing;
+  const showVerifiedBanner = hasVerifiedCoordinates && !isEditing;
 
   return (
     <div className={`space-y-2 ${className}`}>
