@@ -1,15 +1,13 @@
 // Firebase Cloud Messaging Service Worker
+importScripts('/api/firebase-config-sw');
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
-firebase.initializeApp({
-  apiKey: "AIzaSyCIni3lox4wQG0lX9Sy9zv3Q_iMjV5AvTs",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
-});
+if (!self.__FIREBASE_CONFIG__) {
+  console.error('Firebase config not detected in service worker.');
+}
+
+firebase.initializeApp(self.__FIREBASE_CONFIG__ || {});
 
 const messaging = firebase.messaging();
 
