@@ -169,24 +169,46 @@ export default function GoogleAddressAutocomplete({
       return;
     }
 
+    if (!geocoderRef.current) {
+      setError('El servicio de geocodificación no está disponible aún');
+      return;
+    }
+
     setIsLoadingPlaces(true);
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         try {
           const { latitude, longitude, accuracy } = position.coords;
-          const address = await LocationService.getAddressFromCoordinates(latitude, longitude);
-          const coords = buildCoordinates(latitude, longitude, {
-            accuracy,
-            formattedAddress: address.fullAddress,
-            source: 'manual'
-          });
-          onChange(address.fullAddress, coords, undefined);
-          setIsEditing(false);
+
+          // Use Google Maps Geocoder for reverse geocoding
+          geocoderRef.current!.geocode(
+            {
+              location: { lat: latitude, lng: longitude }
+            },
+            (results, status) => {
+              setIsLoadingPlaces(false);
+
+              if (status === 'OK' && results && results.length > 0) {
+                const result = results[0];
+                const coords = buildCoordinates(latitude, longitude, {
+                  accuracy,
+                  placeId: result.place_id,
+                  formattedAddress: result.formatted_address,
+                  source: 'manual'
+                });
+                onChange(result.formatted_address, coords, undefined);
+                setIsEditing(false);
+                setError(null);
+              } else {
+                console.error('Geocoding failed:', status);
+                setError('No pudimos obtener tu dirección actual. Intenta de nuevo.');
+              }
+            }
+          );
         } catch (geoError) {
           console.error('Error realizando geocoding inverso:', geoError);
-          setError('No pudimos obtener tu dirección actual. Intenta de nuevo.');
-        } finally {
           setIsLoadingPlaces(false);
+          setError('No pudimos obtener tu dirección actual. Intenta de nuevo.');
         }
       },
       (error) => {
@@ -283,7 +305,9 @@ export default function GoogleAddressAutocomplete({
                   padding: '0 12px',
                   fontSize: '14px',
                   fontFamily: 'inherit',
-                  outline: 'none'
+                  outline: 'none',
+                  backgroundColor: 'hsl(var(--background))',
+                  color: 'hsl(var(--foreground))'
                 }}
               />
             ) : (
